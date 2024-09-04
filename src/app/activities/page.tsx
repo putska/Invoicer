@@ -1,140 +1,112 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import SideNav from "@/app/components/SideNav";
+import React, { useState, useEffect } from "react";
+import SideNav from "../components/SideNav";
+import { Category, Activity, Project } from "../../../types";
 
-interface Activity {
-  name: string;
-  sortOrder?: number;
-  estimatedHours?: number;
-  notes?: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  sortOrder?: number;
-  activities: Activity[];
-}
-
-interface Project {
-  id: number;
-  name: string;
-}
-
-export default function CategoriesAndActivities() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [selectedProject, setSelectedProject] = useState<number | undefined>();
-  const [projectList, setProjectList] = useState<Project[]>([]);
-  const [categoryName, setCategoryName] = useState<string>("");
-  const [categorySortOrder, setCategorySortOrder] = useState<
-    number | undefined
-  >();
-  const [selectedCategory, setSelectedCategory] = useState<
-    number | undefined
-  >();
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+const ActivitiesPage = () => {
+  const [projectList, setProjectList] = useState([]);
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [categorySortOrder, setCategorySortOrder] = useState<number | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
 
-  const fetchProjects = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/projects`);
+  useEffect(() => {
+    // Fetch project list here (you can adjust this if needed)
+    const fetchProjects = async () => {
+      const res = await fetch("/api/projects"); // Adjust endpoint
       const data = await res.json();
-      setProjectList(data.projects);
-    } catch (err) {
-      console.log(err);
-    }
+      setProjectList(data.projects); // Assuming your API returns { projects: [...] }
+    };
+
+    fetchProjects();
   }, []);
 
-  const fetchCategories = useCallback(async () => {
-    if (!selectedProject) return;
+  // Fetch the categories and activities for the selected project
+  useEffect(() => {
+    if (selectedProject) {
+      const fetchCategoriesAndActivities = async () => {
+        const res = await fetch(
+          `/api/getTreeViewData?projectId=${selectedProject}`
+        );
+        const data = (await res.json()) as Category[];
 
-    try {
-      const res = await fetch(`/api/categories?projectId=${selectedProject}`);
-      const data = await res.json();
-      setCategories(data.categories);
-    } catch (err) {
-      console.log(err);
+        // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
+        const fetchedCategories = data.map((categoryItem) => ({
+          ...categoryItem.parent,
+          activities: categoryItem.children,
+        }));
+
+        setCategories(fetchedCategories);
+      };
+
+      fetchCategoriesAndActivities();
     }
   }, [selectedProject]);
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchProjects();
-    }
-  }, [isLoaded, isSignedIn, fetchProjects]);
-
-  useEffect(() => {
-    if (selectedProject) {
-      fetchCategories();
-    }
-  }, [selectedProject, fetchCategories]);
-
-  const addActivity = () => {
-    setActivities([
-      ...activities,
-      { name: "", sortOrder: activities.length + 1 },
-    ]);
-  };
-
-  const handleActivityChange = (index: number, field: string, value: any) => {
-    const newActivities = [...activities];
-    newActivities[index] = { ...newActivities[index], [field]: value };
-    setActivities(newActivities);
-  };
-
-  const createCategory = async () => {
-    if (!selectedProject) {
-      alert("Please select a project before adding a category.");
-      return;
-    }
-
+  // Function to handle adding a category
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const request = await fetch("/api/categories", {
+      const res = await fetch("/api/categories", {
         method: "POST",
         body: JSON.stringify({
           projectId: selectedProject,
           name: categoryName,
           sortOrder: categorySortOrder,
-          activities,
         }),
         headers: {
           "Content-Type": "application/json",
         },
       });
-      const response = await request.json();
-      alert(response.message);
+
+      const data = await res.json();
       setCategoryName("");
-      setCategorySortOrder(undefined);
-      setActivities([]);
-      fetchCategories(); // Refresh the categories list
+      setCategorySortOrder(null);
+      setLoading(false);
+      // Refetch categories after adding a new one
+      const fetchCategoriesAndActivities = async () => {
+        const res = await fetch(
+          `/api/getTreeViewData?projectId=${selectedProject}`
+        );
+        const data = await res.json();
+
+        const fetchedCategories = data.map((categoryItem) => ({
+          ...categoryItem.parent,
+          activities: categoryItem.children,
+        }));
+
+        setCategories(fetchedCategories);
+      };
+      fetchCategoriesAndActivities();
     } catch (err) {
-      console.log(err);
-    } finally {
+      console.error("Error adding category:", err);
       setLoading(false);
     }
   };
 
   const handleCategorySelect = (categoryId: number) => {
-    const category = categories.find((cat) => cat.id === categoryId);
-    if (category) {
-      setCategoryName(category.name);
-      setCategorySortOrder(category.sortOrder);
-      setActivities(category.activities || []);
-    }
-    setSelectedCategory(categoryId);
+    const selectedCategory = categories.find(
+      (category) => category.id === categoryId
+    );
+    setActivities(selectedCategory?.activities || []);
   };
 
-  const handleAddCategory = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    createCategory();
+  const handleActivityChange = (index: number, field: string, value: any) => {
+    const updatedActivities = [...activities];
+    updatedActivities[index] = { ...updatedActivities[index], [field]: value };
+    setActivities(updatedActivities);
   };
 
-  if (!isLoaded || !isSignedIn) {
-    return <p>Loading...</p>;
-  }
+  const addActivity = () => {
+    setActivities([
+      ...activities,
+      { name: "", sortOrder: 0, estimatedHours: 0 },
+    ]);
+  };
 
   return (
     <div className="w-full">
@@ -151,7 +123,7 @@ export default function CategoriesAndActivities() {
             <label className="block mb-2">Select Project</label>
             <select
               className="w-full p-2 border border-gray-200 rounded-sm"
-              value={selectedProject}
+              value={selectedProject || ""}
               onChange={(e) => setSelectedProject(Number(e.target.value))}
             >
               <option value="">-- Select a Project --</option>
@@ -169,7 +141,11 @@ export default function CategoriesAndActivities() {
                 <label className="block mb-2">Select Category</label>
                 <select
                   className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={selectedCategory}
+                  value={
+                    categories.find(
+                      (category) => category.id === selectedProject
+                    )?.id || ""
+                  }
                   onChange={(e) => handleCategorySelect(Number(e.target.value))}
                 >
                   <option value="">-- Select a Category --</option>
@@ -295,7 +271,7 @@ export default function CategoriesAndActivities() {
                 <div key={index}>
                   <h4 className="text-lg font-bold">{category.name}</h4>
                   <ul>
-                    {category.activities && activities.length > 0 ? (
+                    {category.activities && category.activities.length > 0 ? (
                       category.activities.map((activity, actIndex) => (
                         <li key={actIndex}>{activity.name}</li>
                       ))
@@ -311,4 +287,6 @@ export default function CategoriesAndActivities() {
       </main>
     </div>
   );
-}
+};
+
+export default ActivitiesPage;

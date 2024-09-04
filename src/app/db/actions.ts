@@ -154,18 +154,18 @@ export const deleteProject = async (id: number) => {
 };
 
 // Fetch all categories for a given project ID
-export const getCategoriesByProjectId = async (projectId: number) => {
-  try {
-    const result = await categoriesDB
-      .select()
-      .from(categories)
-      .where(eq(categories.projectId, projectId));
-    return result;
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    throw new Error("Could not fetch categories");
-  }
-};
+// export const getCategoriesByProjectId = async (projectId: number) => {
+//   try {
+//     const result = await categoriesDB
+//       .select()
+//       .from(categories)
+//       .where(eq(categories.projectId, projectId));
+//     return result;
+//   } catch (error) {
+//     console.error("Error fetching categories:", error);
+//     throw new Error("Could not fetch categories");
+//   }
+//};
 
 // Fetch all activities for a given category ID
 export const getActivitiesByCategoryId = async (categoryId: number) => {
@@ -293,3 +293,51 @@ export const deleteActivity = async (activityId: number) => {
     throw new Error("Could not delete activity");
   }
 };
+
+// Fetch categories and activities based on the selected projectId
+export async function getTreeViewData(projectId: number) {
+  try {
+    // Fetch categories based on projectId
+    const categoryRecords = await categoriesDB
+      .select({
+        categoryId: categories.id,
+        categoryName: categories.name,
+        sortOrder: categories.sortOrder,
+      })
+      .from(categories)
+      .where(eq(categories.projectId, projectId)); // Filter categories by projectId
+
+    // Fetch activities for the fetched categories
+    const categoryIds = categoryRecords.map((category) => category.categoryId);
+
+    if (categoryIds.length === 0) {
+      return []; // No categories found, return an empty array
+    }
+
+    const activityRecords = await categoriesDB
+      .select({
+        activityId: activities.id,
+        activityName: activities.name,
+        sortOrder: activities.sortOrder,
+        estimatedHours: activities.estimatedHours,
+        notes: activities.notes,
+        completed: activities.completed,
+        categoryId: activities.categoryId,
+      })
+      .from(activities)
+      .where(activities.categoryId.in(categoryIds)); // Fetch activities where categoryId matches
+
+    // Combine categories and their respective activities
+    const treeViewData = categoryRecords.map((category) => ({
+      parent: category,
+      children: activityRecords.filter(
+        (activity) => activity.categoryId === category.categoryId
+      ),
+    }));
+
+    return treeViewData; // Return categories with their activities
+  } catch (error) {
+    console.error("Error fetching tree view data:", error);
+    throw new Error("Could not fetch tree view data.");
+  }
+}
