@@ -1,23 +1,30 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { getTreeViewData } from "../../db/actions"; // Assuming this function fetches categories and activities by project
+import { NextRequest, NextResponse } from "next/server";
+import { getTreeViewData } from "@/app/db/actions"; // Adjust the import path as necessary
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export async function GET(req: NextRequest) {
+  const projectId = req.nextUrl.searchParams.get("projectId");
+
+  if (!projectId) {
+    return NextResponse.json(
+      { message: "Missing projectId parameter" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { projectId } = req.query; // Get the projectId from query parameters
-
-    if (!projectId) {
-      return res.status(400).json({ error: "Missing projectId parameter" });
-    }
-
-    // Call your function to fetch categories and activities for the project
-    const treeData = await getTreeViewData(Number(projectId)); // Convert projectId to number if necessary
-
-    return res.status(200).json(treeData);
-  } catch (error) {
-    console.error("Error fetching tree view data:", error);
-    res.status(500).json({ error: "Failed to fetch tree view data" });
+    const treeViewData = await getTreeViewData(Number(projectId));
+    return NextResponse.json(
+      { message: "Data retrieved successfully!", treeViewData },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("Error fetching tree view data:", err);
+    return NextResponse.json(
+      {
+        message: "An error occurred",
+        error: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

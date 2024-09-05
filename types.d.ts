@@ -49,6 +49,7 @@ export interface Category {
   sortOrder?: number;
   createdAt?: string;
   updatedAt?: string;
+  activities?: Activity[];
 }
 
 export interface Activity {

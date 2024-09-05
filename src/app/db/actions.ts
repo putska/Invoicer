@@ -15,7 +15,8 @@ import {
   activities,
 } from "./schema";
 import { Customer, Project, Activity, Category } from "../../../types";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
+import { act } from "react";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
@@ -270,7 +271,7 @@ export const updateActivity = async (
   }>
 ) => {
   try {
-    const result = await db
+    const result = await activitiesDB
       .update(activities)
       .set(updatedData)
       .where(eq(activities.id, activityId));
@@ -284,7 +285,7 @@ export const updateActivity = async (
 // Delete an activity by ID
 export const deleteActivity = async (activityId: number) => {
   try {
-    const result = await db
+    const result = await activitiesDB
       .delete(activities)
       .where(eq(activities.id, activityId));
     return result;
@@ -294,50 +295,49 @@ export const deleteActivity = async (activityId: number) => {
   }
 };
 
-// Fetch categories and activities based on the selected projectId
-export async function getTreeViewData(projectId: number) {
+// Fetch all categories for a given project ID, including activities
+export const getTreeViewData = async (projectId: number) => {
   try {
-    // Fetch categories based on projectId
-    const categoryRecords = await categoriesDB
+    // Fetch categories
+    const fetchedCategories = await categoriesDB
       .select({
         categoryId: categories.id,
         categoryName: categories.name,
         sortOrder: categories.sortOrder,
       })
       .from(categories)
-      .where(eq(categories.projectId, projectId)); // Filter categories by projectId
+      .where(eq(categories.projectId, projectId));
 
-    // Fetch activities for the fetched categories
-    const categoryIds = categoryRecords.map((category) => category.categoryId);
+    // Get list of category IDs
+    const categoryIds = fetchedCategories.map(
+      (category) => category.categoryId
+    );
 
-    if (categoryIds.length === 0) {
-      return []; // No categories found, return an empty array
-    }
-
-    const activityRecords = await categoriesDB
+    // Fetch activities for the categories using inArray
+    const fetchedActivities = await categoriesDB
       .select({
         activityId: activities.id,
         activityName: activities.name,
-        sortOrder: activities.sortOrder,
+        activitySortOrder: activities.sortOrder,
         estimatedHours: activities.estimatedHours,
         notes: activities.notes,
         completed: activities.completed,
         categoryId: activities.categoryId,
       })
       .from(activities)
-      .where(activities.categoryId.in(categoryIds)); // Fetch activities where categoryId matches
+      .where(inArray(activities.categoryId, categoryIds));
 
-    // Combine categories and their respective activities
-    const treeViewData = categoryRecords.map((category) => ({
-      parent: category,
-      children: activityRecords.filter(
+    // Combine categories and activities
+    const result = fetchedCategories.map((category) => ({
+      ...category,
+      activities: fetchedActivities.filter(
         (activity) => activity.categoryId === category.categoryId
       ),
     }));
 
-    return treeViewData; // Return categories with their activities
+    return result;
   } catch (error) {
-    console.error("Error fetching tree view data:", error);
-    throw new Error("Could not fetch tree view data.");
+    console.error("Error fetching categories with activities:", error);
+    throw new Error("Could not fetch categories with activities");
   }
-}
+};

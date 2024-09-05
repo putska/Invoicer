@@ -1,6 +1,13 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import SideNav from "../components/SideNav";
 import { Category, Activity, Project } from "../../../types";
+
+interface TreeViewDataResponse {
+  message: string;
+  treeViewData: Category[];
+}
 
 const ActivitiesPage = () => {
   const [projectList, setProjectList] = useState([]);
@@ -11,6 +18,7 @@ const ActivitiesPage = () => {
   const [categorySortOrder, setCategorySortOrder] = useState<number | null>(
     null
   );
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -31,12 +39,15 @@ const ActivitiesPage = () => {
         const res = await fetch(
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
-        const data = (await res.json()) as Category[];
-
+        const data: TreeViewDataResponse = await res.json(); // Specify the expected response type
+        console.log("data from categories", data);
         // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
-        const fetchedCategories = data.map((categoryItem) => ({
-          ...categoryItem.parent,
-          activities: categoryItem.children,
+        const fetchedCategories = data.treeViewData.map((categoryItem) => ({
+          id: categoryItem.id,
+          name: categoryItem.name,
+          projectId: String(selectedProject),
+          sortOrder: categoryItem.sortOrder,
+          activities: categoryItem.activities || [], // Ensure activities is always an array
         }));
 
         setCategories(fetchedCategories);
@@ -72,11 +83,15 @@ const ActivitiesPage = () => {
         const res = await fetch(
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
-        const data = await res.json();
-
-        const fetchedCategories = data.map((categoryItem) => ({
-          ...categoryItem.parent,
-          activities: categoryItem.children,
+        const data: TreeViewDataResponse = await res.json(); // Specify the expected response type
+        console.log("data from categories", data);
+        // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
+        const fetchedCategories = data.treeViewData.map((categoryItem) => ({
+          id: categoryItem.id,
+          name: categoryItem.name,
+          projectId: String(selectedProject),
+          sortOrder: categoryItem.sortOrder,
+          activities: categoryItem.activities || [], // Ensure activities is always an array
         }));
 
         setCategories(fetchedCategories);
@@ -89,23 +104,53 @@ const ActivitiesPage = () => {
   };
 
   const handleCategorySelect = (categoryId: number) => {
+    setSelectedCategory(categoryId);
     const selectedCategory = categories.find(
       (category) => category.id === categoryId
     );
     setActivities(selectedCategory?.activities || []);
   };
 
-  const handleActivityChange = (index: number, field: string, value: any) => {
-    const updatedActivities = [...activities];
-    updatedActivities[index] = { ...updatedActivities[index], [field]: value };
-    setActivities(updatedActivities);
+  const handleActivityChange = (
+    categoryIndex: number,
+    activityIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const updatedCategories = [...categories];
+
+    // Ensure that the category's activities array exists
+    if (!updatedCategories[categoryIndex].activities) {
+      updatedCategories[categoryIndex].activities = []; // Initialize as an empty array if undefined
+    }
+
+    // Update the activity in the specific category
+    updatedCategories[categoryIndex].activities[activityIndex] = {
+      ...updatedCategories[categoryIndex].activities[activityIndex],
+      [field]: value,
+    };
+
+    setCategories(updatedCategories); // Update the state with the modified categories
   };
 
-  const addActivity = () => {
-    setActivities([
-      ...activities,
-      { name: "", sortOrder: 0, estimatedHours: 0 },
-    ]);
+  const addActivity = (categoryIndex: number) => {
+    const updatedCategories = [...categories];
+
+    // Ensure that the category's activities array exists
+    if (!updatedCategories[categoryIndex].activities) {
+      updatedCategories[categoryIndex].activities = []; // Initialize as an empty array if undefined
+    }
+
+    // Add a new empty activity to the selected category, including categoryId
+    updatedCategories[categoryIndex].activities.push({
+      name: "",
+      sortOrder: 0,
+      estimatedHours: 0,
+      completed: false,
+      categoryId: String(updatedCategories[categoryIndex].id), // Ensure categoryId is assigned
+    });
+
+    setCategories(updatedCategories); // Update the state with the new activity
   };
 
   return (
@@ -141,11 +186,7 @@ const ActivitiesPage = () => {
                 <label className="block mb-2">Select Category</label>
                 <select
                   className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={
-                    categories.find(
-                      (category) => category.id === selectedProject
-                    )?.id || ""
-                  }
+                  value={selectedCategory || ""}
                   onChange={(e) => handleCategorySelect(Number(e.target.value))}
                 >
                   <option value="">-- Select a Category --</option>
@@ -249,7 +290,11 @@ const ActivitiesPage = () => {
                 <button
                   type="button"
                   className="bg-gray-500 text-white p-2 rounded-md mb-6"
-                  onClick={addActivity}
+                  onClick={() =>
+                    addActivity(
+                      categories.findIndex((c) => c.id === selectedCategory)
+                    )
+                  }
                 >
                   Add Activity
                 </button>
