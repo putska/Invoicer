@@ -43,13 +43,19 @@ export async function GET(req: NextRequest) {
 // POST Route: Create a new activity
 export async function POST(req: NextRequest) {
   try {
+    console.log("POST route hit"); // Log that the route is being hit
+
     const body = await req.json();
+    console.log("Received data:", body); // Log the incoming request data
+
     const parsedData = activitySchema.parse(body); // Validate incoming data
+    console.log("Parsed data:", parsedData); // Log the validated data
 
     const newActivity = await createActivity(parsedData);
     return NextResponse.json({ newActivity }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.log("Validation failed:", error.errors); // Log validation errors
       return NextResponse.json(
         { message: "Validation failed", errors: error.errors },
         { status: 400 }
@@ -57,6 +63,7 @@ export async function POST(req: NextRequest) {
     }
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
+    console.log("Error:", errorMessage); // Log other errors
     return NextResponse.json(
       { message: "Error creating activity", error: errorMessage },
       { status: 500 }

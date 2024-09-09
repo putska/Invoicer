@@ -1,337 +1,318 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import SideNav from "../components/SideNav";
-import { Category, Activity, Project } from "../../../types";
+import * as React from "react";
+import { useState, useEffect } from "react";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
-interface TreeViewDataResponse {
-  message: string;
-  treeViewData: Category[];
+interface Project {
+  id: number;
+  name: string;
 }
 
-const ActivitiesPage = () => {
-  const [projectList, setProjectList] = useState([]);
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+interface Category {
+  categoryId: number;
+  categoryName: string;
+  sortOrder: number;
+  activities: Activity[];
+}
+
+interface Activity {
+  activityId: number;
+  activityName: string;
+  sortOrder: number;
+  estimatedHours: number;
+  notes: string;
+  completed: boolean;
+}
+
+interface APIProjectResponse {
+  projects: Project[];
+}
+
+export default function ProjectAccordion() {
+  const [projectList, setProjectList] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [categoryName, setCategoryName] = useState("");
-  const [categorySortOrder, setCategorySortOrder] = useState<number | null>(
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [newItemName, setNewItemName] = useState<string>("");
+  const [newSortOrder, setNewSortOrder] = useState<number>(0);
+  const [estimatedHours, setEstimatedHours] = useState<number>(0);
+  const [notes, setNotes] = useState<string>("");
+  const [completed, setCompleted] = useState<boolean>(false);
+  const [dialogType, setDialogType] = useState<"category" | "activity" | null>(
     null
   );
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [categoryToAddTo, setCategoryToAddTo] = useState<number | null>(null);
 
+  // Fetch the project list
   useEffect(() => {
-    // Fetch project list here (you can adjust this if needed)
     const fetchProjects = async () => {
-      const res = await fetch("/api/projects"); // Adjust endpoint
-      const data = await res.json();
-      setProjectList(data.projects); // Assuming your API returns { projects: [...] }
+      const res = await fetch("/api/projects");
+      const data: APIProjectResponse = await res.json();
+      setProjectList(data.projects);
     };
-
     fetchProjects();
   }, []);
 
-  // Fetch the categories and activities for the selected project
+  // Fetch categories and activities based on selected project
   useEffect(() => {
     if (selectedProject) {
       const fetchCategoriesAndActivities = async () => {
         const res = await fetch(
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
-        const data: TreeViewDataResponse = await res.json(); // Specify the expected response type
-        console.log("data from categories", data);
-        // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
-        const fetchedCategories = data.treeViewData.map((categoryItem) => ({
-          id: categoryItem.id,
-          name: categoryItem.name,
-          projectId: String(selectedProject),
-          sortOrder: categoryItem.sortOrder,
-          activities: categoryItem.activities || [], // Ensure activities is always an array
-        }));
-
-        setCategories(fetchedCategories);
+        const data = await res.json();
+        setCategories(data.treeViewData);
       };
-
       fetchCategoriesAndActivities();
     }
   }, [selectedProject]);
 
-  // Function to handle adding a category
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        body: JSON.stringify({
-          projectId: selectedProject,
-          name: categoryName,
-          sortOrder: categorySortOrder,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await res.json();
-      setCategoryName("");
-      setCategorySortOrder(null);
-      setLoading(false);
-      // Refetch categories after adding a new one
-      const fetchCategoriesAndActivities = async () => {
-        const res = await fetch(
-          `/api/getTreeViewData?projectId=${selectedProject}`
-        );
-        const data: TreeViewDataResponse = await res.json(); // Specify the expected response type
-        console.log("data from categories", data);
-        // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
-        const fetchedCategories = data.treeViewData.map((categoryItem) => ({
-          id: categoryItem.id,
-          name: categoryItem.name,
-          projectId: String(selectedProject),
-          sortOrder: categoryItem.sortOrder,
-          activities: categoryItem.activities || [], // Ensure activities is always an array
-        }));
-
-        setCategories(fetchedCategories);
-      };
-      fetchCategoriesAndActivities();
-    } catch (err) {
-      console.error("Error adding category:", err);
-      setLoading(false);
-    }
-  };
-
-  const handleCategorySelect = (categoryId: number) => {
-    setSelectedCategory(categoryId);
-    const selectedCategory = categories.find(
-      (category) => category.id === categoryId
-    );
-    setActivities(selectedCategory?.activities || []);
-  };
-
-  const handleActivityChange = (
-    categoryIndex: number,
-    activityIndex: number,
-    field: string,
-    value: any
+  // Handle dialog open for adding category or activity
+  const handleOpenDialog = (
+    type: "category" | "activity",
+    categoryId?: number
   ) => {
-    const updatedCategories = [...categories];
-
-    // Ensure that the category's activities array exists
-    if (!updatedCategories[categoryIndex].activities) {
-      updatedCategories[categoryIndex].activities = []; // Initialize as an empty array if undefined
-    }
-
-    // Update the activity in the specific category
-    updatedCategories[categoryIndex].activities[activityIndex] = {
-      ...updatedCategories[categoryIndex].activities[activityIndex],
-      [field]: value,
-    };
-
-    setCategories(updatedCategories); // Update the state with the modified categories
+    setDialogOpen(true);
+    setDialogType(type);
+    setCategoryToAddTo(categoryId || null);
   };
 
-  const addActivity = (categoryIndex: number) => {
-    const updatedCategories = [...categories];
+  const handleAddNewItem = async () => {
+    try {
+      // Add new category
+      if (dialogType === "category") {
+        const res = await fetch(`/api/categories`, {
+          method: "POST",
+          body: JSON.stringify({
+            projectId: selectedProject,
+            name: newItemName,
+            sortOrder: newSortOrder,
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const { newCategory } = await res.json();
+        setCategories((prevCategories) => [
+          ...prevCategories,
+          {
+            categoryId: newCategory.id,
+            categoryName: newCategory.name,
+            sortOrder: newCategory.sortOrder,
+            activities: [],
+          },
+        ]);
+      }
 
-    // Ensure that the category's activities array exists
-    if (!updatedCategories[categoryIndex].activities) {
-      updatedCategories[categoryIndex].activities = []; // Initialize as an empty array if undefined
+      // Add new activity
+      else if (dialogType === "activity" && categoryToAddTo !== null) {
+        const res = await fetch(`/api/activities`, {
+          method: "POST",
+          body: JSON.stringify({
+            categoryId: categoryToAddTo,
+            name: newItemName,
+            sortOrder: newSortOrder,
+            estimatedHours,
+            notes,
+            completed,
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const { newActivity } = await res.json();
+
+        setCategories((prevCategories) =>
+          prevCategories.map((cat) =>
+            cat.categoryId === categoryToAddTo
+              ? {
+                  ...cat,
+                  activities: [
+                    ...cat.activities,
+                    {
+                      activityId: newActivity.id,
+                      activityName: newActivity.name,
+                      sortOrder: newActivity.sortOrder,
+                      estimatedHours: newActivity.estimatedHours,
+                      notes: newActivity.notes,
+                      completed: newActivity.completed,
+                    },
+                  ],
+                }
+              : cat
+          )
+        );
+      }
+
+      setDialogOpen(false);
+      setNewItemName("");
+      setNewSortOrder(0);
+      setEstimatedHours(0);
+      setNotes("");
+      setCompleted(false);
+    } catch (error) {
+      console.error("Error adding new item:", error.message);
     }
-
-    // Add a new empty activity to the selected category, including categoryId
-    updatedCategories[categoryIndex].activities.push({
-      name: "",
-      sortOrder: 0,
-      estimatedHours: 0,
-      completed: false,
-      categoryId: String(updatedCategories[categoryIndex].id), // Ensure categoryId is assigned
-    });
-
-    setCategories(updatedCategories); // Update the state with the new activity
   };
 
   return (
-    <div className="w-full">
-      <main className="min-h-[90vh] flex items-start">
-        <SideNav />
+    <div className="p-4">
+      <h2 className="text-lg font-bold">
+        Select a project to view categories and activities
+      </h2>
 
-        <div className="md:w-5/6 w-full h-full p-6">
-          <h2 className="text-2xl font-bold">Categories & Activities</h2>
-          <p className="opacity-70 mb-4">
-            Select a project and manage its categories and activities
-          </p>
+      {/* Project Selector */}
+      <div className="my-4">
+        <label className="block mb-2">Select Project</label>
+        <select
+          className="w-full p-2 border border-gray-200 rounded-md"
+          value={selectedProject || ""}
+          onChange={(e) => setSelectedProject(Number(e.target.value))}
+        >
+          <option value="">-- Select a Project --</option>
+          {projectList.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-          <div className="mb-4">
-            <label className="block mb-2">Select Project</label>
-            <select
-              className="w-full p-2 border border-gray-200 rounded-sm"
-              value={selectedProject || ""}
-              onChange={(e) => setSelectedProject(Number(e.target.value))}
-            >
-              <option value="">-- Select a Project --</option>
-              {projectList.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedProject && (
-            <>
-              <div className="mb-4">
-                <label className="block mb-2">Select Category</label>
-                <select
-                  className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={selectedCategory || ""}
-                  onChange={(e) => handleCategorySelect(Number(e.target.value))}
-                >
-                  <option value="">-- Select a Category --</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <form
-                className="w-full"
-                onSubmit={handleAddCategory}
-                method="POST"
-              >
-                <div className="w-full flex items-center space-x-4 mb-3">
-                  <section className="w-1/2">
-                    <label>Category Name</label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-gray-200 rounded-sm"
-                      value={categoryName}
-                      required
-                      onChange={(e) => setCategoryName(e.target.value)}
-                    />
-                  </section>
-
-                  <section className="w-1/2">
-                    <label>Sort Order</label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-gray-200 rounded-sm"
-                      value={categorySortOrder || ""}
-                      onChange={(e) =>
-                        setCategorySortOrder(Number(e.target.value))
-                      }
-                    />
-                  </section>
+      {/* Categories and Activities */}
+      {selectedProject && (
+        <div>
+          <div className="hs-accordion-treeview-root" role="tree">
+            {/* Render categories */}
+            {categories.map((category) => (
+              <div key={category.categoryId} className="hs-accordion">
+                <div className="hs-accordion-heading py-1 flex items-center gap-x-0.5">
+                  <button className="hs-accordion-toggle w-4 h-4 flex justify-center items-center hover:bg-gray-100 rounded-md">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M5 12h14" />
+                      <path
+                        className="hs-accordion-active:hidden"
+                        d="M12 5v14"
+                      />
+                    </svg>
+                  </button>
+                  <div className="grow px-2 cursor-pointer">
+                    <span className="text-sm text-gray-800">
+                      {category.categoryName}
+                    </span>
+                  </div>
                 </div>
 
-                <h3 className="text-xl font-bold">Activities</h3>
-                {activities.length > 0 ? (
-                  activities.map((activity, index) => (
+                <div className="hs-accordion-content w-full">
+                  <div className="ps-7">
+                    {/* Render activities */}
+                    {category.activities.map((activity) => (
+                      <div
+                        key={activity.activityId}
+                        className="py-1 px-2 cursor-pointer hover:bg-gray-50"
+                      >
+                        <span className="text-sm text-gray-800">
+                          {activity.activityName}
+                        </span>
+                      </div>
+                    ))}
+                    {/* Add New Activity */}
                     <div
-                      key={index}
-                      className="w-full flex items-center space-x-4 mb-3"
+                      className="py-1 px-2 cursor-pointer"
+                      onClick={() =>
+                        handleOpenDialog("activity", category.categoryId)
+                      }
                     >
-                      <section className="w-1/3">
-                        <label>Activity Name</label>
-                        <input
-                          type="text"
-                          className="w-full p-2 border border-gray-200 rounded-sm"
-                          value={activity.name}
-                          required
-                          onChange={(e) =>
-                            handleActivityChange(index, "name", e.target.value)
-                          }
-                        />
-                      </section>
-
-                      <section className="w-1/3">
-                        <label>Sort Order</label>
-                        <input
-                          type="number"
-                          className="w-full p-2 border border-gray-200 rounded-sm"
-                          value={activity.sortOrder || ""}
-                          onChange={(e) =>
-                            handleActivityChange(
-                              index,
-                              "sortOrder",
-                              Number(e.target.value)
-                            )
-                          }
-                        />
-                      </section>
-
-                      <section className="w-1/3">
-                        <label>Estimated Hours</label>
-                        <input
-                          type="number"
-                          className="w-full p-2 border border-gray-200 rounded-sm"
-                          value={activity.estimatedHours || ""}
-                          onChange={(e) =>
-                            handleActivityChange(
-                              index,
-                              "estimatedHours",
-                              Number(e.target.value)
-                            )
-                          }
-                        />
-                      </section>
+                      <span className="text-sm text-blue-500 underline">
+                        Add new activity
+                      </span>
                     </div>
-                  ))
-                ) : (
-                  <p>
-                    No activities added yet. Use the button below to add some.
-                  </p>
-                )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Add New Category */}
+            <div
+              className="py-1 cursor-pointer"
+              onClick={() => handleOpenDialog("category")}
+            >
+              <span className="text-sm text-blue-500 underline">
+                Add new category
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
-                <button
-                  type="button"
-                  className="bg-gray-500 text-white p-2 rounded-md mb-6"
-                  onClick={() =>
-                    addActivity(
-                      categories.findIndex((c) => c.id === selectedCategory)
-                    )
-                  }
-                >
-                  Add Activity
-                </button>
-
-                <button
-                  className="bg-blue-500 text-white p-2 rounded-md mb-6"
-                  disabled={loading}
-                >
-                  {loading ? "Adding..." : "Add Category"}
-                </button>
-              </form>
+      {/* Dialog */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>
+          {dialogType === "category" ? "Add New Category" : "Add New Activity"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label={
+              dialogType === "category" ? "Category Name" : "Activity Name"
+            }
+            type="text"
+            fullWidth
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+          />
+          <TextField
+            margin="dense"
+            label="Sort Order"
+            type="number"
+            fullWidth
+            value={newSortOrder}
+            onChange={(e) => setNewSortOrder(Number(e.target.value))}
+          />
+          {dialogType === "activity" && (
+            <>
+              <TextField
+                margin="dense"
+                label="Estimated Hours"
+                type="number"
+                fullWidth
+                value={estimatedHours}
+                onChange={(e) => setEstimatedHours(Number(e.target.value))}
+              />
+              <TextField
+                margin="dense"
+                label="Notes"
+                type="text"
+                fullWidth
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={completed}
+                    onChange={(e) => setCompleted(e.target.checked)}
+                  />
+                }
+                label="Completed"
+              />
             </>
           )}
-
-          {selectedProject && (
-            <div>
-              <h3 className="text-xl font-bold mt-6">Existing Categories</h3>
-              {categories.map((category, index) => (
-                <div key={index}>
-                  <h4 className="text-lg font-bold">{category.name}</h4>
-                  <ul>
-                    {category.activities && category.activities.length > 0 ? (
-                      category.activities.map((activity, actIndex) => (
-                        <li key={actIndex}>{activity.name}</li>
-                      ))
-                    ) : (
-                      <li>No activities added yet.</li>
-                    )}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddNewItem}>Add</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
-};
-
-export default ActivitiesPage;
+}

@@ -51,12 +51,33 @@ export interface Category {
   updatedAt?: string;
   activities?: Activity[];
 }
+export interface APICategory {
+  categoryId?: number;
+  projectId: string;
+  categoryName: string;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  activities?: Activity[];
+}
 
 export interface Activity {
   id?: number;
   categoryId: string; // Reference to the Category ID
   name: string;
   sortOrder?: number;
+  estimatedHours?: number;
+  notes?: string;
+  completed: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface APIActivity {
+  activityId?: number;
+  categoryId: string; // Reference to the Category ID
+  activityName: string;
+  activitySortOrder?: number;
   estimatedHours?: number;
   notes?: string;
   completed: boolean;

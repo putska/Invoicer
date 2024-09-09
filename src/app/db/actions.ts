@@ -15,7 +15,8 @@ import {
   activities,
 } from "./schema";
 import { Customer, Project, Activity, Category } from "../../../types";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+
 import { act } from "react";
 
 //👇🏻 add a new row to the invoices table
@@ -189,12 +190,17 @@ export const createCategory = async (category: {
   sortOrder?: number;
 }) => {
   try {
-    const result = await categoriesDB.insert(categories).values({
-      projectId: category.projectId,
-      name: category.name,
-      sortOrder: category.sortOrder,
-    });
-    return result;
+    // Insert the new activity and return the inserted record
+    const [result] = await categoriesDB
+      .insert(categories)
+      .values({
+        projectId: category.projectId,
+        name: category.name,
+        sortOrder: category.sortOrder,
+      })
+      .returning(); // Ensure this returns the inserted row
+
+    return result; // Return the newly inserted activity
   } catch (error) {
     console.error("Error creating category:", error);
     throw new Error("Could not create category");
@@ -244,17 +250,24 @@ export const createActivity = async (activity: {
   completed?: boolean;
 }) => {
   try {
-    const result = await activitiesDB.insert(activities).values({
-      categoryId: activity.categoryId,
-      name: activity.name,
-      sortOrder: activity.sortOrder,
-      estimatedHours: activity.estimatedHours,
-      notes: activity.notes,
-      completed: activity.completed ?? false,
-    });
+    console.log("Activity Data:", activity); // Log the incoming activity data
+
+    const [result] = await activitiesDB
+      .insert(activities)
+      .values({
+        categoryId: activity.categoryId,
+        name: activity.name,
+        sortOrder: activity.sortOrder || 0,
+        estimatedHours: activity.estimatedHours || 0,
+        notes: activity.notes || "",
+        completed: activity.completed || false,
+      })
+      .returning();
+
+    console.log("Insert result:", result); // Log the result after the insert
     return result;
   } catch (error) {
-    console.error("Error creating activity:", error);
+    console.error("Error during activity creation:", error); // Log the error
     throw new Error("Could not create activity");
   }
 };
@@ -295,10 +308,9 @@ export const deleteActivity = async (activityId: number) => {
   }
 };
 
-// Fetch all categories for a given project ID, including activities
 export const getTreeViewData = async (projectId: number) => {
   try {
-    // Fetch categories
+    // Fetch categories using `inArray`
     const fetchedCategories = await categoriesDB
       .select({
         categoryId: categories.id,
@@ -306,28 +318,33 @@ export const getTreeViewData = async (projectId: number) => {
         sortOrder: categories.sortOrder,
       })
       .from(categories)
-      .where(eq(categories.projectId, projectId));
+      .where(inArray(categories.projectId, [projectId])); // Use `inArray` for filtering by projectId
 
-    // Get list of category IDs
+    // Log the fetched categories
+    console.log("Fetched categories with `inArray`:", fetchedCategories);
+
+    // Get list of category IDs from the fetched categories
     const categoryIds = fetchedCategories.map(
       (category) => category.categoryId
     );
 
-    // Fetch activities for the categories using inArray
-    const fetchedActivities = await categoriesDB
-      .select({
-        activityId: activities.id,
-        activityName: activities.name,
-        activitySortOrder: activities.sortOrder,
-        estimatedHours: activities.estimatedHours,
-        notes: activities.notes,
-        completed: activities.completed,
-        categoryId: activities.categoryId,
-      })
-      .from(activities)
-      .where(inArray(activities.categoryId, categoryIds));
+    // Fetch activities for the categories using `inArray`
+    const fetchedActivities = categoryIds.length
+      ? await categoriesDB
+          .select({
+            activityId: activities.id,
+            activityName: activities.name,
+            activitySortOrder: activities.sortOrder,
+            estimatedHours: activities.estimatedHours,
+            notes: activities.notes,
+            completed: activities.completed,
+            categoryId: activities.categoryId,
+          })
+          .from(activities)
+          .where(inArray(activities.categoryId, categoryIds)) // Fetch activities for the fetched categories
+      : [];
 
-    // Combine categories and activities
+    // Combine categories and activities, ensuring categories without activities are included
     const result = fetchedCategories.map((category) => ({
       ...category,
       activities: fetchedActivities.filter(
@@ -335,7 +352,14 @@ export const getTreeViewData = async (projectId: number) => {
       ),
     }));
 
-    return result;
+    // Log the combined categories and activities
+    console.log("Combined categories and activities:", result);
+
+    // Ensure categories without activities return an empty array for `activities`
+    return result.map((category) => ({
+      ...category,
+      activities: category.activities || [], // Return an empty array if no activities
+    }));
   } catch (error) {
     console.error("Error fetching categories with activities:", error);
     throw new Error("Could not fetch categories with activities");
