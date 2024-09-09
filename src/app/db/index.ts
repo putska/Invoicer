@@ -7,6 +7,7 @@ import {
   projects,
   categories,
   activities,
+  manpower,
 } from "./schema";
 
 if (!process.env.NEON_DATABASE_URL) {
@@ -36,4 +37,8 @@ export const categoriesDB = drizzle(sql, {
 
 export const activitiesDB = drizzle(sql, {
   schema: { activities },
+});
+
+export const manpowerDB = drizzle(sql, {
+  schema: { manpower },
 });

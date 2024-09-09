@@ -5,6 +5,7 @@ import {
   projectsDB,
   categoriesDB,
   activitiesDB,
+  manpowerDB,
 } from ".";
 import {
   invoicesTable,
@@ -13,9 +14,10 @@ import {
   projects,
   categories,
   activities,
+  manpower,
 } from "./schema";
 import { Customer, Project, Activity, Category } from "../../../types";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, and, inArray, sql } from "drizzle-orm";
 
 import { act } from "react";
 
@@ -148,6 +150,68 @@ export const addProject = async (project: Project) => {
     }); // This returns the full inserted row
 
   return newProject;
+};
+
+// Get manpower data by project ID
+export const getManpowerByProjectId = async (projectId: number) => {
+  try {
+    const result = await manpowerDB
+      .select()
+      .from(manpower)
+      .where(eq(manpower.id, projectId)); // Assuming you have projectId in manpower table
+    return result;
+  } catch (error) {
+    console.error("Error fetching manpower:", error);
+    throw new Error("Could not fetch manpower");
+  }
+};
+
+// Fetch all manpower data
+export const getAllManpower = async () => {
+  try {
+    const result = await manpowerDB.select().from(manpower);
+    return result;
+  } catch (error) {
+    console.error("Error fetching manpower data:", error);
+    throw new Error("Could not fetch manpower data.");
+  }
+};
+
+// Add manpower data
+export const addManpower = async (
+  activityId: number,
+  date: string,
+  manpowerCount: number
+) => {
+  try {
+    await manpowerDB.insert(manpower).values({
+      activityId,
+      date: date, // Ensure the date is passed correctly
+      manpower: manpowerCount,
+    });
+    return { message: "Manpower data added successfully!" };
+  } catch (error) {
+    console.error("Error adding manpower:", error);
+    throw new Error("Failed to add manpower data.");
+  }
+};
+
+// Update manpower data
+export const updateManpower = async (
+  activityId: number,
+  date: string,
+  manpowerCount: number
+) => {
+  try {
+    await manpowerDB
+      .update(manpower)
+      .set({ manpower: manpowerCount, updatedAt: new Date() })
+      .where(and(eq(manpower.activityId, activityId), eq(manpower.date, date))); // Update based on activityId and date
+    return { message: "Manpower data updated successfully!" };
+  } catch (error) {
+    console.error("Error updating manpower:", error);
+    throw new Error("Failed to update manpower data.");
+  }
 };
 
 //👇🏻 delete a project
