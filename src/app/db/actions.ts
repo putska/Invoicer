@@ -6,6 +6,7 @@ import {
   categoriesDB,
   activitiesDB,
   manpowerDB,
+  averageManpowerDB,
 } from ".";
 import {
   invoicesTable,
@@ -382,7 +383,7 @@ export const getTreeViewData = async (projectId: number) => {
         sortOrder: categories.sortOrder,
       })
       .from(categories)
-      .where(inArray(categories.projectId, [projectId])); // Use `inArray` for filtering by projectId
+      .where(eq(categories.projectId, projectId)); // Use `eq` instead of `inArray`
 
     // Log the fetched categories
     console.log("Fetched categories with `inArray`:", fetchedCategories);
@@ -415,10 +416,7 @@ export const getTreeViewData = async (projectId: number) => {
         (activity) => activity.categoryId === category.categoryId
       ),
     }));
-
-    // Log the combined categories and activities
-    console.log("Combined categories and activities:", result);
-
+    console.log("Result:", result);
     // Ensure categories without activities return an empty array for `activities`
     return result.map((category) => ({
       ...category,
@@ -429,3 +427,45 @@ export const getTreeViewData = async (projectId: number) => {
     throw new Error("Could not fetch categories with activities");
   }
 };
+
+// Function to get the average manpower by month and year
+export async function getAverageManpowerByMonthAndYear() {
+  try {
+    const query = sql`
+      SELECT 
+        p.id AS project_id,
+        p.name AS project_name,
+        EXTRACT(YEAR FROM m.date) AS year,
+        EXTRACT(MONTH FROM m.date) AS month,
+        AVG(m.manpower) AS average_manpower
+      FROM 
+        ${projects} p
+      JOIN 
+        ${categories} c ON p.id = c.project_id
+      JOIN 
+        ${activities} a ON c.id = a.category_id
+      JOIN 
+        ${manpower} m ON a.id = m.activity_id
+      GROUP BY 
+        p.id, p.name, year, month
+      ORDER BY 
+        p.id, year, month;
+    `;
+
+    const result = await projectsDB.execute(query);
+
+    // Map the results to plain objects
+    const mappedResults = result.rows.map((row) => ({
+      project_id: row.project_id,
+      project_name: row.project_name,
+      year: row.year,
+      month: row.month,
+      average_manpower: row.average_manpower,
+    }));
+
+    return mappedResults;
+  } catch (error) {
+    console.error("Error fetching average manpower:", error);
+    throw new Error("Could not fetch average manpower");
+  }
+}

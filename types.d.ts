@@ -109,3 +109,11 @@ export interface UserProject {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface SummaryManpower {
+  project_id: number;
+  project_name: string;
+  year: number;
+  month: number;
+  average_manpower: number;
+}

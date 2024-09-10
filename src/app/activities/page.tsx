@@ -75,6 +75,7 @@ export default function ProjectAccordion() {
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
         const data = await res.json();
+        console.log("treeViewData", data.treeViewData);
         setCategories(data.treeViewData);
       };
       fetchCategoriesAndActivities();

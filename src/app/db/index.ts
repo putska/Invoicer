@@ -42,3 +42,8 @@ export const activitiesDB = drizzle(sql, {
 export const manpowerDB = drizzle(sql, {
   schema: { manpower },
 });
+
+// New database instance for the average manpower function
+export const averageManpowerDB = drizzle(sql, {
+  schema: { projects, categories, activities, manpower },
+});
