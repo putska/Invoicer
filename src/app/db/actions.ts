@@ -469,3 +469,28 @@ export async function getAverageManpowerByMonthAndYear() {
     throw new Error("Could not fetch average manpower");
   }
 }
+
+// db/fieldMonitor.ts
+
+export const getFieldMonitorData = async (projectId: number) => {
+  const result = await categoriesDB
+    .select({
+      categoryId: categories.id,
+      categoryName: categories.name,
+      sortOrder: categories.sortOrder,
+      activityId: activities.id,
+      activityName: activities.name,
+      estimatedHours: activities.estimatedHours,
+      completed: activities.completed,
+      notes: activities.notes,
+    })
+    .from(categories)
+    .innerJoin(activities, eq(activities.categoryId, categories.id))
+    .where(eq(categories.projectId, projectId))
+    .orderBy(categories.sortOrder, activities.sortOrder);
+
+  // Log the result to see the structure
+  console.log("Joined result:", result);
+
+  return result;
+};
