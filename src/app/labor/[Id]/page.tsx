@@ -1,11 +1,12 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
-import { Project, Manpower } from "../../../types"; // Assuming types are defined
+import { Project, Manpower } from "../../../../types"; // Assuming types are defined
 
 interface RowData {
   id: number | string; // This can be categoryId or activityId
@@ -15,8 +16,10 @@ interface RowData {
 }
 
 const LaborGrid: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const params = useParams();
+  const Id = params.Id;
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
+  const [project, setProject] = useState<Project | null>(null); // Use 'project' instead of 'projects'
   const [categories, setCategories] = useState<Category[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<RowData[]>([]);
@@ -49,73 +52,97 @@ const LaborGrid: React.FC = () => {
   }
 
   useEffect(() => {
-    // Fetch project list
-    const fetchProjects = async () => {
-      const res = await fetch("/api/projects");
-      const data = await res.json();
-      setProjects(data.projects);
-    };
+    if (Id) {
+      setSelectedProject(Number(Id));
+    }
+  }, [Id]);
 
-    fetchProjects();
-  }, []);
-
-  // When a project is selected, fetch categories, activities, and manpower data
+  // Fetch project data when selectedProject changes
   useEffect(() => {
-    const fetchCategoriesAndActivities = async () => {
-      try {
-        // Fetch categories and activities
-        const res = await fetch(
-          `/api/getTreeViewData?projectId=${selectedProject}`
-        );
-        const data = await res.json();
-        const fetchedCategories = data.treeViewData.map(
-          (categoryItem: Category) => ({
-            ...categoryItem,
-            activities: categoryItem.activities || [], // Ensure activities array
-          })
-        );
+    if (selectedProject) {
+      const fetchProject = async () => {
+        try {
+          const projectRes = await fetch(`/api/projects/${selectedProject}`);
+          const projectData = await projectRes.json();
+          const projectArray = projectData.project;
+          console.log("Project data:", projectData);
 
-        // Fetch all manpower data
-        const manpowerRes = await fetch(`/api/manpower`);
-        const manpowerResponse = await manpowerRes.json();
-        const manpowerData = manpowerResponse?.manpowerData || [];
+          // Check if project data is an array and extract the first element
+          if (Array.isArray(projectArray) && projectArray.length > 0) {
+            const project = projectArray[0];
+            console.log("Project data after extraction:", project);
 
-        // Ensure manpowerData is an array
-        if (!Array.isArray(manpowerData)) {
-          throw new Error("Manpower data is not an array");
+            setProject(project);
+          } else {
+            console.error("Invalid project data:", projectData);
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching project data:", error);
         }
+      };
 
-        // Dynamically generate the columns based on the project start and end dates
-        const project = projects.find((proj) => proj.id === selectedProject);
-        if (project) {
+      fetchProject();
+    }
+  }, [selectedProject]);
+
+  // Fetch categories, activities, and manpower data when project data is available
+  useEffect(() => {
+    if (project) {
+      const fetchCategoriesAndActivities = async () => {
+        try {
+          // Fetch categories and activities
+          console.log(
+            "Fetching categories and activities for project:",
+            project
+          );
+          const res = await fetch(
+            `/api/getTreeViewData?projectId=${project.id}`
+          );
+          const data = await res.json();
+          const fetchedCategories = data.treeViewData.map(
+            (categoryItem: Category) => ({
+              ...categoryItem,
+              activities: categoryItem.activities || [],
+            })
+          );
+
+          // Fetch all manpower data
+          const manpowerRes = await fetch(`/api/manpower`);
+          const manpowerResponse = await manpowerRes.json();
+          const manpowerData = manpowerResponse?.manpowerData || [];
+
+          if (!Array.isArray(manpowerData)) {
+            throw new Error("Manpower data is not an array");
+          }
+
+          // Generate columns based on project dates
           const dynamicColumns = generateDateColumns(
             new Date(project.startDate),
             new Date(project.endDate)
           );
 
-          // Generate row data including categories, activities, and manpower
+          // Generate row data
           const updatedRowData = generateRowData(
             fetchedCategories,
             dynamicColumns,
-            manpowerData // Pass all manpower data as the third argument
+            manpowerData
           );
 
           // Update state
           setColumnDefs(generateColumnDefs(dynamicColumns));
           setRowData(updatedRowData);
+        } catch (error) {
+          console.error(
+            "Error fetching categories, activities, or manpower:",
+            error
+          );
         }
-      } catch (error) {
-        console.error(
-          "Error fetching categories, activities, or manpower:",
-          error
-        );
-      }
-    };
+      };
 
-    if (selectedProject) {
       fetchCategoriesAndActivities();
     }
-  }, [selectedProject, projects]);
+  }, [project]);
 
   // Generate columns for each day between start and end date
   const generateDateColumns = (startDate: Date, endDate: Date): any[] => {
@@ -299,23 +326,14 @@ const LaborGrid: React.FC = () => {
 
   return (
     <div>
-      {/* Project selection */}
-      <div className="mb-4">
-        <label className="block mb-2">Select Project</label>
-        <select
-          className="w-full p-2 border border-gray-200 rounded-sm"
-          value={selectedProject || ""}
-          onChange={(e) => setSelectedProject(Number(e.target.value))}
-        >
-          <option value="">-- Select a Project --</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </select>
+      <div>
+        <div className="mb-6 bg-blue-100 p-4 rounded-md">
+          <h1 className="text-3xl font-bold text-left text-blue-800">
+            {project?.name}
+          </h1>
+          <p className="text-gray-700 text-left">{project?.description}</p>
+        </div>
       </div>
-
       <div
         className="ag-theme-alpine"
         style={{ height: "600px", width: "100%" }}

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSingleProject } from "@/app/db/actions";
 
-export async function GET(req: NextRequest) {
-  const projectName = req.nextUrl.searchParams.get("id);
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const projectId = params.id;
 
   try {
-    const project = await getSingleProject(projectName!);
+    const project = await getSingleProject(projectId);
     return NextResponse.json(
       { message: "Project retrieved successfully!", project },
       { status: 200 }

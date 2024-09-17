@@ -121,11 +121,11 @@ export const getProjects = async () => {
 };
 
 //👇🏻 get single project
-export const getSingleProject = async (name: string) => {
+export const getSingleProject = async (projectId: string) => {
   return await projectsDB
     .select()
     .from(projects)
-    .where(eq(projects.name, name));
+    .where(eq(projects.id, Number(projectId)));
 };
 
 //👇🏻 add a new row to the projects table

@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { Project, SummaryManpower } from "../../../types";
+import ProjectNameRenderer from "./ProjectNameRenderer";
 
 const ManpowerSummary: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -42,6 +43,8 @@ const ManpowerSummary: React.FC = () => {
       // Calculate the total row
       const totalRow = calculateTotalRow(transformedData, dynamicColumns);
 
+      console.log("Transformed Data:", transformedData);
+      console.log("Total Row:", totalRow);
       // Generate row data using projects, manpower, and the calendar months
       setRowData([...transformedData, totalRow]); // Append the total row to the transformed data
     };
@@ -143,7 +146,11 @@ const ManpowerSummary: React.FC = () => {
   const generateColumnDefs = (dynamicColumns: any[]) => {
     const staticColumns = [
       { headerName: "Project ID", field: "project_id" },
-      { headerName: "Project Name", field: "project_name" },
+      {
+        headerName: "Project Name",
+        field: "project_name",
+        cellRenderer: ProjectNameRenderer, // Use cellRenderer with the component
+      },
     ];
 
     return [...staticColumns, ...dynamicColumns];

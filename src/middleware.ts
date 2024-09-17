@@ -2,13 +2,17 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // the createRouteMatcher function accepts an array of routes to be protected
 const protectedRoutes = createRouteMatcher([
+  "/activities",
   "/customers",
-  "/settings",
   "/dashboard",
+  "/emails",
   "/history",
   "/invoices(.*)",
+  "/labor",
+  "monitor",
   "/projects",
-  "/activities",
+  "/settings",
+  "/summary",
 ]);
 
 // protects the route
