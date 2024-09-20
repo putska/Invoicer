@@ -43,14 +43,8 @@ export async function GET(req: NextRequest) {
 // POST Route: Create a new activity
 export async function POST(req: NextRequest) {
   try {
-    console.log("POST route hit"); // Log that the route is being hit
-
     const body = await req.json();
-    console.log("Received data:", body); // Log the incoming request data
-
     const parsedData = activitySchema.parse(body); // Validate incoming data
-    console.log("Parsed data:", parsedData); // Log the validated data
-
     const newActivity = await createActivity(parsedData);
     return NextResponse.json({ newActivity }, { status: 201 });
   } catch (error) {

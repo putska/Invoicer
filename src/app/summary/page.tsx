@@ -7,6 +7,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addMonths } from "date-fns";
 import { Project, SummaryManpower } from "../../../types";
 import ProjectNameRenderer from "./ProjectNameRenderer";
+import Link from "next/link";
 
 const ManpowerSummary: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -22,7 +23,6 @@ const ManpowerSummary: React.FC = () => {
       const manpowerRes = await fetch("/api/summaryManpower");
       const projectsData = await projectsRes.json();
       const manpowerData = await manpowerRes.json();
-
       setProjects(projectsData.projects);
       setManpowerData(manpowerData.data);
 
@@ -42,9 +42,6 @@ const ManpowerSummary: React.FC = () => {
 
       // Calculate the total row
       const totalRow = calculateTotalRow(transformedData, dynamicColumns);
-
-      console.log("Transformed Data:", transformedData);
-      console.log("Total Row:", totalRow);
       // Generate row data using projects, manpower, and the calendar months
       setRowData([...transformedData, totalRow]); // Append the total row to the transformed data
     };
@@ -78,7 +75,9 @@ const ManpowerSummary: React.FC = () => {
 
           // Assign manpower to the correct field in the row data
           projectData[child.field] = manpowerEntry
-            ? roundUpToEven(Number(manpowerEntry.average_manpower))
+            ? roundUpToEven(
+                Number(manpowerEntry.average_manpower_per_day_with_manpower)
+              )
             : 0;
         });
       });
@@ -89,7 +88,7 @@ const ManpowerSummary: React.FC = () => {
 
   // Helper function to generate date columns
   const generateDateColumns = (startDate: Date, endDate: Date) => {
-    const columns = [];
+    const columns: { headerName: string; children: any[] }[] = [];
     let currentDate = startDate;
 
     while (currentDate <= endDate) {
@@ -191,14 +190,22 @@ const ManpowerSummary: React.FC = () => {
           sortable: true,
           resizable: true,
         }}
-        groupHeaders
+        // groupHeaders
         getRowStyle={(params) => {
           if (params.data?.project_name === "Total") {
-            return { fontWeight: "bold", backgroundColor: "#f0f0f0" };
+            return { fontWeight: "bold" as "bold", backgroundColor: "#f0f0f0" };
           }
-          return {};
+          return undefined;
         }}
       />
+      <div className="flex justify-left mt-4">
+        <Link
+          href="/projects"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Go to Projects Page
+        </Link>
+      </div>
     </div>
   );
 };

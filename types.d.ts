@@ -38,8 +38,8 @@ export interface Project {
   startDate: string;
   endDate?: string;
   status: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Category {
@@ -115,5 +115,7 @@ export interface SummaryManpower {
   project_name: string;
   year: number;
   month: number;
-  average_manpower: number;
+  total_manpower: number;
+  days_with_manpower: number;
+  average_manpower_per_day_with_manpower: number;
 }

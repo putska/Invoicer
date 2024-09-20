@@ -153,6 +153,28 @@ export const addProject = async (project: Project) => {
   return newProject;
 };
 
+export const updateProject = async (
+  projectId: number,
+  updatedData: Partial<Project>
+) => {
+  try {
+    // Exclude 'id' and 'createdAt' from updatedData
+    const { id, createdAt, ...dataToUpdate } = updatedData;
+
+    // Update 'updatedAt' to the current timestamp
+    dataToUpdate.updatedAt = new Date();
+
+    const result = await projectsDB
+      .update(projects)
+      .set(dataToUpdate)
+      .where(eq(projects.id, projectId));
+    return result;
+  } catch (error) {
+    console.error("Error updating project:", error);
+    throw new Error("Could not update project");
+  }
+};
+
 // Get manpower data by project ID
 export const getManpowerByProjectId = async (projectId: number) => {
   try {
@@ -315,8 +337,6 @@ export const createActivity = async (activity: {
   completed?: boolean;
 }) => {
   try {
-    console.log("Activity Data:", activity); // Log the incoming activity data
-
     const [result] = await activitiesDB
       .insert(activities)
       .values({
@@ -329,7 +349,6 @@ export const createActivity = async (activity: {
       })
       .returning();
 
-    console.log("Insert result:", result); // Log the result after the insert
     return result;
   } catch (error) {
     console.error("Error during activity creation:", error); // Log the error
@@ -385,9 +404,6 @@ export const getTreeViewData = async (projectId: number) => {
       .from(categories)
       .where(eq(categories.projectId, projectId)); // Use `eq` instead of `inArray`
 
-    // Log the fetched categories
-    console.log("Fetched categories with `inArray`:", fetchedCategories);
-
     // Get list of category IDs from the fetched categories
     const categoryIds = fetchedCategories.map(
       (category) => category.categoryId
@@ -416,7 +432,7 @@ export const getTreeViewData = async (projectId: number) => {
         (activity) => activity.categoryId === category.categoryId
       ),
     }));
-    console.log("Result:", result);
+
     // Ensure categories without activities return an empty array for `activities`
     return result.map((category) => ({
       ...category,
@@ -432,24 +448,43 @@ export const getTreeViewData = async (projectId: number) => {
 export async function getAverageManpowerByMonthAndYear() {
   try {
     const query = sql`
-      SELECT 
+      WITH per_project_per_day AS (
+        SELECT
+          p.id AS project_id,
+          p.name AS project_name,
+          EXTRACT(YEAR FROM m.date) AS year,
+          EXTRACT(MONTH FROM m.date) AS month,
+          m.date,
+          SUM(m.manpower) AS total_manpower_on_day
+        FROM
+          ${projects} p
+        LEFT JOIN 
+          ${categories} c ON p.id = c.project_id
+        LEFT JOIN 
+          ${activities} a ON c.id = a.category_id
+        LEFT JOIN 
+          ${manpower} m ON a.id = m.activity_id
+        GROUP BY
+          p.id, p.name, m.date
+      )
+      SELECT
         p.id AS project_id,
         p.name AS project_name,
-        EXTRACT(YEAR FROM m.date) AS year,
-        EXTRACT(MONTH FROM m.date) AS month,
-        AVG(m.manpower) AS average_manpower
-      FROM 
+        per_day.year,
+        per_day.month,
+        SUM(per_day.total_manpower_on_day) AS total_manpower,
+        COUNT(DISTINCT per_day.date) AS days_with_manpower,
+        COALESCE(
+          SUM(per_day.total_manpower_on_day) / NULLIF(COUNT(DISTINCT per_day.date), 0),
+          0
+        )::FLOAT AS average_manpower_per_day_with_manpower
+      FROM
         ${projects} p
-      JOIN 
-        ${categories} c ON p.id = c.project_id
-      JOIN 
-        ${activities} a ON c.id = a.category_id
-      JOIN 
-        ${manpower} m ON a.id = m.activity_id
-      GROUP BY 
-        p.id, p.name, year, month
-      ORDER BY 
-        p.id, year, month;
+      LEFT JOIN per_project_per_day per_day ON p.id = per_day.project_id
+      GROUP BY
+        p.id, p.name, per_day.year, per_day.month
+      ORDER BY
+        p.id, per_day.year, per_day.month;
     `;
 
     const result = await projectsDB.execute(query);
@@ -460,7 +495,10 @@ export async function getAverageManpowerByMonthAndYear() {
       project_name: row.project_name,
       year: row.year,
       month: row.month,
-      average_manpower: row.average_manpower,
+      total_manpower: row.total_manpower || 0,
+      days_with_manpower: row.days_with_manpower || 0,
+      average_manpower_per_day_with_manpower:
+        row.average_manpower_per_day_with_manpower || 0,
     }));
 
     return mappedResults;
@@ -490,7 +528,6 @@ export const getFieldMonitorData = async (projectId: number) => {
     .orderBy(categories.sortOrder, activities.sortOrder);
 
   // Log the result to see the structure
-  console.log("Joined result:", result);
 
   return result;
 };

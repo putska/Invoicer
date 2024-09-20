@@ -46,7 +46,7 @@ const ActivitiesPage = () => {
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
         const data: { treeViewData: APICategory[] } = await res.json();
-        console.log("data from categories", data);
+
         // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
         const fetchedCategories = data.treeViewData.map((categoryItem) => ({
           id: categoryItem.categoryId, // Use the correct field name from the API
@@ -103,7 +103,7 @@ const ActivitiesPage = () => {
           `/api/getTreeViewData?projectId=${selectedProject}`
         );
         const data: TreeViewDataResponse = await res.json(); // Specify the expected response type
-        console.log("data from categories", data);
+
         // Assuming data is in the format: [{ parent: Category, children: [Activity] }]
         const fetchedCategories = data.treeViewData.map((categoryItem) => ({
           id: categoryItem.id,
@@ -228,7 +228,6 @@ const ActivitiesPage = () => {
                     -- Select a Category --
                   </option>
                   {categories.map((category) => {
-                    console.log(category.id); // Add this line to check the uniqueness of IDs
                     return (
                       <option key={category.id} value={category.id}>
                         {category.name}

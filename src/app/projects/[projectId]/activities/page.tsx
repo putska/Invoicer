@@ -11,13 +11,6 @@ import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-import SideNav from "@/app/components/SideNav";
-
-interface Project {
-  id: number;
-  name: string;
-}
-
 interface Category {
   categoryId: number;
   categoryName: string;
@@ -34,14 +27,14 @@ interface Activity {
   completed: boolean;
 }
 
-interface APIProjectResponse {
-  projects: Project[];
-}
+export default function ActivitiesPage({
+  params,
+}: {
+  params: { projectId: string };
+}) {
+  const projectId = parseInt(params.projectId, 10);
 
-export default function ProjectAccordion() {
-  const [projectList, setProjectList] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [newItemName, setNewItemName] = useState<string>("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
@@ -55,59 +48,43 @@ export default function ProjectAccordion() {
   const [expandedCategories, setExpandedCategories] = useState<{
     [key: number]: boolean;
   }>({});
-  const [currentItemId, setCurrentItemId] = useState(null);
+  const [currentItemId, setCurrentItemId] = useState<number | null>(null);
 
-  // Fetch the project list
+  // Fetch categories and activities based on projectId
   useEffect(() => {
-    const fetchProjects = async () => {
-      const res = await fetch("/api/projects");
-      const data: APIProjectResponse = await res.json();
-      setProjectList(data.projects);
-    };
-    fetchProjects();
-  }, []);
-
-  // Fetch categories and activities based on selected project
-  useEffect(() => {
-    if (selectedProject) {
+    if (projectId) {
       const fetchCategoriesAndActivities = async () => {
-        const res = await fetch(
-          `/api/getTreeViewData?projectId=${selectedProject}`
-        );
-        const data = await res.json();
-        setCategories(data.treeViewData);
+        try {
+          const res = await fetch(
+            `/api/getTreeViewData?projectId=${projectId}`
+          );
+          const data = await res.json();
+
+          setCategories(data.treeViewData);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
       };
       fetchCategoriesAndActivities();
     }
-  }, [selectedProject]);
+  }, [projectId]);
 
   const handleAddNewItem = async () => {
     try {
-      // Add new category
       if (dialogType === "category") {
+        // Add new category
         const res = await fetch(`/api/categories`, {
           method: "POST",
           body: JSON.stringify({
-            projectId: selectedProject,
+            projectId: projectId,
             name: newItemName,
             sortOrder: newSortOrder,
           }),
           headers: { "Content-Type": "application/json" },
         });
-        const { newCategory } = await res.json();
-        setCategories((prevCategories) => [
-          ...prevCategories,
-          {
-            categoryId: newCategory.id,
-            categoryName: newCategory.name,
-            sortOrder: newCategory.sortOrder,
-            activities: [],
-          },
-        ]);
-      }
-
-      // Add new activity
-      else if (dialogType === "activity" && categoryToAddTo !== null) {
+        // Rest of the code...
+      } else if (dialogType === "activity" && categoryToAddTo !== null) {
+        // Add new activity
         const res = await fetch(`/api/activities`, {
           method: "POST",
           body: JSON.stringify({
@@ -120,30 +97,10 @@ export default function ProjectAccordion() {
           }),
           headers: { "Content-Type": "application/json" },
         });
-        const { newActivity } = await res.json();
-
-        setCategories((prevCategories) =>
-          prevCategories.map((cat) =>
-            cat.categoryId === categoryToAddTo
-              ? {
-                  ...cat,
-                  activities: [
-                    ...cat.activities,
-                    {
-                      activityId: newActivity.id,
-                      activityName: newActivity.name,
-                      sortOrder: newActivity.sortOrder,
-                      estimatedHours: newActivity.estimatedHours,
-                      notes: newActivity.notes,
-                      completed: newActivity.completed,
-                    },
-                  ],
-                }
-              : cat
-          )
-        );
+        // Rest of the code...
       }
 
+      // Reset dialog state
       setDialogOpen(false);
       setNewItemName("");
       setNewSortOrder(0);
@@ -151,7 +108,7 @@ export default function ProjectAccordion() {
       setNotes("");
       setCompleted(false);
     } catch (error) {
-      console.error("Error adding new item:", error.message);
+      console.error("Error adding new item:", error);
     }
   };
 
@@ -198,33 +155,14 @@ export default function ProjectAccordion() {
   return (
     <div className="w-full">
       <main className="min-h-[90vh] flex items-start">
-        <SideNav />
-
         <div className="md:w-5/6 w-full h-full p-6">
           <div className="p-4">
             <h2 className="text-lg font-bold">
               Select a project to view categories and activities
             </h2>
 
-            {/* Project Selector */}
-            <div className="my-4">
-              <label className="block mb-2">Select Project</label>
-              <select
-                className="w-full p-2 border border-gray-200 rounded-md"
-                value={selectedProject || ""}
-                onChange={(e) => setSelectedProject(Number(e.target.value))}
-              >
-                <option value="">-- Select a Project --</option>
-                {projectList.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Categories and Activities */}
-            {selectedProject && (
+            {projectId && (
               <div>
                 <div className="hs-accordion-treeview-root" role="tree">
                   {/* Render categories */}

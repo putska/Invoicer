@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("Fetching average manpower...");
     const data = await getAverageManpowerByMonthAndYear();
     return NextResponse.json(
       { message: "Average manpower retrieved successfully!", data },

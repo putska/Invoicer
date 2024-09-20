@@ -74,7 +74,6 @@ const FieldMonitorPage = ({ projectId }: { projectId: number }) => {
         try {
           const res = await fetch(`/api/monitor?projectId=${selectedProject}`);
           const result = await res.json();
-          console.log("Joined result:", result);
           const processedData = processFieldMonitorData(result.data);
           setCategories(processedData);
         } catch (error) {

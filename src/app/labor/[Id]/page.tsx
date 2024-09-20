@@ -65,12 +65,10 @@ const LaborGrid: React.FC = () => {
           const projectRes = await fetch(`/api/projects/${selectedProject}`);
           const projectData = await projectRes.json();
           const projectArray = projectData.project;
-          console.log("Project data:", projectData);
 
           // Check if project data is an array and extract the first element
           if (Array.isArray(projectArray) && projectArray.length > 0) {
             const project = projectArray[0];
-            console.log("Project data after extraction:", project);
 
             setProject(project);
           } else {
@@ -92,10 +90,6 @@ const LaborGrid: React.FC = () => {
       const fetchCategoriesAndActivities = async () => {
         try {
           // Fetch categories and activities
-          console.log(
-            "Fetching categories and activities for project:",
-            project
-          );
           const res = await fetch(
             `/api/getTreeViewData?projectId=${project.id}`
           );
@@ -264,13 +258,6 @@ const LaborGrid: React.FC = () => {
                 mp.activityId === activity.activityId &&
                 `day_${mp.date.replace(/-/g, "_")}` === dayField
             );
-
-            // Log to check the matching process
-            console.log("Checking match for:", {
-              dayField,
-              manpowerForActivity,
-              activityId: activity.activityId,
-            });
 
             const manpowerCount = manpowerForActivity
               ? manpowerForActivity.manpower

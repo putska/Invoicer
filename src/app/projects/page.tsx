@@ -1,17 +1,21 @@
 "use client";
-import ProjectsTable from "../components/ProjectsTable";
 import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import SideNav from "@/app/components/SideNav";
+import Link from "next/link";
+import ProjectsTable from "../components/ProjectsTable";
+import AddProjectModal from "../components/AddProjectModal"; // We'll modify this to handle both adding and editing
 
 export default function Projects() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [projectName, setProjectName] = useState<string>("");
-  const [projectDescription, setProjectDescription] = useState<string>("");
-  const [projectStartDate, setProjectStartDate] = useState<string>("");
-  const [projectEndDate, setProjectEndDate] = useState<string>("");
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [projects, setProjects] = useState([]);
+
+  // State for modal visibility and mode
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
+  const [currentProject, setCurrentProject] = useState<Partial<Project> | null>(
+    null
+  );
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -29,29 +33,22 @@ export default function Projects() {
     }
   }, [isLoaded, isSignedIn, fetchProjects]);
 
-  const createProject = async () => {
+  const createProject = async (projectData: Partial<Project>) => {
     setLoading(true);
     try {
-      const request = await fetch("/api/projects", {
+      const response = await fetch("/api/projects", {
         method: "POST",
         body: JSON.stringify({
           userID: user?.id,
-          name: projectName,
-          description: projectDescription,
-          startDate: projectStartDate,
-          endDate: projectEndDate,
+          ...projectData,
         }),
         headers: {
           "Content-Type": "application/json",
         },
       });
-      const response = await request.json();
-      alert(response.message);
-      setProjectName("");
-      setProjectDescription("");
-      setProjectStartDate("");
-      setProjectEndDate("");
-      fetchProjects(); // Fetch projects again after creating a new project
+      const result = await response.json();
+      alert(result.message);
+      fetchProjects(); // Refresh the projects list
     } catch (err) {
       console.log(err);
     } finally {
@@ -59,22 +56,50 @@ export default function Projects() {
     }
   };
 
-  const handleAddProject = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    createProject();
+  const updateProject = async (projectData: Partial<Project>) => {
+    if (!projectData.id) return; // Ensure the project has an ID
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/projects/${projectData.id}`, {
+        method: "PUT",
+        body: JSON.stringify(projectData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const result = await response.json();
+      alert(result.message);
+      fetchProjects(); // Refresh the projects list
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteProject = async (id: number) => {
     try {
-      const request = await fetch(`/api/projects?id=${id}`, {
+      const response = await fetch(`/api/projects?id=${id}`, {
         method: "DELETE",
       });
-      const response = await request.json();
-      alert(response.message);
-      fetchProjects(); // Fetch projects again after deleting a project
+      const result = await response.json();
+      alert(result.message);
+      fetchProjects(); // Refresh the projects list
     } catch (err) {
       console.log(err);
     }
+  };
+
+  const handleAddProject = () => {
+    setCurrentProject(null);
+    setEditMode(false);
+    setShowModal(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setCurrentProject(project);
+    setEditMode(true);
+    setShowModal(true);
   };
 
   if (!isLoaded || !isSignedIn) {
@@ -84,69 +109,48 @@ export default function Projects() {
   return (
     <div className="w-full">
       <main className="min-h-[90vh] flex items-start">
-        <SideNav />
-
         <div className="md:w-5/6 w-full h-full p-6">
           <h2 className="text-2xl font-bold">Projects</h2>
           <p className="opacity-70 mb-4">Create and view all your projects</p>
 
-          <form className="w-full" onSubmit={handleAddProject} method="POST">
-            <div className="w-full flex items-center space-x-4 mb-3">
-              <section className="w-1/2">
-                <label>Project Name</label>
-                <input
-                  type="text"
-                  className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={projectName}
-                  required
-                  onChange={(e) => setProjectName(e.target.value)}
-                />
-              </section>
-
-              <section className="w-1/2">
-                <label>Start Date</label>
-                <input
-                  type="date"
-                  className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={projectStartDate}
-                  required
-                  onChange={(e) => setProjectStartDate(e.target.value)}
-                />
-              </section>
+          <div className="w-full">
+            <h2 className="bg-blue-500 text-white p-2 rounded-t-md">
+              Projects
+            </h2>
+            <div className="ag-theme-alpine w-full" style={{ height: 400 }}>
+              <ProjectsTable
+                projects={projects}
+                deleteProject={deleteProject}
+                editProject={handleEditProject} // Pass the edit handler
+              />
             </div>
+          </div>
 
-            <div className="w-full flex items-center space-x-4 mb-3">
-              <section className="w-1/2">
-                <label>End Date</label>
-                <input
-                  type="date"
-                  className="w-full p-2 border border-gray-200 rounded-sm"
-                  value={projectEndDate}
-                  onChange={(e) => setProjectEndDate(e.target.value)}
-                />
-              </section>
-            </div>
-
-            <label htmlFor="description">Project Description</label>
-            <textarea
-              name="description"
-              id="description"
-              rows={3}
-              className="w-full p-2 border border-gray-200 rounded-sm"
-              value={projectDescription}
-              onChange={(e) => setProjectDescription(e.target.value)}
-              required
-            />
-
+          <div className="flex flex-col items-start mt-4">
             <button
-              className="bg-blue-500 text-white p-2 rounded-md mb-6"
-              disabled={loading}
+              className="bg-blue-500 text-white p-2 rounded-md mb-4"
+              onClick={handleAddProject}
             >
-              {loading ? "Adding..." : "Add Project"}
+              Add Project
             </button>
-          </form>
 
-          <ProjectsTable projects={projects} deleteProject={deleteProject} />
+            {/* Render the modal when showModal is true */}
+            {showModal && (
+              <AddProjectModal
+                onClose={() => setShowModal(false)}
+                onSubmit={editMode ? updateProject : createProject}
+                project={currentProject} // Pass the current project if editing
+                isEditMode={editMode} // Indicate if we're in edit mode
+              />
+            )}
+
+            <Link
+              href="/summary"
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Back to summary page
+            </Link>
+          </div>
         </div>
       </main>
     </div>
