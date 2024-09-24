@@ -94,22 +94,6 @@ export interface Manpower {
   updatedAt?: string;
 }
 
-export interface User {
-  id?: number;
-  email: string;
-  passwordHash: string;
-  canEdit: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface UserProject {
-  userId: string;
-  projectId: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface SummaryManpower {
   project_id: number;
   project_name: string;
@@ -119,3 +103,15 @@ export interface SummaryManpower {
   days_with_manpower: number;
   average_manpower_per_day_with_manpower: number;
 }
+
+// User TypeScript Interface
+export type User = {
+  id?: string;
+  clerk_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  permission_level: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+};

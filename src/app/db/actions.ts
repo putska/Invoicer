@@ -6,6 +6,7 @@ import {
   categoriesDB,
   activitiesDB,
   manpowerDB,
+  usersDB,
   averageManpowerDB,
 } from ".";
 import {
@@ -16,8 +17,9 @@ import {
   categories,
   activities,
   manpower,
+  users,
 } from "./schema";
-import { Customer, Project, Activity, Category } from "../../../types";
+import { Customer, Project, Activity, Category, User } from "../../../types";
 import { desc, eq, and, inArray, sql } from "drizzle-orm";
 
 import { act } from "react";
@@ -235,6 +237,15 @@ export const updateManpower = async (
     console.error("Error updating manpower:", error);
     throw new Error("Failed to update manpower data.");
   }
+};
+
+export const deleteManpower = async (activityId: number, date: string) => {
+  return await manpowerDB.delete(manpower).where(
+    and(
+      eq(manpower.activityId, activityId),
+      eq(manpower.date, date) // Convert date string to Date object
+    )
+  );
 };
 
 //👇🏻 delete a project
@@ -530,4 +541,77 @@ export const getFieldMonitorData = async (projectId: number) => {
   // Log the result to see the structure
 
   return result;
+};
+
+// Fetch a user by Clerk ID
+export const getUserByClerkId = async (clerkId: string) => {
+  try {
+    const user = await usersDB
+      .select()
+      .from(users)
+      .where(eq(users.clerk_id, clerkId))
+      .limit(1)
+      .execute();
+
+    return user[0] || null;
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    throw new Error("Could not fetch user");
+  }
+};
+
+// Fetch all users
+export const getAllUsers = async () => {
+  try {
+    const allUsers = await usersDB.select().from(users).execute();
+
+    return allUsers;
+  } catch (error) {
+    console.error("Error fetching all users:", error);
+    throw new Error("Could not fetch users");
+  }
+};
+
+// Update a user's permission level by userId (UUID)
+export const updateUserPermission = async (
+  userId: string,
+  permissionLevel: string
+): Promise<void> => {
+  try {
+    await usersDB
+      .update(users)
+      .set({ permission_level: permissionLevel })
+      .where(eq(users.id, userId))
+      .execute();
+  } catch (error) {
+    console.error("Error updating user permission:", error);
+    throw new Error("Could not update user permission");
+  }
+};
+
+// Create a new user
+export const createUser = async (userData: {
+  clerk_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  permission_level: string;
+}) => {
+  try {
+    const [newUser] = await usersDB
+      .insert(users)
+      .values({
+        clerk_id: userData.clerk_id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        permission_level: "read",
+      })
+      .returning();
+
+    return newUser;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw new Error("Could not create user");
+  }
 };

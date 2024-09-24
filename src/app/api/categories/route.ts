@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  getCategoriesByProjectId,
   createCategory,
   updateCategory,
   deleteCategory,
@@ -13,29 +12,6 @@ const categorySchema = z.object({
   name: z.string().min(1, "Name is required"),
   sortOrder: z.number().optional(),
 });
-
-// GET Route: Fetch categories by projectId
-export async function GET(req: NextRequest) {
-  const projectId = parseInt(req.nextUrl.searchParams.get("projectId") || "");
-  if (!projectId) {
-    return NextResponse.json(
-      { message: "Missing projectId parameter" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const categories = await getCategoriesByProjectId(projectId);
-    return NextResponse.json({ categories }, { status: 200 });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { message: "Error fetching categories", error: errorMessage },
-      { status: 500 }
-    );
-  }
-}
 
 // POST Route: Create a new category
 export async function POST(req: NextRequest) {

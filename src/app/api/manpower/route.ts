@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addManpower, updateManpower, getAllManpower } from "@/app/db/actions";
+import {
+  addManpower,
+  updateManpower,
+  getAllManpower,
+  deleteManpower,
+} from "@/app/db/actions";
 
 // manpower is stored by activityId so we are just going to grab everything and then filter it out on the client side
 export async function GET() {
@@ -45,6 +50,31 @@ export async function PUT(req: NextRequest) {
     console.error(error);
     return NextResponse.json(
       { message: "Failed to update manpower data" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const activityId = parseInt(req.nextUrl.searchParams.get("activityId") || "");
+  const date = req.nextUrl.searchParams.get("date") || "";
+
+  if (!activityId || !date) {
+    return NextResponse.json(
+      { message: "Missing activityId or date parameter" },
+      { status: 400 }
+    );
+  }
+  try {
+    await deleteManpower(activityId, date);
+    return NextResponse.json(
+      { message: "Manpower deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting manpower:", error);
+    return NextResponse.json(
+      { message: "Failed to delete manpower data" },
       { status: 500 }
     );
   }

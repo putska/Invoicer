@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate": "npx drizzle-kit generate -- dotenv_config_path='.env.local'",
-    "db-create": "npx drizzle-kit push -- dotenv_config_path='.env.local'",
+    "generate": "npx drizzle-kit generate -- dotenv_config_path='.env.local'",
+    "migrate": "npx drizzle-kit migrate -- dotenv_config_path='.env.local'",
     "email": "email dev --dir src/app/emails"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.32.0",
     "next": "^14.2.12",
+    "pg": "^8.13.0",
     "react": "^18",
     "react-dom": "^18",
     "react-email": "^1.10.1",

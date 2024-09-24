@@ -6,11 +6,38 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
-import { Project, Manpower } from "../../../../types"; // Assuming types are defined
+
+interface Category {
+  categoryId: number;
+  categoryName: string;
+  sortOrder: number;
+  activities: Activity[];
+}
+
+interface Activity {
+  activityId: number;
+  activityName: string;
+  sortOrder: number;
+  estimatedHours: number;
+  notes: string;
+  completed: boolean;
+}
+
+interface Project {
+  id: number;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface RowData {
   id: number | string; // This can be categoryId or activityId
   name: string;
+  level: number;
   category?: boolean; // true for categories, undefined for activities
   [key: string]: any; // Dynamic keys for day columns
 }
@@ -19,37 +46,10 @@ const LaborGrid: React.FC = () => {
   const params = useParams();
   const Id = params.Id;
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
-  const [project, setProject] = useState<Project | null>(null); // Use 'project' instead of 'projects'
+  const [project, setProject] = useState<Project | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<RowData[]>([]);
-
-  interface Category {
-    categoryId: number;
-    categoryName: string;
-    sortOrder: number;
-    activities: Activity[];
-  }
-
-  interface Activity {
-    activityId: number;
-    activityName: string;
-    sortOrder: number;
-    estimatedHours: number;
-    notes: string;
-    completed: boolean;
-  }
-
-  interface Project {
-    id: number;
-    name: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-  }
 
   useEffect(() => {
     if (Id) {
@@ -66,7 +66,6 @@ const LaborGrid: React.FC = () => {
           const projectData = await projectRes.json();
           const projectArray = projectData.project;
 
-          // Check if project data is an array and extract the first element
           if (Array.isArray(projectArray) && projectArray.length > 0) {
             const project = projectArray[0];
 
@@ -138,6 +137,20 @@ const LaborGrid: React.FC = () => {
     }
   }, [project]);
 
+  // IndentCellRenderer function defined inside the component
+  const IndentCellRenderer = (props: any) => {
+    const { value, data } = props;
+    const level = data.level || 0;
+    const indent = level * 15; // Adjust 15 to change indentation size
+
+    const style: React.CSSProperties = {
+      paddingLeft: `${indent}px`,
+      fontWeight: data.category ? "bold" : "normal", // Bold text for categories
+    };
+
+    return <span style={style}>{value}</span>;
+  };
+
   // Generate columns for each day between start and end date
   const generateDateColumns = (startDate: Date, endDate: Date): any[] => {
     const columns: any[] = [];
@@ -189,6 +202,8 @@ const LaborGrid: React.FC = () => {
         field: "name",
         width: 200,
         pinned: "left",
+        cellRenderer: IndentCellRenderer, // Use 'cellRenderer' instead of 'cellRendererFramework'
+        editable: false, // Make the name column non-editable
       },
       ...dynamicColumns,
       {
@@ -204,6 +219,7 @@ const LaborGrid: React.FC = () => {
             return sum;
           }, 0);
         },
+        editable: false,
       },
       {
         headerName: "Total Hours",
@@ -211,6 +227,7 @@ const LaborGrid: React.FC = () => {
         width: 150,
         pinned: "left",
         valueGetter: (params: any) => params.getValue("totalManpower") * 8,
+        editable: false,
       },
     ];
   };
@@ -222,7 +239,7 @@ const LaborGrid: React.FC = () => {
     manpowerData: any[]
   ) => {
     const rows: RowData[] = [];
-    const totalRow: RowData = { id: "total", name: "Total" }; // Initialize the total row
+    const totalRow: RowData = { id: "total", name: "Total", level: 0 }; // Initialize the total row
 
     // Initialize totals for each day column
     dynamicColumns.forEach((month: any) => {
@@ -237,20 +254,21 @@ const LaborGrid: React.FC = () => {
         id: category.categoryId,
         name: category.categoryName,
         category: true,
+        level: 0, // Level 0 for categories
       });
 
       // Add each activity under the category
       category.activities.forEach((activity) => {
         const activityRow: RowData = {
           id: activity.activityId,
-          name: `     ${activity.activityName}`, // Indented activity name
+          name: activity.activityName,
+          level: 1, // Level 1 for activities
         };
 
         // Loop through the columns to add manpower data for each day
         dynamicColumns.forEach((month: any) => {
           month.children.forEach((day: any) => {
-            // Use the existing `day.field` without trying to reformat it
-            const dayField = day.field; // This is already in the form of "day_yyyy_MM_dd"
+            const dayField = day.field;
 
             // Find corresponding manpower data for the activity and day
             const manpowerForActivity = manpowerData.find(
@@ -283,18 +301,34 @@ const LaborGrid: React.FC = () => {
   const handleCellEdit = async (
     activityId: number,
     dateField: string,
-    manpower: number
+    manpower: any
   ) => {
-    const date = dateField.split("_").slice(1).join("-"); // Extract date from field, e.g., day_2024_09_01 becomes "2024-09-01"
+    const date = dateField.split("_").slice(1).join("-");
+
+    const manpowerValue = parseFloat(manpower);
+
+    let method;
+    let url = "/api/manpower";
+    let body;
+
+    if (isNaN(manpowerValue) || manpowerValue === 0) {
+      // Delete manpower entry
+      method = "DELETE";
+      url += `?activityId=${activityId}&date=${encodeURIComponent(date)}`;
+    } else {
+      // Create or update manpower entry
+      method = "POST";
+      body = JSON.stringify({
+        activityId,
+        date,
+        manpower: manpowerValue,
+      });
+    }
 
     try {
-      const res = await fetch("/api/manpower", {
-        method: manpower > 0 ? "POST" : "PUT",
-        body: JSON.stringify({
-          activityId,
-          date,
-          manpower,
-        }),
+      const res = await fetch(url, {
+        method,
+        body,
         headers: {
           "Content-Type": "application/json",
         },
@@ -331,13 +365,13 @@ const LaborGrid: React.FC = () => {
           defaultColDef={{
             sortable: true,
             resizable: true,
-            editable: true,
+            editable: (params) => {
+              if (!params.data) return false;
+              return !params.data.category && params.data.id !== "total";
+            },
           }}
           groupHeaders
           getRowStyle={(params) => {
-            if (params.data && params.data.category) {
-              return { fontWeight: "bold", backgroundColor: "#f0f0f0" };
-            }
             if (!params.data) return {}; // Return empty object if no data
             if (params.data.id === "total") {
               return { fontWeight: "bold", backgroundColor: "#e0e0e0" }; // Bold and different background for total row
@@ -349,7 +383,7 @@ const LaborGrid: React.FC = () => {
             const activityId = Number(params.data.id); // Convert id to a number
             const field = params.colDef.field;
             const manpower = params.newValue;
-            if (!field) return; // Ignore category rows
+            if (!field) return; // Ignore rows without a field
             if (!isNaN(activityId) && field.startsWith("day_")) {
               handleCellEdit(activityId, field, manpower);
             }

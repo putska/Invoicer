@@ -9,7 +9,10 @@ import {
   numeric,
   boolean,
   primaryKey,
+  bigint,
 } from "drizzle-orm/pg-core";
+
+import { sql } from "drizzle-orm";
 
 //👇🏻 invoice table with its column types
 export const invoicesTable = pgTable("invoices", {
@@ -91,32 +94,14 @@ export const manpower = pgTable("manpower", {
 });
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`), // UUID primary key
+  clerk_id: text("clerk_id").notNull().unique(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  canEdit: boolean("can_edit").default(false).notNull(),
+  first_name: text("first_name").notNull().default(""),
+  last_name: text("last_name").notNull().default(""),
+  permission_level: text("permission_level").notNull().default("read"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
-
-export const userProjects = pgTable(
-  "user_projects",
-  {
-    userId: integer("user_id")
-      .notNull()
-      .references(() => users.id),
-    projectId: integer("project_id")
-      .notNull()
-      .references(() => projects.id),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({
-        name: "composite_key",
-        columns: [table.userId, table.projectId],
-      }), // Correct composite primary key
-    };
-  }
-);

@@ -69,46 +69,150 @@ export default function ActivitiesPage({
     }
   }, [projectId]);
 
-  const handleAddNewItem = async () => {
+  const handleSubmit = async () => {
     try {
       if (dialogType === "category") {
-        // Add new category
-        const res = await fetch(`/api/categories`, {
-          method: "POST",
-          body: JSON.stringify({
-            projectId: projectId,
-            name: newItemName,
-            sortOrder: newSortOrder,
-          }),
-          headers: { "Content-Type": "application/json" },
-        });
-        // Rest of the code...
+        if (currentItemId) {
+          // Update existing category
+          const res = await fetch(
+            `/api/categories?categoryId=${currentItemId}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                projectId: projectId,
+                name: newItemName,
+                sortOrder: newSortOrder,
+              }),
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          if (res.ok) {
+            // Update category in state
+            setCategories((prevCategories) =>
+              prevCategories.map((cat) =>
+                cat.categoryId === currentItemId
+                  ? {
+                      ...cat,
+                      categoryName: newItemName,
+                      sortOrder: newSortOrder,
+                    }
+                  : cat
+              )
+            );
+          }
+        } else {
+          // Add new category
+          const res = await fetch(`/api/categories`, {
+            method: "POST",
+            body: JSON.stringify({
+              projectId: projectId,
+              name: newItemName,
+              sortOrder: newSortOrder,
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+          const { newCategory } = await res.json();
+          setCategories((prevCategories) => [
+            ...prevCategories,
+            {
+              categoryId: newCategory.id,
+              categoryName: newCategory.name,
+              sortOrder: newCategory.sortOrder,
+              activities: [],
+            },
+          ]);
+        }
       } else if (dialogType === "activity" && categoryToAddTo !== null) {
-        // Add new activity
-        const res = await fetch(`/api/activities`, {
-          method: "POST",
-          body: JSON.stringify({
-            categoryId: categoryToAddTo,
-            name: newItemName,
-            sortOrder: newSortOrder,
-            estimatedHours,
-            notes,
-            completed,
-          }),
-          headers: { "Content-Type": "application/json" },
-        });
-        // Rest of the code...
+        if (currentItemId) {
+          // Update existing activity
+          const res = await fetch(
+            `/api/activities?activityId=${currentItemId}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                categoryId: categoryToAddTo,
+                name: newItemName,
+                sortOrder: newSortOrder,
+                estimatedHours,
+                notes,
+                completed,
+              }),
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          if (res.ok) {
+            // Update activity in state
+            setCategories((prevCategories) =>
+              prevCategories.map((cat) =>
+                cat.categoryId === categoryToAddTo
+                  ? {
+                      ...cat,
+                      activities: cat.activities.map((activity) =>
+                        activity.activityId === currentItemId
+                          ? {
+                              ...activity,
+                              activityName: newItemName,
+                              sortOrder: newSortOrder,
+                              estimatedHours,
+                              notes,
+                              completed,
+                            }
+                          : activity
+                      ),
+                    }
+                  : cat
+              )
+            );
+          }
+        } else {
+          // Add new activity
+          const res = await fetch(`/api/activities`, {
+            method: "POST",
+            body: JSON.stringify({
+              categoryId: categoryToAddTo,
+              name: newItemName,
+              sortOrder: newSortOrder,
+              estimatedHours,
+              notes,
+              completed,
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+          const { newActivity } = await res.json();
+
+          setCategories((prevCategories) =>
+            prevCategories.map((cat) =>
+              cat.categoryId === categoryToAddTo
+                ? {
+                    ...cat,
+                    activities: [
+                      ...cat.activities,
+                      {
+                        activityId: newActivity.id,
+                        activityName: newActivity.name,
+                        sortOrder: newActivity.sortOrder,
+                        estimatedHours: newActivity.estimatedHours,
+                        notes: newActivity.notes,
+                        completed: newActivity.completed,
+                      },
+                    ],
+                  }
+                : cat
+            )
+          );
+        }
       }
 
       // Reset dialog state
       setDialogOpen(false);
+      setCurrentItemId(null);
       setNewItemName("");
       setNewSortOrder(0);
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
     } catch (error) {
-      console.error("Error adding new item:", error);
+      console.error("Error saving item:", error);
     }
   };
 
@@ -119,37 +223,82 @@ export default function ActivitiesPage({
     }));
   };
 
-  // Handle dialog open for adding category or activity
   const handleOpenDialog = (
     type: "category" | "activity",
     categoryId?: number
   ) => {
     setDialogOpen(true);
     setDialogType(type);
+    setCurrentItemId(null);
+    setNewItemName("");
+    setNewSortOrder(0);
+    setEstimatedHours(0);
+    setNotes("");
+    setCompleted(false);
     setCategoryToAddTo(categoryId || null);
   };
 
-  const handleEditDialog = (type: string, item: any) => {
+  const handleEditDialog = (
+    type: "category" | "activity",
+    item: any,
+    parentCategoryId?: number
+  ) => {
     setDialogType(type);
-    setCurrentItemId(item.id);
-    setNewItemName(item.name);
-    setNewSortOrder(item.sortOrder || 0);
-    if (type === "activity") {
+    setDialogOpen(true);
+
+    if (type === "category") {
+      setCurrentItemId(item.categoryId);
+      setNewItemName(item.categoryName);
+      setNewSortOrder(item.sortOrder || 0);
+      // Reset activity-specific fields
+      setEstimatedHours(0);
+      setNotes("");
+      setCompleted(false);
+      setCategoryToAddTo(null);
+    } else if (type === "activity") {
+      setCurrentItemId(item.activityId);
+      setNewItemName(item.activityName);
+      setNewSortOrder(item.sortOrder || 0);
       setEstimatedHours(item.estimatedHours || 0);
       setNotes(item.notes || "");
       setCompleted(item.completed || false);
+      setCategoryToAddTo(parentCategoryId || null);
     }
-    setDialogOpen(true);
   };
 
-  const handleDeleteCategory = (categoryId: number) => {
-    // Implement the logic to delete a category
-    console.log(`Delete category ${categoryId}`);
+  const handleDeleteCategory = async (categoryId: number) => {
+    try {
+      const res = await fetch(`/api/categories?categoryId=${categoryId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setCategories((prevCategories) =>
+          prevCategories.filter((cat) => cat.categoryId !== categoryId)
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+    }
   };
 
-  const handleDeleteActivity = (activityId: number) => {
-    // Implement the logic to delete an activity
-    console.log(`Delete activity ${activityId}`);
+  const handleDeleteActivity = async (activityId: number) => {
+    try {
+      const response = await fetch(`/api/activities?activityId=${activityId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setCategories((prevCategories) =>
+          prevCategories.map((cat) => ({
+            ...cat,
+            activities: cat.activities.filter(
+              (activity) => activity.activityId !== activityId
+            ),
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+    }
   };
 
   return (
@@ -158,7 +307,7 @@ export default function ActivitiesPage({
         <div className="md:w-5/6 w-full h-full p-6">
           <div className="p-4">
             <h2 className="text-lg font-bold">
-              Select a project to view categories and activities
+              Categories and Activities for Project {projectId}
             </h2>
 
             {/* Categories and Activities */}
@@ -224,7 +373,11 @@ export default function ActivitiesPage({
                                 <span
                                   className="text-sm text-gray-800"
                                   onClick={() =>
-                                    handleEditDialog("activity", activity)
+                                    handleEditDialog(
+                                      "activity",
+                                      activity,
+                                      category.categoryId
+                                    )
                                   }
                                 >
                                   {activity.activityName}
@@ -275,7 +428,11 @@ export default function ActivitiesPage({
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
               <DialogTitle>
                 {dialogType === "category"
-                  ? "Add New Category"
+                  ? currentItemId
+                    ? "Edit Category"
+                    : "Add New Category"
+                  : currentItemId
+                  ? "Edit Activity"
                   : "Add New Activity"}
               </DialogTitle>
               <DialogContent>
@@ -334,7 +491,9 @@ export default function ActivitiesPage({
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddNewItem}>Add</Button>
+                <Button onClick={handleSubmit}>
+                  {currentItemId ? "Update" : "Add"}
+                </Button>
               </DialogActions>
             </Dialog>
           </div>
