@@ -1,11 +1,12 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
+import { PermissionContext } from "@/context/PermissionContext";
 
 interface Category {
   categoryId: number;
@@ -50,6 +51,8 @@ const LaborGrid: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<RowData[]>([]);
+
+  const { hasWritePermission, isLoaded } = useContext(PermissionContext);
 
   useEffect(() => {
     if (Id) {
@@ -345,6 +348,10 @@ const LaborGrid: React.FC = () => {
     }
   };
 
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
       <div>
@@ -365,9 +372,15 @@ const LaborGrid: React.FC = () => {
           defaultColDef={{
             sortable: true,
             resizable: true,
-            editable: (params) => {
+            editable: (params: any) => {
               if (!params.data) return false;
-              return !params.data.category && params.data.id !== "total";
+              if (!isLoaded) return false;
+
+              return (
+                hasWritePermission &&
+                !params.data.category &&
+                params.data.id !== "total"
+              );
             },
           }}
           groupHeaders

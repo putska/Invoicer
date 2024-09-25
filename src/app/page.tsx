@@ -12,7 +12,7 @@ export default function Home() {
         </p>
 
         <Link
-          href="/dashboard"
+          href="/summary"
           className="rounded w-[200px] px-2 py-3 bg-blue-500 text-gray-50"
         >
           LOG IN

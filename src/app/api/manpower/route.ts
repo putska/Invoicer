@@ -5,9 +5,11 @@ import {
   getAllManpower,
   deleteManpower,
 } from "@/app/db/actions";
+import { cookies } from "next/headers";
 
 // manpower is stored by activityId so we are just going to grab everything and then filter it out on the client side
 export async function GET() {
+  cookies();
   try {
     const manpowerData = await getAllManpower();
     return NextResponse.json({

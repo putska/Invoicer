@@ -1,6 +1,10 @@
 // app/admin/page.tsx
 "use client";
 
+export const dynamic = "force-dynamic";
+
+import { sql } from "drizzle-orm";
+import { db } from "@/app/db/lib/drizzle";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -19,9 +23,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     // Fetch users when the page loads
+
     axios
       .get("/api/admin/getUsers")
       .then((response) => {
+        console.log("Users in admin:", response.data.users);
         setUsers(response.data.users);
         setLoading(false);
       })

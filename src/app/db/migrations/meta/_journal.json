@@ -5,36 +5,22 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1721244434924,
-      "tag": "0000_premium_bedlam",
+      "when": 1727220958001,
+      "tag": "0000_overjoyed_talkback",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1727110216983,
-      "tag": "0001_red_ulik",
+      "when": 1727221072120,
+      "tag": "0001_petite_blacklash",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1727118903581,
-      "tag": "0002_medical_mesmero",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1727135284192,
-      "tag": "0003_complex_master_mold",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1727135629480,
-      "tag": "0004_legal_starhawk",
+      "when": 1727221108382,
+      "tag": "0002_majestic_owl",
       "breakpoints": true
     }
   ]

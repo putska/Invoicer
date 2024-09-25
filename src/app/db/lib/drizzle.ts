@@ -1,14 +1,32 @@
 // src/app/db/lib/drizzle.ts
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import {
+  invoicesTable,
+  customersTable,
+  bankInfoTable,
+  projects,
+  categories,
+  activities,
+  manpower,
+  users,
+} from "../schema"; // Adjust the path if necessary
 
-// Initialize a single instance of the pool to be reused across requests
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Ensure this is set in your environment variables
-  ssl: {
-    rejectUnauthorized: false, // Required for Neon PostgreSQL
+if (!process.env.NEON_DATABASE_URL) {
+  throw new Error("DATABASE_URL must be a Neon Postgres connection string");
+}
+
+const sql = neon(process.env.NEON_DATABASE_URL!);
+
+export const db = drizzle(sql, {
+  schema: {
+    invoicesTable,
+    customersTable,
+    bankInfoTable,
+    projects,
+    categories,
+    activities,
+    manpower,
+    users,
   },
 });
-
-// Export the Drizzle ORM instance
-export const db = drizzle(pool);

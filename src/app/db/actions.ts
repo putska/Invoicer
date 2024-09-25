@@ -1,14 +1,4 @@
-import {
-  invoicesDB,
-  customersDB,
-  bankInfoDB,
-  projectsDB,
-  categoriesDB,
-  activitiesDB,
-  manpowerDB,
-  usersDB,
-  averageManpowerDB,
-} from ".";
+import { db } from "./lib/drizzle";
 import {
   invoicesTable,
   customersTable,
@@ -26,7 +16,7 @@ import { act } from "react";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
-  await invoicesDB.insert(invoicesTable).values({
+  await db.insert(invoicesTable).values({
     owner_id: invoice.user_id,
     customer_id: invoice.customer_id,
     title: invoice.title,
@@ -37,7 +27,7 @@ export const createInvoice = async (invoice: any) => {
 
 //👇🏻 get all user's invoices
 export const getUserInvoices = async (user_id: string) => {
-  return await invoicesDB
+  return await db
     .select()
     .from(invoicesTable)
     .where(eq(invoicesTable.owner_id, user_id))
@@ -46,15 +36,12 @@ export const getUserInvoices = async (user_id: string) => {
 
 //👇🏻 get single invoice
 export const getSingleInvoice = async (id: number) => {
-  return await invoicesDB
-    .select()
-    .from(invoicesTable)
-    .where(eq(invoicesTable.id, id));
+  return await db.select().from(invoicesTable).where(eq(invoicesTable.id, id));
 };
 
 //👇🏻 get customers list
 export const getCustomers = async (user_id: string) => {
-  return await customersDB
+  return await db
     .select()
     .from(customersTable)
     .where(eq(customersTable.owner_id, user_id))
@@ -63,7 +50,7 @@ export const getCustomers = async (user_id: string) => {
 
 //👇🏻 get single customer
 export const getSingleCustomer = async (name: string) => {
-  return await customersDB
+  return await db
     .select()
     .from(customersTable)
     .where(eq(customersTable.name, name));
@@ -71,7 +58,7 @@ export const getSingleCustomer = async (name: string) => {
 
 //👇🏻 add a new row to the customers table
 export const addCustomer = async (customer: Customer) => {
-  await customersDB.insert(customersTable).values({
+  await db.insert(customersTable).values({
     owner_id: customer.user_id,
     name: customer.name,
     email: customer.email,
@@ -81,12 +68,12 @@ export const addCustomer = async (customer: Customer) => {
 
 //👇🏻 delete a customer
 export const deleteCustomer = async (id: number) => {
-  await customersDB.delete(customersTable).where(eq(customersTable.id, id));
+  await db.delete(customersTable).where(eq(customersTable.id, id));
 };
 
 //👇🏻 get user's bank info
 export const getUserBankInfo = async (user_id: string) => {
-  return await bankInfoDB
+  return await db
     .select()
     .from(bankInfoTable)
     .where(eq(bankInfoTable.owner_id, user_id));
@@ -94,7 +81,7 @@ export const getUserBankInfo = async (user_id: string) => {
 
 //👇🏻 update bank info table
 export const updateBankInfo = async (info: any) => {
-  await bankInfoDB
+  await db
     .insert(bankInfoTable)
     .values({
       owner_id: info.user_id,
@@ -116,15 +103,12 @@ export const updateBankInfo = async (info: any) => {
 
 //👇🏻 get projects list
 export const getProjects = async () => {
-  return await projectsDB
-    .select()
-    .from(projects)
-    .orderBy(desc(projects.createdAt));
+  return await db.select().from(projects).orderBy(desc(projects.createdAt));
 };
 
 //👇🏻 get single project
 export const getSingleProject = async (projectId: string) => {
-  return await projectsDB
+  return await db
     .select()
     .from(projects)
     .where(eq(projects.id, Number(projectId)));
@@ -132,7 +116,7 @@ export const getSingleProject = async (projectId: string) => {
 
 //👇🏻 add a new row to the projects table
 export const addProject = async (project: Project) => {
-  const [newProject] = await projectsDB
+  const [newProject] = await db
     .insert(projects)
     .values({
       name: project.name,
@@ -166,7 +150,7 @@ export const updateProject = async (
     // Update 'updatedAt' to the current timestamp
     dataToUpdate.updatedAt = new Date();
 
-    const result = await projectsDB
+    const result = await db
       .update(projects)
       .set(dataToUpdate)
       .where(eq(projects.id, projectId));
@@ -180,7 +164,7 @@ export const updateProject = async (
 // Get manpower data by project ID
 export const getManpowerByProjectId = async (projectId: number) => {
   try {
-    const result = await manpowerDB
+    const result = await db
       .select()
       .from(manpower)
       .where(eq(manpower.id, projectId)); // Assuming you have projectId in manpower table
@@ -194,7 +178,7 @@ export const getManpowerByProjectId = async (projectId: number) => {
 // Fetch all manpower data
 export const getAllManpower = async () => {
   try {
-    const result = await manpowerDB.select().from(manpower);
+    const result = await db.select().from(manpower);
     return result;
   } catch (error) {
     console.error("Error fetching manpower data:", error);
@@ -209,7 +193,7 @@ export const addManpower = async (
   manpowerCount: number
 ) => {
   try {
-    await manpowerDB.insert(manpower).values({
+    await db.insert(manpower).values({
       activityId,
       date: date, // Ensure the date is passed correctly
       manpower: manpowerCount,
@@ -228,7 +212,7 @@ export const updateManpower = async (
   manpowerCount: number
 ) => {
   try {
-    await manpowerDB
+    await db
       .update(manpower)
       .set({ manpower: manpowerCount, updatedAt: new Date() })
       .where(and(eq(manpower.activityId, activityId), eq(manpower.date, date))); // Update based on activityId and date
@@ -240,7 +224,7 @@ export const updateManpower = async (
 };
 
 export const deleteManpower = async (activityId: number, date: string) => {
-  return await manpowerDB.delete(manpower).where(
+  return await db.delete(manpower).where(
     and(
       eq(manpower.activityId, activityId),
       eq(manpower.date, date) // Convert date string to Date object
@@ -250,7 +234,7 @@ export const deleteManpower = async (activityId: number, date: string) => {
 
 //👇🏻 delete a project
 export const deleteProject = async (id: number) => {
-  return await projectsDB.delete(projects).where(eq(projects.id, id));
+  return await db.delete(projects).where(eq(projects.id, id));
 };
 
 // Fetch all categories for a given project ID
@@ -270,7 +254,7 @@ export const deleteProject = async (id: number) => {
 // Fetch all activities for a given category ID
 export const getActivitiesByCategoryId = async (categoryId: number) => {
   try {
-    const result = await activitiesDB
+    const result = await db
       .select()
       .from(activities)
       .where(eq(activities.categoryId, categoryId));
@@ -289,7 +273,7 @@ export const createCategory = async (category: {
 }) => {
   try {
     // Insert the new activity and return the inserted record
-    const [result] = await categoriesDB
+    const [result] = await db
       .insert(categories)
       .values({
         projectId: category.projectId,
@@ -314,7 +298,7 @@ export const updateCategory = async (
   }>
 ) => {
   try {
-    const result = await categoriesDB
+    const result = await db
       .update(categories)
       .set(updatedData)
       .where(eq(categories.id, categoryId));
@@ -328,7 +312,7 @@ export const updateCategory = async (
 // Delete a category by ID
 export const deleteCategory = async (categoryId: number) => {
   try {
-    const result = await categoriesDB
+    const result = await db
       .delete(categories)
       .where(eq(categories.id, categoryId));
     return result;
@@ -348,7 +332,7 @@ export const createActivity = async (activity: {
   completed?: boolean;
 }) => {
   try {
-    const [result] = await activitiesDB
+    const [result] = await db
       .insert(activities)
       .values({
         categoryId: activity.categoryId,
@@ -379,7 +363,7 @@ export const updateActivity = async (
   }>
 ) => {
   try {
-    const result = await activitiesDB
+    const result = await db
       .update(activities)
       .set(updatedData)
       .where(eq(activities.id, activityId));
@@ -393,7 +377,7 @@ export const updateActivity = async (
 // Delete an activity by ID
 export const deleteActivity = async (activityId: number) => {
   try {
-    const result = await activitiesDB
+    const result = await db
       .delete(activities)
       .where(eq(activities.id, activityId));
     return result;
@@ -406,7 +390,7 @@ export const deleteActivity = async (activityId: number) => {
 export const getTreeViewData = async (projectId: number) => {
   try {
     // Fetch categories using `inArray`
-    const fetchedCategories = await categoriesDB
+    const fetchedCategories = await db
       .select({
         categoryId: categories.id,
         categoryName: categories.name,
@@ -422,7 +406,7 @@ export const getTreeViewData = async (projectId: number) => {
 
     // Fetch activities for the categories using `inArray`
     const fetchedActivities = categoryIds.length
-      ? await categoriesDB
+      ? await db
           .select({
             activityId: activities.id,
             activityName: activities.name,
@@ -498,7 +482,7 @@ export async function getAverageManpowerByMonthAndYear() {
         p.id, per_day.year, per_day.month;
     `;
 
-    const result = await projectsDB.execute(query);
+    const result = await db.execute(query);
 
     // Map the results to plain objects
     const mappedResults = result.rows.map((row) => ({
@@ -522,7 +506,7 @@ export async function getAverageManpowerByMonthAndYear() {
 // db/fieldMonitor.ts
 
 export const getFieldMonitorData = async (projectId: number) => {
-  const result = await categoriesDB
+  const result = await db
     .select({
       categoryId: categories.id,
       categoryName: categories.name,
@@ -546,7 +530,7 @@ export const getFieldMonitorData = async (projectId: number) => {
 // Fetch a user by Clerk ID
 export const getUserByClerkId = async (clerkId: string) => {
   try {
-    const user = await usersDB
+    const user = await db
       .select()
       .from(users)
       .where(eq(users.clerk_id, clerkId))
@@ -563,9 +547,12 @@ export const getUserByClerkId = async (clerkId: string) => {
 // Fetch all users
 export const getAllUsers = async () => {
   try {
-    const allUsers = await usersDB.select().from(users).execute();
-
-    return allUsers;
+    const result = await db.execute(sql`SELECT * from users`);
+    console.log("SQL Select Users: ", result.rows);
+    const allUsers = await db.select().from(users).execute();
+    console.log("All Users: ", allUsers);
+    //return allUsers;
+    return result.rows;
   } catch (error) {
     console.error("Error fetching all users:", error);
     throw new Error("Could not fetch users");
@@ -578,7 +565,7 @@ export const updateUserPermission = async (
   permissionLevel: string
 ): Promise<void> => {
   try {
-    await usersDB
+    await db
       .update(users)
       .set({ permission_level: permissionLevel })
       .where(eq(users.id, userId))
@@ -598,7 +585,7 @@ export const createUser = async (userData: {
   permission_level: string;
 }) => {
   try {
-    const [newUser] = await usersDB
+    const [newUser] = await db
       .insert(users)
       .values({
         clerk_id: userData.clerk_id,

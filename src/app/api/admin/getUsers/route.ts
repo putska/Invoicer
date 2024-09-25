@@ -2,8 +2,10 @@
 
 import { NextResponse } from "next/server";
 import { getAllUsers } from "@/app/db/actions";
+import { cookies } from "next/headers";
 
 export async function GET() {
+  cookies();
   try {
     const users = await getAllUsers();
     return NextResponse.json({ users });

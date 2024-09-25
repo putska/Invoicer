@@ -1,10 +1,10 @@
-// middleware.ts
+// src/middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getUserByClerkId } from "@/app/db/actions"; // Adjust the path as necessary
+import { getUserByClerkId } from "@/app/db/actions"; // Import the action function
+import { User } from "@types"; // Ensure correct path
 
-// Define protected routes (require authentication)
+// Define protected routes that require authentication
 const protectedRoutes = createRouteMatcher([
   "/activities",
   "/customers",
@@ -19,7 +19,7 @@ const protectedRoutes = createRouteMatcher([
   "/summary",
 ]);
 
-// Define admin routes (require authentication and admin permission)
+// Define admin routes that require authentication and admin permission
 const adminRoutes = createRouteMatcher(["/admin"]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -36,17 +36,17 @@ export default clerkMiddleware(async (auth, req) => {
 
     if (clerkUserId) {
       try {
-        // Fetch user from the database using clerk_id
-        const user = await getUserByClerkId(clerkUserId);
+        // Fetch user by clerk_id using the action function
+        const user: User | null = await getUserByClerkId(clerkUserId);
 
         if (!user || user.permission_level !== "admin") {
-          // Redirect to unauthorized if not admin
+          // If user is not found or not an admin, redirect to unauthorized
           const url = req.nextUrl.clone();
           url.pathname = "/unauthorized";
           return NextResponse.redirect(url);
         }
 
-        // User is admin; allow access
+        // If user is an admin, allow access
         return NextResponse.next();
       } catch (error) {
         console.error("Error checking user permissions:", error);
@@ -63,7 +63,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // Allow all other requests
+  // Allow all other requests to proceed
   return NextResponse.next();
 });
 

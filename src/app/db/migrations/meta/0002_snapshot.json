@@ -1,6 +1,6 @@
 {
-  "id": "e32c5267-70c5-4b7a-8440-b3952943325a",
-  "prevId": "87f44a55-df4b-4159-9880-386d6ad593c7",
+  "id": "561fb585-e4bb-48a9-96ca-32d7cd1f9faa",
+  "prevId": "3dd482bc-9c7c-465c-8ed0-80fac1f3207c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -437,9 +437,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "clerk_id": {
           "name": "clerk_id",
