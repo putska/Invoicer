@@ -1,6 +1,11 @@
 import { deleteProject, addProject, getProjects } from "@/app/db/actions";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import {
+  PERMISSION_LEVELS,
+  PermissionLevel,
+} from "@/app/constants/permissions";
 
 // Define a schema for validating incoming project data
 const projectSchema = z.object({
@@ -16,6 +21,16 @@ const projectSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
+  const isAuthorized = authorize(user, [
+    PERMISSION_LEVELS.ADMIN,
+    PERMISSION_LEVELS.WRITE,
+  ]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
   try {
     const body = await req.json();
     const projectData = projectSchema.parse(body); // Validate incoming data
@@ -43,6 +58,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
   try {
     const projects = await getProjects(); // Fetch all projects
     if (!projects || projects.length === 0) {
@@ -66,6 +85,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
+  const isAuthorized = authorize(user, [
+    PERMISSION_LEVELS.ADMIN,
+    PERMISSION_LEVELS.WRITE,
+  ]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+
   const projectID = req.nextUrl.searchParams.get("id");
 
   if (!projectID) {

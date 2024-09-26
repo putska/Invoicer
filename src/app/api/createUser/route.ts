@@ -2,8 +2,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserByClerkId, createUser } from "@/app/db/actions";
 import { User } from "@types"; // Assuming this is the correct path to your types
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
 
 export async function POST(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
   const { clerk_id, email, first_name, last_name, permission_level } =
     await req.json();
 

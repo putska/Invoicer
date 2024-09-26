@@ -1,6 +1,9 @@
-import React from "react";
-import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Import icons (you might need to install react-icons)
+// app/components/ProjectsTable.tsx
+
+import React, { useContext } from "react";
+import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Import icons
 import Link from "next/link";
+import { PermissionContext } from "@/context/PermissionContext"; // Adjust the import path accordingly
 
 interface Project {
   id: number;
@@ -14,7 +17,7 @@ interface Project {
 interface ProjectsTableProps {
   projects: Project[];
   deleteProject: (id: number) => void;
-  editProject: (project: Project) => void; // New prop
+  editProject: (project: Project) => void;
 }
 
 export default function ProjectsTable({
@@ -22,6 +25,13 @@ export default function ProjectsTable({
   deleteProject,
   editProject,
 }: ProjectsTableProps) {
+  const { hasWritePermission, isLoaded } = useContext(PermissionContext);
+
+  // Optional: Show a loading state if permissions are still loading
+  if (!isLoaded) {
+    return <p>Loading permissions...</p>;
+  }
+
   return (
     <table className="min-w-full bg-white">
       <thead>
@@ -38,7 +48,7 @@ export default function ProjectsTable({
       <tbody>
         {projects.map((project) => (
           <tr key={project.id}>
-            {/* Table cells */}
+            {/* Table cells without whitespace */}
             <td className="py-2">{project.name}</td>
             <td className="py-2">{project.description}</td>
             <td className="py-2">{project.startDate}</td>
@@ -48,14 +58,32 @@ export default function ProjectsTable({
               {/* Edit button */}
               <button
                 onClick={() => editProject(project)}
-                className="text-blue-500 hover:text-blue-700"
+                className={`text-blue-500 hover:text-blue-700 ${
+                  !hasWritePermission ? "cursor-not-allowed opacity-50" : ""
+                }`}
+                disabled={!hasWritePermission}
+                title={
+                  hasWritePermission
+                    ? "Edit Project"
+                    : "You do not have permission to edit projects"
+                }
+                aria-disabled={!hasWritePermission}
               >
                 <FaEdit />
               </button>
               {/* Delete button */}
               <button
                 onClick={() => deleteProject(project.id)}
-                className="text-red-500 hover:text-red-700"
+                className={`text-red-500 hover:text-red-700 ${
+                  !hasWritePermission ? "cursor-not-allowed opacity-50" : ""
+                }`}
+                disabled={!hasWritePermission}
+                title={
+                  hasWritePermission
+                    ? "Delete Project"
+                    : "You do not have permission to delete projects"
+                }
+                aria-disabled={!hasWritePermission}
               >
                 <FaTrash />
               </button>

@@ -1,3 +1,5 @@
+// app/api/admin/getUsers/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -6,6 +8,8 @@ import {
   updateActivity,
   deleteActivity,
 } from "@/app/db/actions";
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { PERMISSION_LEVELS } from "@/app/constants/permissions";
 
 // Define the Zod schema for activity creation and updates
 const activitySchema = z.object({
@@ -19,10 +23,17 @@ const activitySchema = z.object({
 
 // GET Route: Fetch activities by categoryId
 export async function GET(req: NextRequest) {
-  const categoryId = parseInt(req.nextUrl.searchParams.get("categoryId") || "");
-  if (!categoryId) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Validate and parse query parameters
+  const categoryIdParam = req.nextUrl.searchParams.get("categoryId");
+  const categoryId = parseInt(categoryIdParam || "", 10);
+
+  if (isNaN(categoryId)) {
     return NextResponse.json(
-      { message: "Missing categoryId parameter" },
+      { message: "Invalid or missing categoryId parameter" },
       { status: 400 }
     );
   }
@@ -31,10 +42,9 @@ export async function GET(req: NextRequest) {
     const activities = await getActivitiesByCategoryId(categoryId);
     return NextResponse.json({ activities }, { status: 200 });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    console.error("Error fetching activities:", error);
     return NextResponse.json(
-      { message: "Error fetching activities", error: errorMessage },
+      { message: "Error fetching activities" },
       { status: 500 }
     );
   }
@@ -42,9 +52,18 @@ export async function GET(req: NextRequest) {
 
 // POST Route: Create a new activity
 export async function POST(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+
   try {
     const body = await req.json();
     const parsedData = activitySchema.parse(body); // Validate incoming data
+
     const newActivity = await createActivity(parsedData);
     return NextResponse.json({ newActivity }, { status: 201 });
   } catch (error) {
@@ -55,11 +74,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.log("Error:", errorMessage); // Log other errors
+    console.error("Error creating activity:", error); // Log other errors
     return NextResponse.json(
-      { message: "Error creating activity", error: errorMessage },
+      { message: "Error creating activity" },
       { status: 500 }
     );
   }
@@ -67,10 +84,21 @@ export async function POST(req: NextRequest) {
 
 // PUT Route: Update an existing activity
 export async function PUT(req: NextRequest) {
-  const activityId = parseInt(req.nextUrl.searchParams.get("activityId") || "");
-  if (!activityId) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+
+  // Validate and parse query parameters
+  const activityIdParam = req.nextUrl.searchParams.get("activityId");
+  const activityId = parseInt(activityIdParam || "", 10);
+
+  if (isNaN(activityId)) {
     return NextResponse.json(
-      { message: "Missing activityId parameter" },
+      { message: "Invalid or missing activityId parameter" },
       { status: 400 }
     );
   }
@@ -80,18 +108,25 @@ export async function PUT(req: NextRequest) {
     const parsedData = activitySchema.partial().parse(body); // Validate incoming data (partial for updates)
 
     const updatedActivity = await updateActivity(activityId, parsedData);
+    if (!updatedActivity) {
+      return NextResponse.json(
+        { message: "Activity not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json({ updatedActivity }, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.log("Validation failed:", error.errors); // Log validation errors
       return NextResponse.json(
         { message: "Validation failed", errors: error.errors },
         { status: 400 }
       );
     }
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    console.error("Error updating activity:", error); // Log other errors
     return NextResponse.json(
-      { message: "Error updating activity", error: errorMessage },
+      { message: "Error updating activity" },
       { status: 500 }
     );
   }
@@ -99,25 +134,42 @@ export async function PUT(req: NextRequest) {
 
 // DELETE Route: Delete an activity by ID
 export async function DELETE(req: NextRequest) {
-  const activityId = parseInt(req.nextUrl.searchParams.get("activityId") || "");
-  if (!activityId) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+
+  // Validate and parse query parameters
+  const activityIdParam = req.nextUrl.searchParams.get("activityId");
+  const activityId = parseInt(activityIdParam || "", 10);
+
+  if (isNaN(activityId)) {
     return NextResponse.json(
-      { message: "Missing activityId parameter" },
+      { message: "Invalid or missing activityId parameter" },
       { status: 400 }
     );
   }
 
   try {
-    await deleteActivity(activityId);
+    const success = await deleteActivity(activityId);
+    if (!success) {
+      return NextResponse.json(
+        { message: "Activity not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Activity deleted successfully" },
       { status: 200 }
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    console.error("Error deleting activity:", error); // Log other errors
     return NextResponse.json(
-      { message: "Error deleting activity", error: errorMessage },
+      { message: "Error deleting activity" },
       { status: 500 }
     );
   }

@@ -2,8 +2,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { updateUserPermission } from "@/app/db/actions";
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { PERMISSION_LEVELS } from "@/app/constants/permissions";
 
 export async function POST(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
+  const isAuthorized = authorize(user, [
+    PERMISSION_LEVELS.ADMIN,
+    PERMISSION_LEVELS.WRITE,
+  ]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+
   try {
     const body = await req.json();
     const { userId, permission_level } = body;

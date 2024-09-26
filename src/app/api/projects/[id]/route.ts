@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSingleProject, updateProject } from "@/app/db/actions";
 import { Project } from "@types";
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
   const projectId = params.id;
 
   try {

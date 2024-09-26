@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useContext } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -10,6 +10,8 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import { PermissionContext } from "@/context/PermissionContext";
+import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Ensure these are imported if used elsewhere
 
 interface Category {
   categoryId: number;
@@ -27,6 +29,12 @@ interface Activity {
   completed: boolean;
 }
 
+interface Project {
+  id: number;
+  name: string;
+  // Add other relevant fields if necessary
+}
+
 export default function ActivitiesPage({
   params,
 }: {
@@ -35,6 +43,10 @@ export default function ActivitiesPage({
   const projectId = parseInt(params.projectId, 10);
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(
+    undefined
+  );
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [newItemName, setNewItemName] = useState<string>("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
@@ -50,16 +62,38 @@ export default function ActivitiesPage({
   }>({});
   const [currentItemId, setCurrentItemId] = useState<number | null>(null);
 
+  // Get the user's permission level
+  const { hasWritePermission } = useContext(PermissionContext);
+
+  const fetchCurrentProject = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`); // Fetch specific project
+      if (!res.ok) {
+        throw new Error(`Error fetching project: ${res.statusText}`);
+      }
+      const data = await res.json();
+      setCurrentProject(data.project);
+    } catch (err) {
+      console.error(err);
+      // Optionally, set an error state here to display to the user
+    }
+  }, [projectId]);
+
   // Fetch categories and activities based on projectId
   useEffect(() => {
     if (projectId) {
+      fetchCurrentProject(); // Initial fetch when the component mounts
       const fetchCategoriesAndActivities = async () => {
         try {
           const res = await fetch(
             `/api/getTreeViewData?projectId=${projectId}`
           );
+          if (!res.ok) {
+            throw new Error(
+              `Error fetching categories and activities: ${res.statusText}`
+            );
+          }
           const data = await res.json();
-
           setCategories(data.treeViewData);
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -67,7 +101,14 @@ export default function ActivitiesPage({
       };
       fetchCategoriesAndActivities();
     }
-  }, [projectId]);
+  }, [projectId, fetchCurrentProject]);
+
+  useEffect(() => {
+    if (projectId && projects.length > 0) {
+      const project = projects.find((project) => project.id === projectId);
+      setCurrentProject(project);
+    }
+  }, [projectId, projects]);
 
   const handleSubmit = async () => {
     try {
@@ -227,6 +268,8 @@ export default function ActivitiesPage({
     type: "category" | "activity",
     categoryId?: number
   ) => {
+    if (!hasWritePermission) return; // Prevent opening dialog if no permission
+
     setDialogOpen(true);
     setDialogType(type);
     setCurrentItemId(null);
@@ -243,6 +286,8 @@ export default function ActivitiesPage({
     item: any,
     parentCategoryId?: number
   ) => {
+    if (!hasWritePermission) return; // Prevent editing if no permission
+
     setDialogType(type);
     setDialogOpen(true);
 
@@ -267,6 +312,8 @@ export default function ActivitiesPage({
   };
 
   const handleDeleteCategory = async (categoryId: number) => {
+    if (!hasWritePermission) return; // Prevent deletion if no permission
+
     try {
       const res = await fetch(`/api/categories?categoryId=${categoryId}`, {
         method: "DELETE",
@@ -282,6 +329,8 @@ export default function ActivitiesPage({
   };
 
   const handleDeleteActivity = async (activityId: number) => {
+    if (!hasWritePermission) return; // Prevent deletion if no permission
+
     try {
       const response = await fetch(`/api/activities?activityId=${activityId}`, {
         method: "DELETE",
@@ -306,9 +355,15 @@ export default function ActivitiesPage({
       <main className="min-h-[90vh] flex items-start">
         <div className="md:w-5/6 w-full h-full p-6">
           <div className="p-4">
-            <h2 className="text-lg font-bold">
-              Categories and Activities for Project {projectId}
-            </h2>
+            {currentProject ? (
+              <h1 className="text-2xl font-semibold mb-4">
+                Categories and activities for {currentProject.name}
+              </h1>
+            ) : (
+              <p className="text-gray-500 mb-4">
+                Loading project information...
+              </p>
+            )}
 
             {/* Categories and Activities */}
             {projectId && (
@@ -321,6 +376,11 @@ export default function ActivitiesPage({
                         <button
                           className="hs-accordion-toggle w-4 h-4 flex justify-center items-center hover:bg-gray-100 rounded-md"
                           onClick={() => toggleCategory(category.categoryId)}
+                          aria-label={
+                            expandedCategories[category.categoryId]
+                              ? "Collapse category"
+                              : "Expand category"
+                          }
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -340,20 +400,47 @@ export default function ActivitiesPage({
                             />
                           </svg>
                         </button>
-                        <div className="grow px-2 cursor-pointer flex items-center">
+                        <div className="grow px-2 flex items-center">
                           <span
-                            className="text-sm text-gray-800"
+                            className={`text-sm text-gray-800 
+                                        ${
+                                          hasWritePermission
+                                            ? "hover:text-blue-700 cursor-pointer"
+                                            : "cursor-not-allowed text-gray-400"
+                                        }`}
                             onClick={() =>
-                              handleEditDialog("category", category)
+                              hasWritePermission
+                                ? handleEditDialog("category", category)
+                                : null
+                            }
+                            title={
+                              hasWritePermission
+                                ? "Edit Category"
+                                : "You do not have permission to edit categories"
                             }
                           >
                             {category.categoryName}
                           </span>
 
+                          {/* Delete Category Button */}
                           <button
-                            className="text-red-500 hover:text-red-700 ml-2"
+                            className={`text-red-500 hover:text-red-700 ml-2 
+                                        ${
+                                          !hasWritePermission
+                                            ? "cursor-not-allowed opacity-50"
+                                            : ""
+                                        }`}
                             onClick={() =>
-                              handleDeleteCategory(category.categoryId)
+                              hasWritePermission
+                                ? handleDeleteCategory(category.categoryId)
+                                : null
+                            }
+                            disabled={!hasWritePermission}
+                            aria-disabled={!hasWritePermission}
+                            title={
+                              hasWritePermission
+                                ? "Delete Category"
+                                : "You do not have permission to delete categories"
                             }
                           >
                             x
@@ -368,24 +455,53 @@ export default function ActivitiesPage({
                             {category.activities.map((activity) => (
                               <div
                                 key={activity.activityId}
-                                className="py-1 px-2 cursor-pointer hover:bg-gray-50"
+                                className="py-1 px-2 cursor-pointer hover:bg-gray-50 flex items-center"
                               >
                                 <span
-                                  className="text-sm text-gray-800"
+                                  className={`text-sm text-gray-800 
+                                              ${
+                                                hasWritePermission
+                                                  ? "hover:text-blue-700 cursor-pointer"
+                                                  : "cursor-not-allowed text-gray-400"
+                                              }`}
                                   onClick={() =>
-                                    handleEditDialog(
-                                      "activity",
-                                      activity,
-                                      category.categoryId
-                                    )
+                                    hasWritePermission
+                                      ? handleEditDialog(
+                                          "activity",
+                                          activity,
+                                          category.categoryId
+                                        )
+                                      : null
+                                  }
+                                  title={
+                                    hasWritePermission
+                                      ? "Edit Activity"
+                                      : "You do not have permission to edit activities"
                                   }
                                 >
                                   {activity.activityName}
                                 </span>
+                                {/* Delete Activity Button */}
                                 <button
-                                  className="text-red-500 hover:text-red-700 ml-2"
+                                  className={`text-red-500 hover:text-red-700 ml-2 
+                                              ${
+                                                !hasWritePermission
+                                                  ? "cursor-not-allowed opacity-50"
+                                                  : ""
+                                              }`}
                                   onClick={() =>
-                                    handleDeleteActivity(activity.activityId)
+                                    hasWritePermission
+                                      ? handleDeleteActivity(
+                                          activity.activityId
+                                        )
+                                      : null
+                                  }
+                                  disabled={!hasWritePermission}
+                                  aria-disabled={!hasWritePermission}
+                                  title={
+                                    hasWritePermission
+                                      ? "Delete Activity"
+                                      : "You do not have permission to delete activities"
                                   }
                                 >
                                   x
@@ -394,17 +510,46 @@ export default function ActivitiesPage({
                             ))}
                             {/* Add New Activity */}
                             <div
-                              className="py-1 px-2 cursor-pointer"
+                              className="py-1 px-2"
                               onClick={() =>
-                                handleOpenDialog(
-                                  "activity",
-                                  category.categoryId
-                                )
+                                hasWritePermission
+                                  ? handleOpenDialog(
+                                      "activity",
+                                      category.categoryId
+                                    )
+                                  : null
+                              }
+                              title={
+                                hasWritePermission
+                                  ? "Add new activity"
+                                  : "You do not have permission to add activities"
                               }
                             >
-                              <span className="text-sm text-blue-500 underline">
+                              <button
+                                className={`text-sm text-blue-500 underline 
+                                            ${
+                                              !hasWritePermission
+                                                ? "cursor-not-allowed text-gray-400"
+                                                : "hover:text-blue-700"
+                                            }`}
+                                onClick={() =>
+                                  hasWritePermission
+                                    ? handleOpenDialog(
+                                        "activity",
+                                        category.categoryId
+                                      )
+                                    : null
+                                }
+                                disabled={!hasWritePermission}
+                                aria-disabled={!hasWritePermission}
+                                title={
+                                  hasWritePermission
+                                    ? "Add new activity"
+                                    : "You do not have permission to add activities"
+                                }
+                              >
                                 Add new activity
-                              </span>
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -413,12 +558,36 @@ export default function ActivitiesPage({
                   ))}
                   {/* Add New Category */}
                   <div
-                    className="py-1 cursor-pointer"
-                    onClick={() => handleOpenDialog("category")}
+                    className="py-1"
+                    onClick={() =>
+                      hasWritePermission && handleOpenDialog("category")
+                    }
+                    title={
+                      hasWritePermission
+                        ? "Add new category"
+                        : "You do not have permission to add categories"
+                    }
                   >
-                    <span className="text-sm text-blue-500 underline">
+                    <button
+                      className={`text-sm text-blue-500 underline 
+                                  ${
+                                    !hasWritePermission
+                                      ? "cursor-not-allowed text-gray-400"
+                                      : "hover:text-blue-700"
+                                  }`}
+                      onClick={() =>
+                        hasWritePermission && handleOpenDialog("category")
+                      }
+                      disabled={!hasWritePermission}
+                      aria-disabled={!hasWritePermission}
+                      title={
+                        hasWritePermission
+                          ? "Add new category"
+                          : "You do not have permission to add categories"
+                      }
+                    >
                       Add new category
-                    </span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -448,6 +617,7 @@ export default function ActivitiesPage({
                   fullWidth
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
+                  disabled={!hasWritePermission}
                 />
                 <TextField
                   margin="dense"
@@ -456,6 +626,7 @@ export default function ActivitiesPage({
                   fullWidth
                   value={newSortOrder}
                   onChange={(e) => setNewSortOrder(Number(e.target.value))}
+                  disabled={!hasWritePermission}
                 />
                 {dialogType === "activity" && (
                   <>
@@ -468,6 +639,7 @@ export default function ActivitiesPage({
                       onChange={(e) =>
                         setEstimatedHours(Number(e.target.value))
                       }
+                      disabled={!hasWritePermission}
                     />
                     <TextField
                       margin="dense"
@@ -476,12 +648,14 @@ export default function ActivitiesPage({
                       fullWidth
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
+                      disabled={!hasWritePermission}
                     />
                     <FormControlLabel
                       control={
                         <Checkbox
                           checked={completed}
                           onChange={(e) => setCompleted(e.target.checked)}
+                          disabled={!hasWritePermission}
                         />
                       }
                       label="Completed"
@@ -491,7 +665,11 @@ export default function ActivitiesPage({
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSubmit}>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!hasWritePermission}
+                  aria-disabled={!hasWritePermission}
+                >
                   {currentItemId ? "Update" : "Add"}
                 </Button>
               </DialogActions>

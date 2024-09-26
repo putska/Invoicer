@@ -348,6 +348,25 @@ const LaborGrid: React.FC = () => {
     }
   };
 
+  // Update your defaultColDef
+
+  const defaultColDef = {
+    sortable: true,
+    resizable: true,
+
+    editable: (params: any) => {
+      if (!params.data) return false;
+      if (!isLoaded) return false;
+      console.log("hasWritePermission", hasWritePermission);
+      return (
+        hasWritePermission &&
+        !params.data.category &&
+        params.data.id !== "total"
+      );
+    },
+  };
+
+  // Handle loading state
   if (!isLoaded) {
     return <div>Loading...</div>;
   }
@@ -369,20 +388,7 @@ const LaborGrid: React.FC = () => {
         <AgGridReact
           columnDefs={columnDefs}
           rowData={rowData}
-          defaultColDef={{
-            sortable: true,
-            resizable: true,
-            editable: (params: any) => {
-              if (!params.data) return false;
-              if (!isLoaded) return false;
-
-              return (
-                hasWritePermission &&
-                !params.data.category &&
-                params.data.id !== "total"
-              );
-            },
-          }}
+          defaultColDef={defaultColDef}
           groupHeaders
           getRowStyle={(params) => {
             if (!params.data) return {}; // Return empty object if no data

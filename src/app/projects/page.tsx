@@ -1,9 +1,10 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import ProjectsTable from "../components/ProjectsTable";
-import AddProjectModal from "../components/AddProjectModal"; // We'll modify this to handle both adding and editing
+import ProjectsTable from "../components/ProjectsGrid";
+import AddProjectModal from "../components/AddProjectModal"; // Adding and Editing projects
+import { PermissionContext } from "@/context/PermissionContext";
 
 export default function Projects() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -16,6 +17,9 @@ export default function Projects() {
   const [currentProject, setCurrentProject] = useState<Partial<Project> | null>(
     null
   );
+
+  //get the user's permission level
+  const { hasWritePermission } = useContext(PermissionContext);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -128,8 +132,20 @@ export default function Projects() {
 
           <div className="flex flex-col items-start mt-4">
             <button
-              className="bg-blue-500 text-white p-2 rounded-md mb-4"
+              className={`bg-blue-500 text-white p-2 rounded-md mb-4 
+              ${
+                !hasWritePermission
+                  ? "bg-gray-400 cursor-not-allowed opacity-50"
+                  : "hover:bg-blue-700"
+              }`}
               onClick={handleAddProject}
+              disabled={!hasWritePermission}
+              aria-disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Add a new project"
+                  : "You do not have permission to add projects"
+              }
             >
               Add Project
             </button>

@@ -6,10 +6,16 @@ import {
   deleteManpower,
 } from "@/app/db/actions";
 import { cookies } from "next/headers";
+import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
 
 // manpower is stored by activityId so we are just going to grab everything and then filter it out on the client side
 export async function GET() {
   cookies();
+
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
   try {
     const manpowerData = await getAllManpower();
     return NextResponse.json({
