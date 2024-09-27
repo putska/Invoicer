@@ -12,6 +12,7 @@ import Link from "next/link";
 import Image from "next/image";
 import "./globals.css";
 import { PermissionProvider } from "@/context/PermissionContext";
+import { SocketProvider } from "@/context/SocketContext";
 import AuthHandler from "@/components/AuthHandler"; // Move AuthHandler to a separate file
 
 const inter = PT_Sans({ weight: ["400", "700"], subsets: ["latin"] });
@@ -30,34 +31,36 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ClerkProvider>
-          <AuthHandler>
-            <PermissionProvider>
-              <nav className="flex justify-between items-center h-[10vh] px-8 border-b-[1p]">
-                <Link href="/">
-                  <Image
-                    src="/CSE_LOGO_blue-transparent-web.webp"
-                    alt="Company Logo"
-                    width={300}
-                    height={50}
-                    priority
-                    style={{ height: "auto" }}
-                  />
-                </Link>
-                <div className="flex items-center gap-5">
-                  {/*-- if user is signed out --*/}
-                  <SignedOut>
-                    <SignInButton mode="modal" />
-                  </SignedOut>
-                  {/*-- if user is signed in --*/}
-                  <SignedIn>
-                    <Link href="/summary">Dashboard</Link>
-                    <UserButton showName />
-                  </SignedIn>
-                </div>
-              </nav>
-              {children}
-            </PermissionProvider>
-          </AuthHandler>
+          <SocketProvider>
+            <AuthHandler>
+              <PermissionProvider>
+                <nav className="flex justify-between items-center h-[10vh] px-8 border-b-[1p]">
+                  <Link href="/">
+                    <Image
+                      src="/CSE_LOGO_blue-transparent-web.webp"
+                      alt="Company Logo"
+                      width={300}
+                      height={50}
+                      priority
+                      style={{ height: "auto" }}
+                    />
+                  </Link>
+                  <div className="flex items-center gap-5">
+                    {/*-- if user is signed out --*/}
+                    <SignedOut>
+                      <SignInButton mode="modal" />
+                    </SignedOut>
+                    {/*-- if user is signed in --*/}
+                    <SignedIn>
+                      <Link href="/summary">Dashboard</Link>
+                      <UserButton showName />
+                    </SignedIn>
+                  </div>
+                </nav>
+                {children}
+              </PermissionProvider>
+            </AuthHandler>
+          </SocketProvider>
         </ClerkProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
 import { PermissionContext } from "@/context/PermissionContext";
+import { useSocket } from "@/context/SocketContext";
 
 interface Category {
   categoryId: number;
@@ -51,6 +52,7 @@ const LaborGrid: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<RowData[]>([]);
+  const socket = useSocket(); //Get the socket instance from the context
 
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
 
@@ -139,6 +141,33 @@ const LaborGrid: React.FC = () => {
       fetchCategoriesAndActivities();
     }
   }, [project]);
+
+  /* Socket Stuff!!!! */
+
+  // Listen for real-time updates from the WebSocket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleExternalEdit = (data: any) => {
+      // Update the grid when receiving real-time data
+      setRowData((prevRowData) => {
+        return prevRowData.map((row) => {
+          if (row.id === data.activityId) {
+            return { ...row, [data.dateField]: data.manpower };
+          }
+          return row;
+        });
+      });
+    };
+
+    // Listen for real-time "edit" events
+    socket.on("edit", handleExternalEdit);
+
+    return () => {
+      // Clean up the event listener on unmount
+      socket.off("edit", handleExternalEdit);
+    };
+  }, [socket]);
 
   // IndentCellRenderer function defined inside the component
   const IndentCellRenderer = (props: any) => {
@@ -340,6 +369,15 @@ const LaborGrid: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         console.log(data.message);
+
+        //Emit the change to other users via WebSocket
+        if (socket) {
+          socket.emit("edit", {
+            activityId,
+            dateField,
+            manpower: manpowerValue,
+          });
+        }
       } else {
         console.error("Failed to save manpower:", data.message);
       }
@@ -357,7 +395,7 @@ const LaborGrid: React.FC = () => {
     editable: (params: any) => {
       if (!params.data) return false;
       if (!isLoaded) return false;
-      console.log("hasWritePermission", hasWritePermission);
+
       return (
         hasWritePermission &&
         !params.data.category &&
