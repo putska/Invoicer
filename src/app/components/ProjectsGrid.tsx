@@ -11,14 +11,7 @@ import { PermissionContext } from "@/context/PermissionContext"; // Adjust the i
 import { FaEdit, FaTrash, FaList } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
-interface Project {
-  id: number;
-  name: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  status?: string;
-}
+import { Project } from "@types";
 
 interface ProjectsGridProps {
   projects: Project[];
@@ -60,56 +53,66 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
       {
         headerName: "Actions",
         // Omit 'field' since it's not a part of Project
-        cellRenderer: (params: ICellRendererParams<Project>) => (
-          <div className="flex space-x-2 h-full">
-            {/* Edit Button */}
-            <button
-              onClick={() => editProject(params.data)}
-              className={`text-blue-500 hover:text-blue-700 ${
-                !hasWritePermission || !isLoaded
-                  ? "cursor-not-allowed opacity-50"
-                  : ""
-              }`}
-              disabled={!hasWritePermission || !isLoaded}
-              title={
-                hasWritePermission
-                  ? "Edit Project"
-                  : "You do not have permission to edit projects"
-              }
-              aria-disabled={!hasWritePermission || !isLoaded}
-            >
-              <FaEdit />
-            </button>
-            {/* Delete Button */}
-            <button
-              onClick={() => deleteProject(params.data.id)}
-              className={`text-red-500 hover:text-red-700 ${
-                !hasWritePermission || !isLoaded
-                  ? "cursor-not-allowed opacity-50"
-                  : ""
-              }`}
-              disabled={!hasWritePermission || !isLoaded}
-              title={
-                hasWritePermission
-                  ? "Delete Project"
-                  : "You do not have permission to delete projects"
-              }
-              aria-disabled={!hasWritePermission || !isLoaded}
-            >
-              <FaTrash />
-            </button>
-            {/* Categories Button */}
-            <button
-              onClick={() =>
-                router.push(`/projects/${params.data.id}/activities`)
-              }
-              className="text-green-500 hover:text-green-700"
-              title="Manage Categories"
-            >
-              <FaList />
-            </button>
-          </div>
-        ),
+        cellRenderer: (params: ICellRendererParams<Project>) => {
+          const project = params.data;
+
+          if (!project) {
+            return null; // Or render a fallback UI for missing data
+          }
+
+          return (
+            <div className="flex space-x-2 h-full">
+              {/* Edit Button */}
+              <button
+                onClick={() => editProject(project)}
+                className={`text-blue-500 hover:text-blue-700 ${
+                  !hasWritePermission || !isLoaded
+                    ? "cursor-not-allowed opacity-50"
+                    : ""
+                }`}
+                disabled={!hasWritePermission || !isLoaded}
+                title={
+                  hasWritePermission
+                    ? "Edit Project"
+                    : "You do not have permission to edit projects"
+                }
+                aria-disabled={!hasWritePermission || !isLoaded}
+              >
+                <FaEdit />
+              </button>
+              {/* Delete Button */}
+              <button
+                onClick={() =>
+                  project.id !== undefined && deleteProject(project.id)
+                }
+                className={`text-red-500 hover:text-red-700 ${
+                  !hasWritePermission || !isLoaded
+                    ? "cursor-not-allowed opacity-50"
+                    : ""
+                }`}
+                disabled={!hasWritePermission || !isLoaded}
+                title={
+                  hasWritePermission
+                    ? "Delete Project"
+                    : "You do not have permission to delete projects"
+                }
+                aria-disabled={!hasWritePermission || !isLoaded}
+              >
+                <FaTrash />
+              </button>
+              {/* Categories Button */}
+              <button
+                onClick={() =>
+                  router.push(`/projects/${project.id}/activities`)
+                }
+                className="text-green-500 hover:text-green-700"
+                title="Manage Categories"
+              >
+                <FaList />
+              </button>
+            </div>
+          );
+        },
       },
     ],
     [hasWritePermission, isLoaded, deleteProject, editProject, router]

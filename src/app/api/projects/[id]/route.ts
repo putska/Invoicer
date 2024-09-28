@@ -37,7 +37,7 @@ export async function PUT(
     const updatedProject = await req.json();
 
     // Validate date strings
-    const dateFields = ["startDate", "endDate"];
+    const dateFields: (keyof Project)[] = ["startDate", "endDate"];
     for (const field of dateFields) {
       if (updatedProject[field]) {
         const date = new Date(updatedProject[field]);
@@ -49,7 +49,7 @@ export async function PUT(
     }
 
     // Exclude fields that should not be updated
-    const allowedFields = [
+    const allowedFields: (keyof Project)[] = [
       "name",
       "description",
       "startDate",

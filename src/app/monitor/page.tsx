@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Category, Activity, Project } from "../../../types";
 import { useUser } from "@clerk/nextjs"; // For authentication
 
-const FieldMonitorPage = ({ projectId }: { projectId: number }) => {
+const FieldMonitorPage = () => {
+  const router = useRouter();
+  const { projectId } = router.query; // Extract projectId from URL query
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
@@ -69,10 +72,10 @@ const FieldMonitorPage = ({ projectId }: { projectId: number }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedProject) {
+    if (projectId) {
       const fetchFieldMonitorData = async () => {
         try {
-          const res = await fetch(`/api/monitor?projectId=${selectedProject}`);
+          const res = await fetch(`/api/monitor?projectId=${projectId}`);
           const result = await res.json();
           const processedData = processFieldMonitorData(result.data);
           setCategories(processedData);
@@ -83,7 +86,7 @@ const FieldMonitorPage = ({ projectId }: { projectId: number }) => {
 
       fetchFieldMonitorData();
     }
-  }, [selectedProject]);
+  }, [projectId]);
 
   return (
     <div className="container mx-auto p-6">

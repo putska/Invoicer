@@ -226,7 +226,6 @@ const LaborGrid: React.FC = () => {
     return columns;
   };
 
-  // Generate column definitions
   const generateColumnDefs = (dynamicColumns: any[]) => {
     return [
       {
@@ -237,7 +236,10 @@ const LaborGrid: React.FC = () => {
         cellRenderer: IndentCellRenderer, // Use 'cellRenderer' instead of 'cellRendererFramework'
         editable: false, // Make the name column non-editable
       },
-      ...dynamicColumns,
+      {
+        headerName: "Days", // Header group for dynamic day columns
+        children: dynamicColumns, // Dynamic columns grouped under the "Days" header
+      },
       {
         headerName: "Total Manpower",
         field: "totalManpower",
@@ -427,13 +429,12 @@ const LaborGrid: React.FC = () => {
           columnDefs={columnDefs}
           rowData={rowData}
           defaultColDef={defaultColDef}
-          groupHeaders
           getRowStyle={(params) => {
-            if (!params.data) return {}; // Return empty object if no data
+            if (!params.data) return undefined; // Return undefined if no data
             if (params.data.id === "total") {
-              return { fontWeight: "bold", backgroundColor: "#e0e0e0" }; // Bold and different background for total row
+              return { fontWeight: "bold", backgroundColor: "#e0e0e0" }; // Valid RowStyle for total row
             }
-            return {};
+            return undefined; // Return undefined for rows with no special style
           }}
           onCellValueChanged={(params) => {
             if (params.data.category) return; // Ignore category rows

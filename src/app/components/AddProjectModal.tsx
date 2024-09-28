@@ -1,20 +1,10 @@
 import React, { useEffect, useState } from "react";
-
-interface Project {
-  id?: number;
-  name: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  status?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+import { Project } from "@types";
 
 interface AddProjectModalProps {
   onClose: () => void;
   onSubmit: (projectData: Partial<Project>) => void;
-  project?: Partial<Project>; // Optional project prop for editing
+  project?: Partial<Project> | null; // Optional project prop for editing
   isEditMode?: boolean; // Flag to indicate edit mode
 }
 
