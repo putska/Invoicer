@@ -1,6 +1,9 @@
 {
-  "name": "invoice-generator",
-  "version": "0.1.0",
+  "name": "cse-portal",
+  "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"node server.js\"",
