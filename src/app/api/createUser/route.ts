@@ -1,8 +1,8 @@
 // app/api/createUser/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByClerkId, createUser } from "@/app/db/actions";
-import { User } from "@types"; // Assuming this is the correct path to your types
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { getUserByClerkId, createUser } from "../../../app/db/actions";
+import { User } from "../../../../types"; // Assuming this is the correct path to your types
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 
 export async function POST(req: NextRequest) {
   // Authenticate the user

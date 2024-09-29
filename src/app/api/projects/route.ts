@@ -1,11 +1,15 @@
-import { deleteProject, addProject, getProjects } from "@/app/db/actions";
+import {
+  deleteProject,
+  addProject,
+  getProjects,
+} from "../../../app/db/actions";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 import {
   PERMISSION_LEVELS,
   PermissionLevel,
-} from "@/app/constants/permissions";
+} from "../../../app/constants/permissions";
 
 // Define a schema for validating incoming project data
 const projectSchema = z.object({

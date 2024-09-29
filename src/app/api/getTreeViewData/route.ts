@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTreeViewData } from "@/app/db/actions"; // Adjust the import path as necessary
-import { authenticate } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { getTreeViewData } from "../../../app/db/actions"; // Adjust the import path as necessary
+import { authenticate } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 
 export async function GET(req: NextRequest) {
   // Authenticate the user

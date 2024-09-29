@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getUserByClerkId } from "@/app/db/actions";
+import { getUserByClerkId } from "../../../app/db/actions";
 
 /**
  * Checks if the user is authenticated.

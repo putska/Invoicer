@@ -1,9 +1,9 @@
 // app/api/admin/updatePermission/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { updateUserPermission } from "@/app/db/actions";
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
-import { PERMISSION_LEVELS } from "@/app/constants/permissions";
+import { updateUserPermission } from "../../../../app/db/actions";
+import { authenticate, authorize } from "../../../../app/api/admin/helpers"; // Adjust the import path accordingly
+import { PERMISSION_LEVELS } from "../../../../app/constants/permissions";
 
 export async function POST(req: NextRequest) {
   // Authenticate the user

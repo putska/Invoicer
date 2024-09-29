@@ -1,8 +1,8 @@
 // api/fieldMonitor/route.ts
 
-import { getFieldMonitorData } from "@/app/db/actions";
+import { getFieldMonitorData } from "../../../app/db/actions";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticate } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { authenticate } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 
 export async function GET(req: NextRequest) {
   // Authenticate the user

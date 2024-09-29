@@ -4,12 +4,12 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-} from "@/app/db/actions";
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+} from "../../../app/db/actions";
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 import {
   PERMISSION_LEVELS,
   PermissionLevel,
-} from "@/app/constants/permissions";
+} from "../../../app/constants/permissions";
 
 // Define the Zod schema for category creation and updates
 const categorySchema = z.object({

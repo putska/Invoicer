@@ -4,9 +4,9 @@ import {
   updateManpower,
   getAllManpower,
   deleteManpower,
-} from "@/app/db/actions";
+} from "../../../app/db/actions";
 import { cookies } from "next/headers";
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 
 // manpower is stored by activityId so we are just going to grab everything and then filter it out on the client side
 export async function GET() {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Project } from "@types";
+import { Project } from "../../../types";
 
 interface AddProjectModalProps {
   onClose: () => void;

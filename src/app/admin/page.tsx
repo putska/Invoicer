@@ -4,7 +4,7 @@
 export const dynamic = "force-dynamic";
 
 import { sql } from "drizzle-orm";
-import { db } from "@/app/db/lib/drizzle";
+import { db } from "../../app/db/lib/drizzle";
 import { useState, useEffect } from "react";
 import axios from "axios";
 

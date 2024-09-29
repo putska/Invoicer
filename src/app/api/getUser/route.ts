@@ -1,12 +1,11 @@
 // app/api/getUser/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByClerkId } from "@/app/db/actions";
-import { User } from "@types"; // Adjust the path if needed
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
+import { getUserByClerkId } from "../../../app/db/actions";
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 import {
   PERMISSION_LEVELS,
   PermissionLevel,
-} from "@/app/constants/permissions";
+} from "../../../app/constants/permissions";
 
 export async function POST(req: NextRequest) {
   // Authenticate the user

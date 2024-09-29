@@ -1,7 +1,7 @@
 // src/app/api/users/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByClerkId } from "@/app/db/actions";
+import { getUserByClerkId } from "../../../../app/db/actions";
 import { cookies } from "next/headers";
 
 export async function GET(
