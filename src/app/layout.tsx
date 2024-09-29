@@ -11,9 +11,9 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import "./globals.css";
-import { PermissionProvider } from "@/context/PermissionContext";
-import { SocketProvider } from "@/context/SocketContext";
-import AuthHandler from "@/components/AuthHandler"; // Move AuthHandler to a separate file
+import { PermissionProvider } from "../context/PermissionContext";
+import { SocketProvider } from "../context/SocketContext";
+import AuthHandler from "../components/AuthHandler"; // Move AuthHandler to a separate file
 
 const ptSans = PT_Sans({
   subsets: ["latin"], // Specify the font subset

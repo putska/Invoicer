@@ -6,8 +6,8 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
-import { PermissionContext } from "@/context/PermissionContext";
-import { useSocket } from "@/context/SocketContext";
+import { PermissionContext } from "../../../context/PermissionContext";
+import { useSocket } from "../../../context/SocketContext";
 
 interface Category {
   categoryId: number;
