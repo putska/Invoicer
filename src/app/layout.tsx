@@ -15,7 +15,10 @@ import { PermissionProvider } from "@/context/PermissionContext";
 import { SocketProvider } from "@/context/SocketContext";
 import AuthHandler from "@/components/AuthHandler"; // Move AuthHandler to a separate file
 
-const inter = PT_Sans({ weight: ["400", "700"], subsets: ["latin"] });
+const ptSans = PT_Sans({
+  subsets: ["latin"], // Specify the font subset
+  weight: ["400", "700"], // Add specific weights if needed
+});
 
 export const metadata = {
   title: "CSE",
@@ -29,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={ptSans.className}>
         <ClerkProvider>
           <SocketProvider>
             <AuthHandler>
