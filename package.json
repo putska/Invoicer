@@ -32,6 +32,7 @@
     "axios": "^1.7.7",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.23.2",
     "drizzle-orm": "^0.33.0",
     "next": "^14.2.12",
     "pg": "^8.13.0",
@@ -53,7 +54,6 @@
     "@types/react-dom": "^18",
     "@types/socket.io": "^3.0.1",
     "concurrently": "^9.0.1",
-    "drizzle-kit": "^0.23.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8"
