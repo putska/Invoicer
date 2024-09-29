@@ -10,7 +10,7 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import { PermissionContext } from "@/context/PermissionContext";
+import { PermissionContext } from "../../../../context/PermissionContext";
 import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Ensure these are imported if used elsewhere
 
 interface Category {

@@ -4,8 +4,8 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import ProjectsTable from "../components/ProjectsGrid";
 import AddProjectModal from "../components/AddProjectModal"; // Adding and Editing projects
-import { PermissionContext } from "@/context/PermissionContext";
-import { Project } from "@types";
+import { PermissionContext } from "../../context/PermissionContext";
+import { Project } from "../../../types";
 
 export default function Projects() {
   const { isLoaded, isSignedIn, user } = useUser();

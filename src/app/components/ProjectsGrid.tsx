@@ -7,11 +7,11 @@ import { AgGridReact } from "ag-grid-react";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { PermissionContext } from "@/context/PermissionContext"; // Adjust the import path accordingly
+import { PermissionContext } from "../../context/PermissionContext"; // Adjust the import path accordingly
 import { FaEdit, FaTrash, FaList } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
-import { Project } from "@types";
+import { Project } from "../../../types";
 
 interface ProjectsGridProps {
   projects: Project[];

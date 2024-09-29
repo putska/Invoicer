@@ -3,7 +3,7 @@
 import React, { useContext } from "react";
 import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Import icons
 import Link from "next/link";
-import { PermissionContext } from "@/context/PermissionContext"; // Adjust the import path accordingly
+import { PermissionContext } from "../../context/PermissionContext"; // Adjust the import path accordingly
 
 interface Project {
   id: number;

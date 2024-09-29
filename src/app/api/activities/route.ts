@@ -7,9 +7,8 @@ import {
   createActivity,
   updateActivity,
   deleteActivity,
-} from "@/app/db/actions";
-import { authenticate, authorize } from "@/app/api/admin/helpers"; // Adjust the import path accordingly
-import { PERMISSION_LEVELS } from "@/app/constants/permissions";
+} from "../../../app/db/actions";
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 
 // Define the Zod schema for activity creation and updates
 const activitySchema = z.object({
