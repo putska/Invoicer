@@ -1,8 +1,8 @@
 // src/middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getUserByClerkId } from "@/app/db/actions"; // Import the action function
-import { User } from "@types"; // Ensure correct path
+import { getUserByClerkId } from "./app/db/actions"; // Import the action function
+import { User } from "../types"; // Ensure correct path
 
 // Define protected routes that require authentication
 const protectedRoutes = createRouteMatcher([
