@@ -6,7 +6,7 @@ A modern, scalable invoicing Software-as-a-Service (SaaS) application built with
 
 ## Overview
 
-This project demonstrates how to build a robust, full-featured invoicing system. It leverages the power of Next.js for a seamless, combined with the scalability and performance of Neon's serverless Postgres database. And a lot more! CSE Portal Integration. And Stuff.
+This project demonstrates how to build a robust, full-featured invoicing system. It leverages the power of Next.js for a seamless, combined with the scalability and performance of Neon's serverless Postgres database. And a lot more! CSE Portal Integration. And Stuff. And More Stuff.
 
 ## Tutorial
 
