@@ -1,6 +1,6 @@
-# Invoice SaaS with Next.js and Neon
+# Portal project with Next.js, Drizzle, Clerk and Neon
 
-A modern, scalable invoicing Software-as-a-Service (SaaS) application built with Next.js and powered by Neon Postgres.
+A modern, scalable portal using Next.js and Neon
 
 ![image](https://github.com/user-attachments/assets/4b68fdb4-75b7-4638-99e1-c3e01cae807d)
 
