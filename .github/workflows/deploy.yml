@@ -18,8 +18,10 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SWATTS_SSH_KEY }}
 
-      - name: Test SSH Connection
-        run: ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 'echo "SSH connection successful"'
-
-      - name: Execute Deployment Script
-        run: ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 'bash /home/swatts/Invoicer/deploy.sh'
+      - name: Deploy Application
+        run: ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
+          cd /home/swatts/Invoicer &&
+          git pull origin main &&
+          npm install &&
+          npm run build &&
+          pm2 restart Invoicer || pm2 start npm --name "Invoicer" -- start
