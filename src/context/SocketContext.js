@@ -13,9 +13,8 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const socketIo = io(
-      process.env.NEXT_PUBLIC_SOCKET_IO_URL || "http://localhost:4000"
-    );
+    // Connects to the same origin by default
+    const socketIo = io();
 
     setSocket(socketIo);
 
