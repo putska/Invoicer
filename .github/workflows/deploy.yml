@@ -20,4 +20,4 @@ jobs:
 
       - name: Execute Deployment Script
         run: |
-          ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 'bash -s' < ./Invoicer/deploy.sh
+          ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 'bash -s' < ~/Invoicer/deploy.sh
