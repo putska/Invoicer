@@ -1,24 +1,22 @@
-#!/bin/bash
+name: Deploy to Digital Ocean
 
-echo "Starting deployment..."
+on:
+  push:
+    branches:
+      - main
 
-# Navigate to project directory
-cd /path/to/your/project || { echo "Failed to navigate to project directory"; exit 1; }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-# Pull the latest code
-echo "Pulling latest code..."
-git pull origin main || { echo "Failed to pull latest code"; exit 1; }
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-# Install dependencies
-echo "Installing dependencies..."
-npm install || { echo "Failed to install dependencies"; exit 1; }
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
-# Build the application
-echo "Building application..."
-npm run build || { echo "Failed to build application"; exit 1; }
-
-# Restart the application
-echo "Restarting application..."
-pm2 restart your-app-name || { echo "Failed to restart application"; exit 1; }
-
-echo "Deployment completed!"
+      - name: Execute Deployment Script
+        run: ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 'bash -s' < /home/swatts/Invoicer/deploy.sh
