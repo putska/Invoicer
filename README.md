@@ -6,7 +6,7 @@ A modern, scalable invoicing Software-as-a-Service (SaaS) application built with
 
 ## Overview
 
-This is the CSE Portal file. Our first module is for labor.
+This is the CSE Portal file. Our first module is for labor. Hoping you love it.
 
 ## Tutorial
 
