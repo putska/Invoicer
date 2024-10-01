@@ -6,7 +6,7 @@ A modern, scalable portal using Next.js and Neon
 
 ## Overview
 
-This is the CSE Portal file. Our first module is for labor.
+This is the CSE Portal file. Our first module is for labor. And a labor monitor too.
 
 ## Tutorial
 
