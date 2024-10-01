@@ -25,5 +25,4 @@ jobs:
           npm install &&
           npm run build &&
           pm2 restart Invoicer || pm2 start npm --name "Invoicer" -- start &&
-          pm2 save
-        '
+          pm2 save'
