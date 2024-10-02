@@ -141,6 +141,7 @@ export default function ActivitiesPage({
       if (dialogType === "activity" && categoryToAddTo !== null) {
         if (currentItemId) {
           // Update existing activity
+          console.log("Selected equipment:", selectedEquipment);
           const res = await fetch(
             `/api/activities?activityId=${currentItemId}`,
             {
@@ -281,6 +282,7 @@ export default function ActivitiesPage({
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
+      setSelectedEquipment(null);
       setCategoryToAddTo(null);
     } else if (type === "activity") {
       setCurrentItemId(item.activityId);
@@ -290,6 +292,17 @@ export default function ActivitiesPage({
       setNotes(item.notes || "");
       setCompleted(item.completed || false);
       setCategoryToAddTo(parentCategoryId || null);
+
+      // Set selectedEquipment to the currently assigned equipment
+      if (item.equipmentId) {
+        const selected =
+          equipmentList.find(
+            (equipment) => equipment.id === item.equipmentId
+          ) || null;
+        setSelectedEquipment(selected);
+      } else {
+        setSelectedEquipment(null);
+      }
     }
   };
 

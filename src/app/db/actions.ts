@@ -333,7 +333,7 @@ export const deleteCategory = async (categoryId: number) => {
 // Create a new activity
 export const createActivity = async (activity: {
   categoryId: number;
-  equipmentId: number;
+  equipmentId?: number | null;
   name: string;
   sortOrder?: number;
   estimatedHours?: number;
@@ -366,7 +366,7 @@ export const updateActivity = async (
   activityId: number,
   updatedData: Partial<{
     name: string;
-    equipmentId?: number;
+    equipmentId?: number | null;
     sortOrder?: number;
     estimatedHours?: number;
     notes?: string;

@@ -16,6 +16,7 @@ const activitySchema = z.object({
   name: z.string().min(1, "Name is required"),
   sortOrder: z.number().optional(),
   estimatedHours: z.number().optional(),
+  equipmentId: z.number().nullable().optional(), // Added field
   notes: z.string().optional(),
   completed: z.boolean().optional(),
 });
@@ -105,7 +106,7 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const parsedData = activitySchema.partial().parse(body); // Validate incoming data (partial for updates)
-
+    console.log("Parsed data:", parsedData);
     const updatedActivity = await updateActivity(activityId, parsedData);
     if (!updatedActivity) {
       return NextResponse.json(
