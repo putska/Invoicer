@@ -10,8 +10,10 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import MenuItem from "@mui/material/MenuItem";
 import { PermissionContext } from "../../../../context/PermissionContext";
 import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Ensure these are imported if used elsewhere
+import { Equipment } from "../../../../../types";
 
 interface Category {
   categoryId: number;
@@ -21,12 +23,15 @@ interface Category {
 }
 
 interface Activity {
-  activityId: number;
-  activityName: string;
+  activityId: number; // from the combined query
+  activityName: string; // from the combined query
   sortOrder: number;
   estimatedHours: number;
   notes: string;
   completed: boolean;
+  categoryId: number; // from the combined query
+  equipmentId: number | null; // Nullable field if no equipment is assigned
+  equipmentName?: string | null; // Optional field to hold the equipment name
 }
 
 interface Project {
@@ -61,6 +66,10 @@ export default function ActivitiesPage({
     [key: number]: boolean;
   }>({});
   const [currentItemId, setCurrentItemId] = useState<number | null>(null);
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
+    null
+  );
 
   // Get the user's permission level
   const { hasWritePermission } = useContext(PermissionContext);
@@ -95,6 +104,7 @@ export default function ActivitiesPage({
           }
           const data = await res.json();
           setCategories(data.treeViewData);
+          console.log("Categories and activities:", data.treeViewData);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -110,60 +120,25 @@ export default function ActivitiesPage({
     }
   }, [projectId, projects]);
 
+  // Fetch equipment based on projectId
+  const fetchEquipment = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await fetch(`/api/equipment?projectId=${projectId}`);
+      const data = await res.json();
+      setEquipmentList(data.equipment);
+    } catch (err) {
+      console.log(err);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchEquipment();
+  }, [fetchEquipment]);
+
   const handleSubmit = async () => {
     try {
-      if (dialogType === "category") {
-        if (currentItemId) {
-          // Update existing category
-          const res = await fetch(
-            `/api/categories?categoryId=${currentItemId}`,
-            {
-              method: "PUT",
-              body: JSON.stringify({
-                projectId: projectId,
-                name: newItemName,
-                sortOrder: newSortOrder,
-              }),
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-          if (res.ok) {
-            // Update category in state
-            setCategories((prevCategories) =>
-              prevCategories.map((cat) =>
-                cat.categoryId === currentItemId
-                  ? {
-                      ...cat,
-                      categoryName: newItemName,
-                      sortOrder: newSortOrder,
-                    }
-                  : cat
-              )
-            );
-          }
-        } else {
-          // Add new category
-          const res = await fetch(`/api/categories`, {
-            method: "POST",
-            body: JSON.stringify({
-              projectId: projectId,
-              name: newItemName,
-              sortOrder: newSortOrder,
-            }),
-            headers: { "Content-Type": "application/json" },
-          });
-          const { newCategory } = await res.json();
-          setCategories((prevCategories) => [
-            ...prevCategories,
-            {
-              categoryId: newCategory.id,
-              categoryName: newCategory.name,
-              sortOrder: newCategory.sortOrder,
-              activities: [],
-            },
-          ]);
-        }
-      } else if (dialogType === "activity" && categoryToAddTo !== null) {
+      if (dialogType === "activity" && categoryToAddTo !== null) {
         if (currentItemId) {
           // Update existing activity
           const res = await fetch(
@@ -175,6 +150,7 @@ export default function ActivitiesPage({
                 name: newItemName,
                 sortOrder: newSortOrder,
                 estimatedHours,
+                equipmentId: selectedEquipment?.id || null, // Ensure this is a number or null
                 notes,
                 completed,
               }),
@@ -195,6 +171,7 @@ export default function ActivitiesPage({
                               activityName: newItemName,
                               sortOrder: newSortOrder,
                               estimatedHours,
+                              equipmentId: selectedEquipment?.id || null, // Fix this to a number
                               notes,
                               completed,
                             }
@@ -214,6 +191,7 @@ export default function ActivitiesPage({
               name: newItemName,
               sortOrder: newSortOrder,
               estimatedHours,
+              equipmentId: selectedEquipment?.id || null, // Use id for equipmentId
               notes,
               completed,
             }),
@@ -229,12 +207,15 @@ export default function ActivitiesPage({
                     activities: [
                       ...cat.activities,
                       {
-                        activityId: newActivity.id,
-                        activityName: newActivity.name,
-                        sortOrder: newActivity.sortOrder,
-                        estimatedHours: newActivity.estimatedHours,
-                        notes: newActivity.notes,
-                        completed: newActivity.completed,
+                        activityId: newActivity.activityId,
+                        categoryId: categoryToAddTo,
+                        activityName: newActivity.activityName,
+                        sortOrder: newActivity.sortOrder || 0,
+                        estimatedHours: newActivity.estimatedHours || 0,
+                        equipmentId: newActivity.equipmentId || null, // Use the correct type
+                        equipmentName: newActivity.equipmentName || null,
+                        notes: newActivity.notes || "",
+                        completed: newActivity.completed || false,
                       },
                     ],
                   }
@@ -252,6 +233,7 @@ export default function ActivitiesPage({
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
+      setSelectedEquipment(null);
     } catch (error) {
       console.error("Error saving item:", error);
     }
@@ -348,6 +330,19 @@ export default function ActivitiesPage({
     } catch (error) {
       console.error("Error deleting activity:", error);
     }
+  };
+
+  //const handleEquipmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //  const selectedId = Number(e.target.value);
+  //  const selected =
+  //    equipmentList.find((equipment) => equipment.id === selectedId) || null;
+  //  setSelectedEquipment(selected);
+  //};
+
+  const handleEquipmentChange = (value: string) => {
+    const selected =
+      equipmentList.find((equipment) => equipment.id === Number(value)) || null;
+    setSelectedEquipment(selected); // Set the full Equipment object or null
   };
 
   return (
@@ -479,8 +474,22 @@ export default function ActivitiesPage({
                                       : "You do not have permission to edit activities"
                                   }
                                 >
-                                  {activity.activityName}
+                                  {activity.activityName
+                                    ? activity.activityName
+                                    : "Unnamed Activity"}
                                 </span>
+                                {activity.equipmentId && (
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    (
+                                    {
+                                      equipmentList.find(
+                                        (e) => e.id === activity.equipmentId
+                                      )?.equipmentName
+                                    }
+                                    )
+                                  </span>
+                                )}
+
                                 {/* Delete Activity Button */}
                                 <button
                                   className={`text-red-500 hover:text-red-700 ml-2 
@@ -489,13 +498,14 @@ export default function ActivitiesPage({
                                                   ? "cursor-not-allowed opacity-50"
                                                   : ""
                                               }`}
-                                  onClick={() =>
-                                    hasWritePermission
-                                      ? handleDeleteActivity(
-                                          activity.activityId
-                                        )
-                                      : null
-                                  }
+                                  onClick={() => {
+                                    if (
+                                      hasWritePermission &&
+                                      activity.activityId !== undefined
+                                    ) {
+                                      handleDeleteActivity(activity.activityId);
+                                    }
+                                  }}
                                   disabled={!hasWritePermission}
                                   aria-disabled={!hasWritePermission}
                                   title={
@@ -641,6 +651,26 @@ export default function ActivitiesPage({
                       }
                       disabled={!hasWritePermission}
                     />
+                    {/* Dropdown for selecting equipment */}
+                    <TextField
+                      select
+                      label="Equipment"
+                      value={selectedEquipment?.id || ""} // Make sure the value is correctly set
+                      onChange={(e) => handleEquipmentChange(e.target.value)} // Handle change
+                      fullWidth
+                      disabled={!hasWritePermission}
+                    >
+                      {/* Option for no equipment */}
+                      <MenuItem value="">None</MenuItem>
+
+                      {/* Map over the equipment list */}
+                      {equipmentList.map((equipment) => (
+                        <MenuItem key={equipment.id} value={equipment.id}>
+                          {equipment.equipmentName}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
                     <TextField
                       margin="dense"
                       label="Notes"

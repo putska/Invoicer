@@ -8,7 +8,7 @@ import { ColDef, ICellRendererParams } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { PermissionContext } from "../../context/PermissionContext"; // Adjust the import path accordingly
-import { FaEdit, FaTrash, FaList } from "react-icons/fa";
+import { FaEdit, FaTrash, FaList, FaTools } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
 import { Project } from "../../../types";
@@ -109,6 +109,14 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
                 title="Manage Categories"
               >
                 <FaList />
+              </button>
+              {/* Equipment Button */}
+              <button
+                onClick={() => router.push(`/projects/${project.id}/equipment`)}
+                className="text-purple-500 hover:text-purple-700"
+                title="Manage Equipment"
+              >
+                <FaTools />
               </button>
             </div>
           );

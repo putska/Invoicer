@@ -1,4 +1,5 @@
 // src/middleware.ts
+
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getUserByClerkId } from "./app/db/actions"; // Import the action function
@@ -6,17 +7,11 @@ import { User } from "../types"; // Ensure correct path
 
 // Define protected routes that require authentication
 const protectedRoutes = createRouteMatcher([
-  "/activities",
-  "/customers",
-  "/dashboard",
-  "/emails",
-  "/history",
-  "/invoices(.*)",
-  "/labor",
-  "/monitor",
-  "/projects",
-  "/settings",
-  "/summary",
+  "/admin(.*)",
+  "/labor(.*)",
+  "/monitor(.*)",
+  "/projects(.*)",
+  "/summary(.*)",
 ]);
 
 // Define admin routes that require authentication and admin permission
@@ -68,5 +63,10 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

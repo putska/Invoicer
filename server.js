@@ -36,6 +36,7 @@ app.prepare().then(() => {
   });
 
   const PORT = process.env.NODE_ENV === "production" ? 3000 : 4000;
+
   server.listen(PORT, (err) => {
     if (err) throw err;
     console.log(`> Server listening on http://localhost:${PORT}`);

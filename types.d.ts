@@ -65,6 +65,7 @@ export interface Activity {
   id?: number;
   categoryId: string; // Reference to the Category ID
   name: string;
+  equipmentId?: string; // Since it's a one-to-one relationship
   sortOrder?: number;
   estimatedHours?: number;
   notes?: string;
@@ -115,3 +116,20 @@ export type User = {
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+// types.ts
+
+export interface Equipment {
+  id?: number;
+  projectId: number;
+  equipmentName: string;
+  sortOrder?: number;
+  costPerDay: number;
+  costPerWeek: number;
+  costPerMonth: number;
+  deliveryFee: number;
+  pickupFee: number;
+  notes?: string;
+  createdAt: date;
+  updatedAt: date;
+}

@@ -12,12 +12,12 @@
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
-    "generate": "npx drizzle-kit generate -- dotenv_config_path='.env.local'",
-    "migrate": "npx drizzle-kit migrate -- dotenv_config_path='.env.local'",
+    "generate": "npx drizzle-kit generate ",
+    "migrate": "npx drizzle-kit migrate ",
     "email": "email dev --dir src/app/emails"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.2.4",
+    "@clerk/nextjs": "^5.6.4",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^6.0.2",

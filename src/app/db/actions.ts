@@ -8,8 +8,16 @@ import {
   activities,
   manpower,
   users,
+  equipment,
 } from "./schema";
-import { Customer, Project, Activity, Category, User } from "../../../types";
+import {
+  Customer,
+  Project,
+  Activity,
+  Category,
+  User,
+  Equipment,
+} from "../../../types";
 import { desc, eq, and, inArray, sql } from "drizzle-orm";
 
 import { act } from "react";
@@ -325,6 +333,7 @@ export const deleteCategory = async (categoryId: number) => {
 // Create a new activity
 export const createActivity = async (activity: {
   categoryId: number;
+  equipmentId: number;
   name: string;
   sortOrder?: number;
   estimatedHours?: number;
@@ -336,6 +345,7 @@ export const createActivity = async (activity: {
       .insert(activities)
       .values({
         categoryId: activity.categoryId,
+        equipmentId: activity.equipmentId,
         name: activity.name,
         sortOrder: activity.sortOrder || 0,
         estimatedHours: activity.estimatedHours || 0,
@@ -356,6 +366,7 @@ export const updateActivity = async (
   activityId: number,
   updatedData: Partial<{
     name: string;
+    equipmentId?: number;
     sortOrder?: number;
     estimatedHours?: number;
     notes?: string;
@@ -389,7 +400,7 @@ export const deleteActivity = async (activityId: number) => {
 
 export const getTreeViewData = async (projectId: number) => {
   try {
-    // Fetch categories using `inArray`
+    // Fetch categories
     const fetchedCategories = await db
       .select({
         categoryId: categories.id,
@@ -397,14 +408,14 @@ export const getTreeViewData = async (projectId: number) => {
         sortOrder: categories.sortOrder,
       })
       .from(categories)
-      .where(eq(categories.projectId, projectId)); // Use `eq` instead of `inArray`
+      .where(eq(categories.projectId, projectId));
 
-    // Get list of category IDs from the fetched categories
+    // Get list of category IDs
     const categoryIds = fetchedCategories.map(
       (category) => category.categoryId
     );
 
-    // Fetch activities for the categories using `inArray`
+    // Fetch activities with equipment names
     const fetchedActivities = categoryIds.length
       ? await db
           .select({
@@ -415,12 +426,15 @@ export const getTreeViewData = async (projectId: number) => {
             notes: activities.notes,
             completed: activities.completed,
             categoryId: activities.categoryId,
+            equipmentId: activities.equipmentId,
+            equipmentName: equipment.equipmentName,
           })
           .from(activities)
-          .where(inArray(activities.categoryId, categoryIds)) // Fetch activities for the fetched categories
+          .leftJoin(equipment, eq(activities.equipmentId, equipment.id))
+          .where(inArray(activities.categoryId, categoryIds))
       : [];
 
-    // Combine categories and activities, ensuring categories without activities are included
+    // Combine categories and activities
     const result = fetchedCategories.map((category) => ({
       ...category,
       activities: fetchedActivities.filter(
@@ -428,10 +442,10 @@ export const getTreeViewData = async (projectId: number) => {
       ),
     }));
 
-    // Ensure categories without activities return an empty array for `activities`
+    // Ensure categories without activities have an empty array
     return result.map((category) => ({
       ...category,
-      activities: category.activities || [], // Return an empty array if no activities
+      activities: category.activities || [],
     }));
   } catch (error) {
     console.error("Error fetching categories with activities:", error);
@@ -600,5 +614,92 @@ export const createUser = async (userData: {
   } catch (error) {
     console.error("Error creating user:", error);
     throw new Error("Could not create user");
+  }
+};
+
+//👇🏻 get equipment list by project ID
+export const getEquipmentByProjectId = async (projectId: number) => {
+  try {
+    const result = await db
+      .select()
+      .from(equipment)
+      .where(eq(equipment.projectId, projectId))
+      .orderBy(desc(equipment.createdAt));
+    return result;
+  } catch (error) {
+    console.error("Error fetching equipment:", error);
+    throw new Error("Could not fetch equipment");
+  }
+};
+
+//👇🏻 add a new equipment item
+export const addEquipment = async (equipmentItem: Equipment) => {
+  try {
+    const [newEquipment] = await db
+      .insert(equipment)
+      .values({
+        projectId: equipmentItem.projectId,
+        equipmentName: equipmentItem.equipmentName,
+        sortOrder: equipmentItem.sortOrder || 0,
+        costPerDay: equipmentItem.costPerDay,
+        costPerWeek: equipmentItem.costPerWeek,
+        costPerMonth: equipmentItem.costPerMonth,
+        deliveryFee: equipmentItem.deliveryFee,
+        pickupFee: equipmentItem.pickupFee,
+        notes: equipmentItem.notes || "",
+      })
+      .returning();
+    return newEquipment;
+  } catch (error) {
+    console.error("Error adding equipment:", error);
+    throw new Error("Could not add equipment");
+  }
+};
+
+//👇🏻 update an existing equipment item
+export const updateEquipment = async (
+  equipmentId: number,
+  updatedData: Partial<Equipment>
+) => {
+  try {
+    const { id, createdAt, ...dataToUpdate } = updatedData;
+
+    dataToUpdate.updatedAt = new Date();
+
+    const result = await db
+      .update(equipment)
+      .set(dataToUpdate) // Use dataToUpdate instead of updatedData
+      .where(eq(equipment.id, equipmentId));
+    return result;
+  } catch (error) {
+    console.error("Error updating equipment:", error);
+    throw new Error("Could not update equipment");
+  }
+};
+//👇🏻 get single equipment item by ID
+export const getEquipmentById = async (equipmentId: number) => {
+  try {
+    const [equipmentItem] = await db
+      .select()
+      .from(equipment)
+      .where(eq(equipment.id, equipmentId))
+      .limit(1);
+    return equipmentItem || null;
+  } catch (error) {
+    console.error("Error fetching equipment:", error);
+    throw new Error("Could not fetch equipment");
+  }
+};
+
+//👇🏻 delete an equipment item
+export const deleteEquipment = async (equipmentId: number) => {
+  try {
+    const result = await db
+      .delete(equipment)
+      .where(eq(equipment.id, equipmentId));
+    return result;
+  } catch (error) {
+    console.error("Error deleting equipment:", error);
+    throw new Error("Could not delete equipment");
   }
 };

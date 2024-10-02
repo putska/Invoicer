@@ -74,6 +74,7 @@ export const activities = pgTable("activities", {
     .notNull()
     .references(() => categories.id), // Foreign key to categories
   name: text("name").notNull(),
+  equipmentId: integer("equipment_id").references(() => equipment.id), // Foreign key to categories
   sortOrder: integer("sort_order"),
   estimatedHours: integer("estimated_hours"),
   notes: text("notes"), // Field for additional notes
@@ -102,6 +103,23 @@ export const users = pgTable("users", {
   first_name: text("first_name").notNull().default(""),
   last_name: text("last_name").notNull().default(""),
   permission_level: text("permission_level").notNull().default("read"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const equipment = pgTable("equipment", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id), // Assuming you have a projects table
+  equipmentName: text("equpipmentName").notNull(),
+  sortOrder: integer("sortOrder").notNull(),
+  costPerDay: integer("costPerDay").notNull(),
+  costPerWeek: integer("costPerWeek").notNull(),
+  costPerMonth: integer("costPerMonth").notNull(),
+  deliveryFee: integer("deliveryFee").notNull(),
+  pickupFee: integer("pickupFee").notNull(),
+  notes: text("notes"), // Field for additional notes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
