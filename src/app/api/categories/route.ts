@@ -1,133 +1,83 @@
+// app/api/categories/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from "../../../app/db/actions";
+import { getCategoriesByProjectId, createCategory } from "../../db/actions";
+import { Category } from "../../../../types";
 import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
-import {
-  PERMISSION_LEVELS,
-  PermissionLevel,
-} from "../../../app/constants/permissions";
 
-// Define the Zod schema for category creation and updates
+// Define the Zod schema for category creation
 const categorySchema = z.object({
   projectId: z.number().min(1, "Project ID must be a positive number"),
   name: z.string().min(1, "Name is required"),
-  sortOrder: z.number().optional(),
+  // Do not include sortOrder in the schema since it's handled on the backend
 });
+
+// GET Route: Fetch all categories for a specific project
+export async function GET(req: NextRequest) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  // Validate and parse query parameters
+  const { searchParams } = new URL(req.url);
+  const projectIdParam = searchParams.get("projectId");
+  const projectId = parseInt(projectIdParam || "", 10);
+
+  if (isNaN(projectId)) {
+    return NextResponse.json(
+      { message: "Invalid or missing projectId parameter" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const categoriesList = await getCategoriesByProjectId(projectId);
+    return NextResponse.json({ categories: categoriesList }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return NextResponse.json(
+      { message: "Error fetching categories" },
+      { status: 500 }
+    );
+  }
+}
 
 // POST Route: Create a new category
 export async function POST(req: NextRequest) {
-  // Authenticate the user
+  // Authenticate and authorize the user
   const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
-  const isAuthorized = authorize(user, [
-    PERMISSION_LEVELS.ADMIN,
-    PERMISSION_LEVELS.WRITE,
-  ]);
-  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) {
+    return isAuthorized; // Response already sent in authorize()
+  }
 
   try {
     const body = await req.json();
     const parsedData = categorySchema.parse(body); // Validate incoming data
 
     const newCategory = await createCategory(parsedData);
-    return NextResponse.json({ newCategory }, { status: 201 });
+    return NextResponse.json(
+      { message: "Category added successfully!", newCategory },
+      { status: 201 }
+    );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
     if (error instanceof z.ZodError) {
+      console.log("Validation failed:", error.errors);
       return NextResponse.json(
         { message: "Validation failed", errors: error.errors },
         { status: 400 }
       );
     }
+    console.error("Error adding category:", error);
     return NextResponse.json(
-      { message: "Error creating category", error: errorMessage },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT Route: Update an existing category
-export async function PUT(req: NextRequest) {
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
-
-  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
-  const isAuthorized = authorize(user, [
-    PERMISSION_LEVELS.ADMIN,
-    PERMISSION_LEVELS.WRITE,
-  ]);
-  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
-
-  const categoryId = parseInt(req.nextUrl.searchParams.get("categoryId") || "");
-  if (!categoryId) {
-    return NextResponse.json(
-      { message: "Missing categoryId parameter" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const body = await req.json();
-    const parsedData = categorySchema.partial().parse(body); // Validate incoming data (partial for updates)
-
-    const updatedCategory = await updateCategory(categoryId, parsedData);
-    return NextResponse.json({ updatedCategory }, { status: 200 });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: "Validation failed", errors: error.errors },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { message: "Error updating category", error: errorMessage },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE Route: Delete a category by ID
-export async function DELETE(req: NextRequest) {
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
-
-  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
-  const isAuthorized = authorize(user, [
-    PERMISSION_LEVELS.ADMIN,
-    PERMISSION_LEVELS.WRITE,
-  ]);
-  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
-
-  const categoryId = parseInt(req.nextUrl.searchParams.get("categoryId") || "");
-  if (!categoryId) {
-    return NextResponse.json(
-      { message: "Missing categoryId parameter" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    await deleteCategory(categoryId);
-    return NextResponse.json(
-      { message: "Category deleted successfully" },
-      { status: 200 }
-    );
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      { message: "Error deleting category", error: errorMessage },
+      { message: "Error adding category" },
       { status: 500 }
     );
   }

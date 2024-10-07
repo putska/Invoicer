@@ -44,7 +44,7 @@ export interface Project {
 
 export interface Category {
   id?: number;
-  projectId: string;
+  projectId: number;
   name: string;
   sortOrder?: number;
   createdAt?: string;

@@ -63,7 +63,7 @@ export const categories = pgTable("categories", {
     .notNull()
     .references(() => projects.id), // Foreign key to projects
   name: text("name").notNull(), // Name of the category
-  sortOrder: integer("sort_order"), // Field to control the order of categories
+  sortOrder: integer("sort_order").notNull(), // Field to control the order of categories
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -75,7 +75,7 @@ export const activities = pgTable("activities", {
     .references(() => categories.id), // Foreign key to categories
   name: text("name").notNull(),
   equipmentId: integer("equipment_id").references(() => equipment.id), // Foreign key to categories
-  sortOrder: integer("sort_order"),
+  sortOrder: integer("sort_order").notNull(),
   estimatedHours: integer("estimated_hours"),
   notes: text("notes"), // Field for additional notes
   completed: boolean("completed").default(false).notNull(), // Field to track completion

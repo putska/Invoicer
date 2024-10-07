@@ -20,7 +20,7 @@ import {
   CategorySortOrderUpdate,
   ActivitySortOrderUpdate,
 } from "../../../types";
-import { desc, eq, and, inArray, sql } from "drizzle-orm";
+import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
 
 import { act } from "react";
 
@@ -247,19 +247,63 @@ export const deleteProject = async (id: number) => {
   return await db.delete(projects).where(eq(projects.id, id));
 };
 
-// Fetch all categories for a given project ID
-// export const getCategoriesByProjectId = async (projectId: number) => {
-//   try {
-//     const result = await categoriesDB
-//       .select()
-//       .from(categories)
-//       .where(eq(categories.projectId, projectId));
-//     return result;
-//   } catch (error) {
-//     console.error("Error fetching categories:", error);
-//     throw new Error("Could not fetch categories");
-//   }
-//};
+//Fetch all categories for a given project ID
+export const getCategoriesByProjectId = async (projectId: number) => {
+  try {
+    const result = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.projectId, projectId));
+    return result;
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw new Error("Could not fetch categories");
+  }
+};
+
+/**
+ * Fetch a category by its ID
+ * @param categoryId - The ID of the category to fetch
+ * @returns The category if found, otherwise null
+ */
+export const getCategoryById = async (
+  categoryId: number
+): Promise<Category | null> => {
+  try {
+    const result = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, categoryId))
+      .limit(1);
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("Error fetching category by ID:", error);
+    throw new Error("Could not fetch category");
+  }
+};
+
+/**
+ * Fetch a category by its ID
+ * @param activityId - The ID of the activity to fetch
+ * @returns The activity if found, otherwise null
+ */
+export const getActivityById = async (
+  activityId: number
+): Promise<Activity | null> => {
+  try {
+    const result = await db
+      .select()
+      .from(activities)
+      .where(eq(activities.id, activityId))
+      .limit(1);
+
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    console.error("Error fetching activity by ID:", error);
+    throw new Error("Could not fetch activity");
+  }
+};
 
 // Fetch all activities for a given category ID
 export const getActivitiesByCategoryId = async (categoryId: number) => {
@@ -276,23 +320,28 @@ export const getActivitiesByCategoryId = async (categoryId: number) => {
 };
 
 // Create a new category
-export const createCategory = async (category: {
-  projectId: number;
-  name: string;
-  sortOrder?: number;
-}) => {
+export const createCategory = async (
+  categoryData: Partial<Category>
+): Promise<Category> => {
   try {
-    // Insert the new activity and return the inserted record
-    const [result] = await db
+    const nextSortOrder = await getNextCategorySortOrder(
+      categoryData.projectId!
+    );
+
+    const newCategory = await db
       .insert(categories)
       .values({
-        projectId: category.projectId,
-        name: category.name,
-        sortOrder: category.sortOrder,
+        projectId: categoryData.projectId!,
+        name: categoryData.name!,
+        sortOrder: nextSortOrder,
       })
-      .returning(); // Ensure this returns the inserted row
+      .returning();
 
-    return result; // Return the newly inserted activity
+    return {
+      ...newCategory[0],
+      createdAt: newCategory[0].createdAt.toISOString(),
+      updatedAt: newCategory[0].updatedAt.toISOString(),
+    };
   } catch (error) {
     console.error("Error creating category:", error);
     throw new Error("Could not create category");
@@ -343,13 +392,14 @@ export const createActivity = async (activity: {
   completed?: boolean;
 }) => {
   try {
+    const newSortOrder = await getNextActivitySortOrder(activity.categoryId);
     const [result] = await db
       .insert(activities)
       .values({
         categoryId: activity.categoryId,
         equipmentId: activity.equipmentId,
         name: activity.name,
-        sortOrder: activity.sortOrder || 0,
+        sortOrder: newSortOrder,
         estimatedHours: activity.estimatedHours || 0,
         notes: activity.notes || "",
         completed: activity.completed || false,
@@ -379,8 +429,10 @@ export const updateActivity = async (
     const result = await db
       .update(activities)
       .set(updatedData)
-      .where(eq(activities.id, activityId));
-    return result;
+      .where(eq(activities.id, activityId))
+      .returning();
+
+    return result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error("Error updating activity:", error);
     throw new Error("Could not update activity");
@@ -776,5 +828,55 @@ export const updateSortOrdersInDB = async (
   } catch (error) {
     console.error("Failed to update sort orders:", error);
     throw error; // Re-throw to let the caller handle
+  }
+};
+
+/**
+ * Helper function to get the next sortOrder for categories
+ * Ensures that new categories are added to the end of the list
+ * @param projectId - The ID of the project to which the category belongs
+ * @returns The next sortOrder number
+ */
+export const getNextCategorySortOrder = async (
+  projectId: number
+): Promise<number> => {
+  try {
+    const result = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.projectId, projectId))
+      .orderBy(desc(categories.sortOrder))
+      .limit(1);
+
+    const maxSortOrder = result.length > 0 ? result[0].sortOrder : -1;
+    return (maxSortOrder ?? -1) + 1;
+  } catch (error) {
+    console.error("Error calculating next sortOrder for categories:", error);
+    throw new Error("Could not calculate sortOrder for new category");
+  }
+};
+
+/**
+ * Helper function to get the next sortOrder for activities within a category
+ * Ensures that new activities are added to the end of the list within their category
+ * @param categoryId - The ID of the category to which the activity belongs
+ * @returns The next sortOrder number
+ */
+export const getNextActivitySortOrder = async (
+  categoryId: number
+): Promise<number> => {
+  try {
+    const result = await db
+      .select()
+      .from(activities)
+      .where(eq(activities.categoryId, categoryId))
+      .orderBy(desc(activities.sortOrder))
+      .limit(1);
+
+    const maxSortOrder = result.length > 0 ? result[0].sortOrder : -1;
+    return (maxSortOrder ?? -1) + 1;
+  } catch (error) {
+    console.error("Error calculating next sortOrder for activities:", error);
+    throw new Error("Could not calculate sortOrder for new activity");
   }
 };

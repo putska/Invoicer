@@ -181,105 +181,172 @@ export default function ActivitiesPage({
     fetchEquipment();
   }, [fetchEquipment]);
 
-  // Helper function to get the next sortOrder for categories
-  const getNextCategorySortOrder = (categories: Category[]): number => {
-    if (categories.length === 0) return 0;
-    return Math.max(...categories.map((cat) => cat.sortOrder)) + 1;
-  };
-
-  // Helper function to get the next sortOrder for activities within a category
-  const getNextActivitySortOrder = (activities: Activity[]): number => {
-    if (activities.length === 0) return 0;
-    return Math.max(...activities.map((act) => act.sortOrder)) + 1;
-  };
-
   const handleSubmit = async () => {
     try {
       if (dialogType === "activity" && categoryToAddTo !== null) {
         if (currentItemId) {
           // Update existing activity
-          const res = await fetch(
-            `/api/activities?activityId=${currentItemId}`,
-            {
-              method: "PUT",
-              body: JSON.stringify({
-                categoryId: categoryToAddTo,
-                name: newItemName,
-                sortOrder: newSortOrder,
-                estimatedHours,
-                equipmentId: selectedEquipment?.id || null, // Ensure this is a number or null
-                notes,
-                completed,
-              }),
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-          if (res.ok) {
-            // Update activity in state
-            setCategories((prevCategories) =>
-              prevCategories.map((cat) =>
-                cat.categoryId === categoryToAddTo
-                  ? {
-                      ...cat,
-                      activities: cat.activities.map((activity) =>
-                        activity.activityId === currentItemId
-                          ? {
-                              ...activity,
-                              activityName: newItemName,
-                              sortOrder: newSortOrder,
-                              estimatedHours,
-                              equipmentId: selectedEquipment?.id || null, // Fix this to a number
-                              notes,
-                              completed,
-                            }
-                          : activity
-                      ),
-                    }
-                  : cat
-              )
-            );
-          }
-        } else {
-          // Add new activity
-
-          const res = await fetch(`/api/activities`, {
-            method: "POST",
+          const res = await fetch(`/api/activities/${currentItemId}`, {
+            // Use dynamic route
+            method: "PUT",
             body: JSON.stringify({
               categoryId: categoryToAddTo,
               name: newItemName,
-              sortOrder: newSortOrder,
+              // Remove sortOrder; backend handles it if necessary
               estimatedHours,
-              equipmentId: selectedEquipment?.id || null, // Use id for equipmentId
+              equipmentId: selectedEquipment?.id || null,
               notes,
               completed,
             }),
             headers: { "Content-Type": "application/json" },
           });
-          const { newActivity } = await res.json();
-          console.log("New activity:", newActivity);
-          setCategories((prevCategories) =>
-            prevCategories.map((cat) =>
-              cat.categoryId === categoryToAddTo
-                ? {
-                    ...cat,
-                    activities: [
-                      ...cat.activities,
-                      {
-                        activityId: newActivity.activityId,
-                        categoryId: categoryToAddTo,
-                        activityName: newActivity.activityName,
-                        sortOrder: newActivity.sortOrder || 0,
-                        estimatedHours: newActivity.estimatedHours || 0,
-                        equipmentId: newActivity.equipmentId || null, // Use the correct type
-                        equipmentName: newActivity.equipmentName || null,
-                        notes: newActivity.notes || "",
-                        completed: newActivity.completed || false,
-                      },
-                    ],
-                  }
-                : cat
-            )
-          );
+
+          if (res.ok) {
+            const { activity } = await res.json(); // Adjust based on backend response
+            // Update activity in state
+
+            setCategories((prevCategories) =>
+              prevCategories.map((cat) =>
+                cat.categoryId === categoryToAddTo
+                  ? {
+                      ...cat,
+                      activities: cat.activities.map((activityItem) =>
+                        activityItem.activityId === currentItemId
+                          ? {
+                              ...activityItem,
+                              activityName: activity.name,
+                              sortOrder: activity.sortOrder,
+                              estimatedHours: activity.estimatedHours,
+                              equipmentId: activity.equipmentId,
+                              notes: activity.notes,
+                              completed: activity.completed,
+                            }
+                          : activityItem
+                      ),
+                    }
+                  : cat
+              )
+            );
+          } else {
+            // Handle error responses
+            const errorData = await res.json();
+            alert(errorData.message || "Failed to update activity");
+          }
+        } else {
+          // Add new activity
+          const res = await fetch(`/api/activities`, {
+            method: "POST",
+            body: JSON.stringify({
+              categoryId: categoryToAddTo,
+              projectId: Number(projectId), // Ensure projectId is sent
+              name: newItemName,
+              // Remove sortOrder; backend handles it
+              estimatedHours,
+              equipmentId: selectedEquipment?.id || null,
+              notes,
+              completed,
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (res.ok) {
+            const { newActivity } = await res.json();
+            console.log("newActivity", newActivity);
+            setCategories((prevCategories) =>
+              prevCategories.map((cat) =>
+                cat.categoryId === categoryToAddTo
+                  ? {
+                      ...cat,
+                      activities: [
+                        ...cat.activities,
+                        {
+                          activityId: newActivity.id,
+                          categoryId: categoryToAddTo,
+                          activityName: newActivity.name,
+                          sortOrder: newActivity.sortOrder, // Assigned by backend
+                          estimatedHours: newActivity.estimatedHours || 0,
+                          equipmentId: newActivity.equipmentId || null,
+                          equipmentName: newActivity.equipmentName || null,
+                          notes: newActivity.notes || "",
+                          completed: newActivity.completed || false,
+                        },
+                      ],
+                    }
+                  : cat
+              )
+            );
+          } else {
+            // Handle error responses
+            const errorData = await res.json();
+            alert(errorData.message || "Failed to add activity");
+          }
+        }
+      }
+
+      // Handle adding a new category
+      if (dialogType === "category") {
+        if (currentItemId) {
+          // Update existing category
+          const res = await fetch(`/api/categories/${currentItemId}`, {
+            // Use dynamic route
+            method: "PUT",
+            body: JSON.stringify({
+              name: newItemName,
+              // Remove sortOrder; backend handles it if necessary
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (res.ok) {
+            const { category } = await res.json(); // Adjust based on backend response
+
+            // Update category in state
+            setCategories((prevCategories) =>
+              prevCategories.map((cat) =>
+                cat.categoryId === currentItemId
+                  ? {
+                      ...cat,
+                      categoryName: category.name,
+                      sortOrder: category.sortOrder,
+                      // Update other fields as necessary
+                    }
+                  : cat
+              )
+            );
+          } else {
+            // Handle error responses
+            const errorData = await res.json();
+            alert(errorData.message || "Failed to update category");
+          }
+        } else {
+          // Add new category
+          const res = await fetch(`/api/categories`, {
+            method: "POST",
+            body: JSON.stringify({
+              name: newItemName,
+              projectId: Number(projectId), // Ensure projectId is sent
+              // Remove sortOrder; backend handles it
+            }),
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (res.ok) {
+            const { newCategory } = await res.json();
+            console.log("newCategory", newCategory);
+            setCategories((prevCategories) => [
+              ...prevCategories,
+              {
+                categoryId: newCategory.id,
+                categoryName: newCategory.name,
+                sortOrder: newCategory.sortOrder,
+                activities: [], // Initialize with empty activities
+              },
+            ]);
+          } else {
+            // Handle error responses
+            const errorData = await res.json();
+            alert(errorData.message || "Failed to add category");
+          }
         }
       }
 
@@ -287,13 +354,14 @@ export default function ActivitiesPage({
       setDialogOpen(false);
       setCurrentItemId(null);
       setNewItemName("");
-      setNewSortOrder(0);
+      setNewSortOrder(0); // Optionally remove if not needed
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
       setSelectedEquipment(null);
     } catch (error) {
       console.error("Error saving item:", error);
+      alert("An unexpected error occurred while saving the item.");
     }
   };
 
@@ -367,7 +435,8 @@ export default function ActivitiesPage({
     if (!hasWritePermission) return; // Prevent deletion if no permission
 
     try {
-      const res = await fetch(`/api/categories?categoryId=${categoryId}`, {
+      const res = await fetch(`/api/categories/${categoryId}`, {
+        // Updated URL
         method: "DELETE",
       });
       if (res.ok) {
@@ -384,10 +453,11 @@ export default function ActivitiesPage({
     if (!hasWritePermission) return; // Prevent deletion if no permission
 
     try {
-      const response = await fetch(`/api/activities?activityId=${activityId}`, {
+      const res = await fetch(`/api/activities/${activityId}`, {
+        // Updated URL
         method: "DELETE",
       });
-      if (response.ok) {
+      if (res.ok) {
         setCategories((prevCategories) =>
           prevCategories.map((cat) => ({
             ...cat,
@@ -418,7 +488,7 @@ export default function ActivitiesPage({
   // handleDragEnd.js or within your component
   const handleDragEnd = async (result: any) => {
     // Replace 'any' with your DropResult type if available
-    const { destination, source, draggableId, type } = result;
+    const { destination, source, type } = result;
 
     if (!destination) return;
 
@@ -426,7 +496,7 @@ export default function ActivitiesPage({
     const newCategories = Array.from(categories);
 
     // Store the previous state for potential reversion
-    const previousCategories = previousCategoriesRef.current;
+    previousCategoriesRef.current = categories; // Ensure this is updated before making changes
 
     let updatedCategories: CategorySortOrderUpdate[] = [];
     let updatedActivities: ActivitySortOrderUpdate[] = [];
@@ -442,8 +512,15 @@ export default function ActivitiesPage({
         sortOrder: index,
       }));
 
+      // Update the sortOrder in newCategories to reflect the new order in the UI
+      const updatedNewCategories = newCategories.map((category, index) => ({
+        ...category,
+        sortOrder: index,
+      }));
+
       // Optimistically update the state
-      setCategories(newCategories);
+      setCategories(updatedNewCategories);
+      console.log("Updated categories:", updatedNewCategories);
     } else if (type === "ACTIVITY") {
       // Moving activities within or between categories
       const sourceCategoryId = parseInt(
@@ -523,6 +600,7 @@ export default function ActivitiesPage({
 
     try {
       // Send the combined update to the backend
+      console.log("Before fetch call: ", updatedCategories, updatedActivities);
       const response = await fetch("/api/activities/updateSortOrder", {
         method: "POST",
         headers: {
@@ -543,7 +621,7 @@ export default function ActivitiesPage({
       // Type as 'any' to access error.message
       console.error("Error updating sort order:", error);
       // Revert to the previous state
-      setCategories(previousCategories);
+      setCategories(previousCategoriesRef.current);
       alert("Failed to update sort order. Please try again.");
     }
   };
