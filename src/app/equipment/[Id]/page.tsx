@@ -293,29 +293,26 @@ const EquipmentGrid: React.FC = () => {
           )
           .map((mp) => mp.date);
 
-        // Calculate the total duration (number of days equipment is used)
-        const totalDuration = manpowerDates.length;
+        // Convert manpowerDates to Date objects and filter out weekends
+        const workingManpowerDates = manpowerDates.filter((dateStr) => {
+          const dateObj = new Date(dateStr);
+          const dayOfWeek = dateObj.getDay();
+          return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sundays and Saturdays
+        });
+
+        // Calculate the total duration (number of working days equipment is used)
+        const totalDuration = workingManpowerDates.length;
 
         // Decide which equipment cost to use
-        let totalEquipmentCost = 0;
-        if (equipment) {
+        let selectedCostPerDay = 0;
+        if (equipment && totalDuration > 0) {
           if (totalDuration < 4) {
-            totalEquipmentCost = equipment.costPerDay * totalDuration;
-          } else if (totalDuration <= 15) {
-            // Calculate the number of weeks needed
-            const weeks = Math.ceil(totalDuration / 7);
-            totalEquipmentCost = equipment.costPerWeek * weeks;
+            selectedCostPerDay = equipment.costPerDay;
+          } else if (totalDuration < 15) {
+            selectedCostPerDay = equipment.costPerWeek;
           } else {
-            // Calculate the number of months needed
-            const months = Math.ceil(totalDuration / 30);
-            totalEquipmentCost = equipment.costPerMonth * months;
+            selectedCostPerDay = equipment.costPerMonth;
           }
-        }
-
-        // Distribute the cost over the days equipment is used
-        let costPerDay = 0;
-        if (totalDuration > 0) {
-          costPerDay = totalEquipmentCost / totalDuration;
         }
 
         // Loop through the columns to add equipment cost data for each day
@@ -323,20 +320,27 @@ const EquipmentGrid: React.FC = () => {
           month.children.forEach((day: any) => {
             const dayField = day.field;
             const dateStr = dayField.replace("day_", "").replace(/_/g, "-"); // Convert field back to date string
+            const dateObj = new Date(dateStr);
+            const dayOfWeek = dateObj.getDay();
 
-            let equipmentCost = 0;
-            // Check if manpower is scheduled on this day
-            if (manpowerDates.includes(dateStr) && equipment) {
-              activityRow[dayField] = parseFloat(costPerDay.toFixed(0));
+            // Check if manpower is scheduled on this day and it's a working day
+            if (
+              manpowerDates.includes(dateStr) &&
+              dayOfWeek !== 0 &&
+              dayOfWeek !== 6 &&
+              equipment &&
+              selectedCostPerDay > 0
+            ) {
+              activityRow[dayField] = selectedCostPerDay;
 
               // Add the equipment cost to the total for the day
-              totalRow[dayField] += activityRow[dayField];
+              totalRow[dayField] += selectedCostPerDay;
 
               // Add to the total equipment cost for the activity
-              activityRow.totalEquipmentCost! += activityRow[dayField];
+              activityRow.totalEquipmentCost! += selectedCostPerDay;
 
               // Add to the total equipment cost in the total row
-              totalRow.totalEquipmentCost! += activityRow[dayField];
+              totalRow.totalEquipmentCost! += selectedCostPerDay;
             } else {
               activityRow[dayField] = null; // No equipment cost for this day
             }

@@ -5,17 +5,28 @@ import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { AgGridReact } from "ag-grid-react";
 import { Equipment } from "../../../../../types";
+import { ColDef } from "ag-grid-community";
 import { PermissionContext } from "../../../../context/PermissionContext";
 import EquipmentFormModal from "../../../components/EquipmentFormModal";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { useParams } from "next/navigation";
+
+interface Project {
+  id: number;
+  name: string;
+  // Add other relevant fields if necessary
+}
 
 const EquipmentPage: React.FC = () => {
   const router = useRouter();
   const { projectId } = useParams(); // Get projectId from URL
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(
+    undefined
+  );
+  const [projectName, setProjectName] = useState<string>("");
   const { hasWritePermission } = useContext(PermissionContext);
 
   // State for modal visibility and mode
@@ -23,6 +34,25 @@ const EquipmentPage: React.FC = () => {
   const [editMode, setEditMode] = useState<boolean>(false);
   const [currentEquipment, setCurrentEquipment] =
     useState<Partial<Equipment> | null>(null);
+
+  const fetchCurrentProject = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`); // Fetch specific project
+      if (!res.ok) {
+        throw new Error(`Error fetching project: ${res.statusText}`);
+      }
+      const data = await res.json();
+      setCurrentProject(data.project);
+      if (Array.isArray(data.project) && data.project.length > 0) {
+        const project = data.project[0];
+        setCurrentProject(project);
+        setProjectName(project.name);
+      }
+    } catch (err) {
+      console.error(err);
+      // Optionally, set an error state here to display to the user
+    }
+  }, [projectId]);
 
   const fetchEquipment = useCallback(async () => {
     if (!projectId) return;
@@ -36,60 +66,44 @@ const EquipmentPage: React.FC = () => {
   }, [projectId]);
 
   useEffect(() => {
+    fetchCurrentProject();
     fetchEquipment();
-  }, [fetchEquipment]);
+  }, [fetchEquipment, projectId, fetchCurrentProject]);
 
-  const createEquipment = async (equipmentData: Partial<Equipment>) => {
+  // Update createEquipment to handle both add and edit actions
+  const handleSubmitEquipment = async (equipmentData: Partial<Equipment>) => {
     setLoading(true);
     try {
-      const payload = {
-        projectId: Number(projectId),
-        ...equipmentData,
-      };
-      const response = await fetch("/api/equipment", {
-        method: "POST",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Response status:", response.status);
-      console.log("Response headers:", response.headers);
-
-      const responseText = await response.text();
-      console.log("Response text:", responseText);
-
-      const result = JSON.parse(responseText);
-      alert(result.message);
+      if (editMode && equipmentData.id) {
+        // Update existing equipment
+        const response = await fetch(`/api/equipment/${equipmentData.id}`, {
+          method: "PUT",
+          body: JSON.stringify(equipmentData),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const result = await response.json();
+        alert(result.message);
+      } else {
+        // Create new equipment
+        const payload = {
+          projectId: Number(projectId),
+          ...equipmentData,
+        };
+        const response = await fetch("/api/equipment", {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const result = await response.json();
+        alert(result.message);
+      }
       fetchEquipment(); // Refresh the equipment list
     } catch (err) {
-      console.error("Error in createEquipment:", err);
-    } finally {
-      setLoading(false);
-      setShowModal(false);
-    }
-  };
-
-  const updateEquipmentItem = async (equipmentData: Partial<Equipment>) => {
-    if (!equipmentData.id) return; // Ensure the equipment has an ID
-    setLoading(true);
-    try {
-      const payload = {
-        ...equipmentData,
-      };
-      const response = await fetch(`/api/equipment/${equipmentData.id}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const result = await response.json();
-      alert(result.message);
-      fetchEquipment(); // Refresh the equipment list
-    } catch (err) {
-      console.log(err);
+      console.error("Error in handleSubmitEquipment:", err);
     } finally {
       setLoading(false);
       setShowModal(false);
@@ -121,42 +135,42 @@ const EquipmentPage: React.FC = () => {
     setShowModal(true);
   };
 
-  const columnDefs = [
+  const columnDefs: ColDef<Equipment>[] = [
     {
       headerName: "Equipment Name",
-      field: "equipmentName",
+      field: "equipmentName" as keyof Equipment,
       sortable: true,
       filter: true,
     },
     {
       headerName: "Cost per Day",
-      field: "costPerDay",
+      field: "costPerDay" as keyof Equipment,
       valueFormatter: currencyFormatter,
     },
     {
       headerName: "Cost per Week",
-      field: "costPerWeek",
+      field: "costPerWeek" as keyof Equipment,
       valueFormatter: currencyFormatter,
     },
     {
       headerName: "Cost per Month",
-      field: "costPerMonth",
+      field: "costPerMonth" as keyof Equipment,
       valueFormatter: currencyFormatter,
     },
     {
       headerName: "Delivery Fee",
-      field: "deliveryFee",
+      field: "deliveryFee" as keyof Equipment,
       valueFormatter: currencyFormatter,
     },
     {
       headerName: "Pickup Fee",
-      field: "pickupFee",
+      field: "pickupFee" as keyof Equipment,
       valueFormatter: currencyFormatter,
     },
     {
       headerName: "Actions",
-      field: "actions",
-      cellRendererFramework: (params: any) => (
+      field: "actions" as keyof Equipment,
+      cellRenderer: (params: any) => (
         <div className="flex space-x-2">
           <button
             onClick={() => handleEditEquipment(params.data)}
@@ -200,7 +214,7 @@ const EquipmentPage: React.FC = () => {
       <main className="min-h-[90vh] flex items-start">
         <div className="md:w-5/6 w-full h-full p-6">
           <h2 className="text-2xl font-bold">
-            Equipment for Project {projectId}
+            Equipment for Project {projectName}
           </h2>
           <p className="opacity-70 mb-4">Manage equipment for your project</p>
 
@@ -241,7 +255,7 @@ const EquipmentPage: React.FC = () => {
             {showModal && (
               <EquipmentFormModal
                 onClose={() => setShowModal(false)}
-                onSubmit={editMode ? updateEquipmentItem : createEquipment}
+                onSubmit={handleSubmitEquipment}
                 equipment={currentEquipment} // Pass the current equipment if editing
                 isEditMode={editMode} // Indicate if we're in edit mode
               />

@@ -17,6 +17,8 @@ import {
   Category,
   User,
   Equipment,
+  CategorySortOrderUpdate,
+  ActivitySortOrderUpdate,
 } from "../../../types";
 import { desc, eq, and, inArray, sql } from "drizzle-orm";
 
@@ -694,6 +696,7 @@ export const getEquipmentById = async (equipmentId: number) => {
 //👇🏻 delete an equipment item
 export const deleteEquipment = async (equipmentId: number) => {
   try {
+    console.log("actions is Deleting equipment with ID:", equipmentId);
     const result = await db
       .delete(equipment)
       .where(eq(equipment.id, equipmentId));
@@ -701,5 +704,77 @@ export const deleteEquipment = async (equipmentId: number) => {
   } catch (error) {
     console.error("Error deleting equipment:", error);
     throw new Error("Could not delete equipment");
+  }
+};
+
+/**
+ * Updates the sortOrder of multiple categories in the database.
+ * @param updatedCategories Array of categories with updated sortOrder.
+ */
+export const updateCategorySortOrderInDB = async (
+  updatedCategories: CategorySortOrderUpdate[]
+): Promise<void> => {
+  try {
+    for (const category of updatedCategories) {
+      await db
+        .update(categories)
+        .set({ sortOrder: category.sortOrder })
+        .where(eq(categories.id, category.categoryId));
+    }
+  } catch (error) {
+    console.error("Failed to update category sort order:", error);
+    throw new Error("Database update failed for categories.");
+  }
+};
+
+/**
+ * Updates the sortOrder and possibly the categoryId of multiple activities in the database.
+ * @param updatedActivities Array of activities with updated sortOrder and optionally categoryId.
+ */
+export const updateActivitySortOrderInDB = async (
+  updatedActivities: ActivitySortOrderUpdate[]
+): Promise<void> => {
+  try {
+    for (const activity of updatedActivities) {
+      const updateData: Partial<ActivitySortOrderUpdate> = {
+        sortOrder: activity.sortOrder,
+      };
+      if (activity.categoryId !== undefined) {
+        updateData.categoryId = activity.categoryId;
+      }
+
+      await db
+        .update(activities)
+        .set(updateData)
+        .where(eq(activities.id, activity.activityId));
+    }
+  } catch (error) {
+    console.error("Failed to update activity sort order:", error);
+    throw new Error("Database update failed for activities.");
+  }
+};
+
+/**
+ * Updates the sortOrder of multiple categories and activities in the database.
+ * Note: Transactions are not supported in neon-http driver.
+ * So updates are performed sequentially without atomicity.
+ * @param updatedCategories Array of categories with updated sortOrder.
+ * @param updatedActivities Array of activities with updated sortOrder and optionally categoryId.
+ */
+export const updateSortOrdersInDB = async (
+  updatedCategories: CategorySortOrderUpdate[],
+  updatedActivities: ActivitySortOrderUpdate[]
+): Promise<void> => {
+  try {
+    if (updatedCategories.length > 0) {
+      await updateCategorySortOrderInDB(updatedCategories);
+    }
+
+    if (updatedActivities.length > 0) {
+      await updateActivitySortOrderInDB(updatedActivities);
+    }
+  } catch (error) {
+    console.error("Failed to update sort orders:", error);
+    throw error; // Re-throw to let the caller handle
   }
 };

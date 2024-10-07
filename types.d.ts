@@ -51,15 +51,6 @@ export interface Category {
   updatedAt?: string;
   activities?: Activity[];
 }
-export interface APICategory {
-  categoryId?: number;
-  projectId: string;
-  categoryName: string;
-  sortOrder?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  activities?: Activity[];
-}
 
 export interface Activity {
   id?: number;
@@ -72,6 +63,38 @@ export interface Activity {
   completed: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface APICategory {
+  categoryId?: number;
+  projectId: string;
+  categoryName: string;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  activities?: Activity[];
+}
+
+// types.ts
+
+export interface CategorySortOrderUpdate {
+  categoryId: number;
+  sortOrder: number;
+}
+
+export interface ActivitySortOrderUpdate {
+  activityId: number;
+  sortOrder: number;
+  categoryId?: number; // Optional, only when moving activities between categories
+}
+
+export interface UpdateSortOrderRequest {
+  categories: CategorySortOrderUpdate[];
+  activities: ActivitySortOrderUpdate[];
+}
+
+export interface UpdateSortOrderResponse {
+  message: string;
 }
 
 export interface APIActivity {
