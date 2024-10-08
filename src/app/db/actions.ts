@@ -276,7 +276,13 @@ export const getCategoryById = async (
       .where(eq(categories.id, categoryId))
       .limit(1);
 
-    return result.length > 0 ? result[0] : null;
+    return result.length > 0
+      ? {
+          ...result[0],
+          createdAt: result[0].createdAt.toISOString(),
+          updatedAt: result[0].updatedAt.toISOString(),
+        }
+      : null;
   } catch (error) {
     console.error("Error fetching category by ID:", error);
     throw new Error("Could not fetch category");
@@ -298,7 +304,19 @@ export const getActivityById = async (
       .where(eq(activities.id, activityId))
       .limit(1);
 
-    return result.length > 0 ? result[0] : null;
+    return result.length > 0
+      ? {
+          ...result[0],
+          categoryId: result[0].categoryId.toString(),
+          equipmentId: result[0].equipmentId
+            ? result[0].equipmentId.toString()
+            : undefined,
+          estimatedHours: result[0].estimatedHours ?? undefined,
+          notes: result[0].notes ?? undefined,
+          createdAt: result[0].createdAt.toISOString(),
+          updatedAt: result[0].updatedAt.toISOString(),
+        }
+      : null;
   } catch (error) {
     console.error("Error fetching activity by ID:", error);
     throw new Error("Could not fetch activity");

@@ -54,15 +54,36 @@ export async function POST(req: NextRequest) {
   try {
     const equipmentData: Partial<Equipment> = await req.json();
     // Validate required fields
-    if (!equipmentData.projectId || !equipmentData.equipmentName) {
+    if (
+      equipmentData.projectId === undefined ||
+      typeof equipmentData.projectId !== "number" ||
+      !equipmentData.equipmentName
+    ) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Create a complete Equipment object
+    const completeEquipmentData: Equipment = {
+      projectId: equipmentData.projectId,
+      equipmentName: equipmentData.equipmentName,
+      // Add default values for other required properties if they are missing
+      sortOrder: equipmentData.sortOrder ?? 0,
+      costPerDay: equipmentData.costPerDay ?? 0,
+      costPerWeek: equipmentData.costPerWeek ?? 0,
+      costPerMonth: equipmentData.costPerMonth ?? 0,
+      deliveryFee: equipmentData.deliveryFee ?? 0,
+      pickupFee: equipmentData.pickupFee ?? 0,
+      notes: equipmentData.notes ?? "", // Assuming 0 is a valid default value
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // Add other properties as needed
+    };
+
     // Add new equipment
-    const newEquipment = await addEquipment(equipmentData);
+    const newEquipment = await addEquipment(completeEquipmentData);
 
     return NextResponse.json(
       {
