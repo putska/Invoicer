@@ -8,6 +8,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addDays } from "date-fns";
 import { PermissionContext } from "../../../context/PermissionContext";
 import { useSocket } from "../../../context/SocketContext";
+import { useRouter } from "next/navigation";
 
 interface Category {
   categoryId: number;
@@ -47,6 +48,7 @@ interface RowData {
 const LaborGrid: React.FC = () => {
   const params = useParams();
   const Id = params.Id;
+  const router = useRouter();
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -406,6 +408,17 @@ const LaborGrid: React.FC = () => {
     },
   };
 
+  const navigateToEquipment = (
+    router: any,
+    Id: string | string[] | undefined
+  ) => {
+    if (!Id) {
+      console.error("Project ID is undefined!");
+      return;
+    }
+
+    router.push(`/equipment/${Id}`);
+  };
   // Handle loading state
   if (!isLoaded) {
     return <div>Loading...</div>;
@@ -448,6 +461,12 @@ const LaborGrid: React.FC = () => {
           }}
         />
       </div>
+      <button
+        onClick={() => navigateToEquipment(router, Id)}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Equipment View
+      </button>
     </div>
   );
 };

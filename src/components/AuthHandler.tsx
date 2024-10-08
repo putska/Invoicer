@@ -30,7 +30,6 @@ export default function AuthHandler({
           permission_level: "read",
         })
         .then((response) => {
-          console.log("User created or already exists:", response.data);
           setUserCreated(true);
         })
         .catch((err) => {

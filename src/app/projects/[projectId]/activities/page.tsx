@@ -142,7 +142,6 @@ export default function ActivitiesPage({
             }));
 
           setCategories(sortedCategories);
-          console.log("Categories and activities:", sortedCategories);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -156,7 +155,6 @@ export default function ActivitiesPage({
       const project = projects.find((project) => project.id === projectId);
       setCurrentProject(project);
       setProjectName(project?.name || "");
-      console.log("Current project name:", projectName);
     }
   }, [projectId, projects]);
 
@@ -251,7 +249,6 @@ export default function ActivitiesPage({
 
           if (res.ok) {
             const { newActivity } = await res.json();
-            console.log("newActivity", newActivity);
             setCategories((prevCategories) =>
               prevCategories.map((cat) =>
                 cat.categoryId === categoryToAddTo
@@ -332,7 +329,6 @@ export default function ActivitiesPage({
 
           if (res.ok) {
             const { newCategory } = await res.json();
-            console.log("newCategory", newCategory);
             setCategories((prevCategories) => [
               ...prevCategories,
               {
@@ -520,7 +516,6 @@ export default function ActivitiesPage({
 
       // Optimistically update the state
       setCategories(updatedNewCategories);
-      console.log("Updated categories:", updatedNewCategories);
     } else if (type === "ACTIVITY") {
       // Moving activities within or between categories
       const sourceCategoryId = parseInt(
@@ -600,7 +595,6 @@ export default function ActivitiesPage({
 
     try {
       // Send the combined update to the backend
-      console.log("Before fetch call: ", updatedCategories, updatedActivities);
       const response = await fetch("/api/activities/updateSortOrder", {
         method: "POST",
         headers: {

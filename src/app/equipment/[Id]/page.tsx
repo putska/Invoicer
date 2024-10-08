@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React, { useState, useEffect, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
@@ -58,6 +58,7 @@ interface RowData {
 const EquipmentGrid: React.FC = () => {
   const params = useParams();
   const projectId = params.Id;
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [manpowerData, setManpowerData] = useState<ManpowerData[]>([]);
@@ -110,14 +111,12 @@ const EquipmentGrid: React.FC = () => {
             activities: categoryItem.activities || [],
           })
         );
-        console.log("Categories:", fetchedCategories);
 
         // Fetch manpower data
         const resManpower = await fetch(`/api/manpower`);
         const dataManpower = await resManpower.json();
         const fetchedManpowerData: ManpowerData[] =
           dataManpower?.manpowerData || [];
-        console.log("Manpower data:", fetchedManpowerData);
         // Fetch equipment data
         const resEquipment = await fetch(
           `/api/equipment?projectId=${project.id}`
@@ -125,7 +124,6 @@ const EquipmentGrid: React.FC = () => {
         const dataEquipment = await resEquipment.json();
         const fetchedEquipmentList: Equipment[] =
           dataEquipment?.equipment || [];
-        console.log("Equipment data:", fetchedEquipmentList);
         setCategories(fetchedCategories);
         setManpowerData(fetchedManpowerData);
         setEquipmentList(fetchedEquipmentList);
@@ -357,6 +355,19 @@ const EquipmentGrid: React.FC = () => {
     return rows;
   };
 
+  const navigateToLabor = (router: any, Id: string | string[] | undefined) => {
+    if (!Id) {
+      console.error("Project ID is undefined!");
+      return;
+    }
+
+    router.push(`/labor/${Id}`);
+  };
+  // Handle loading state
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
   // Handle loading state
   if (!isLoaded || !project) {
     return <div>Loading...</div>;
@@ -393,6 +404,12 @@ const EquipmentGrid: React.FC = () => {
           }}
         />
       </div>
+      <button
+        onClick={() => navigateToLabor(router, projectId)}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        Labor View
+      </button>
     </div>
   );
 };

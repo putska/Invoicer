@@ -360,8 +360,9 @@ export const updateCategory = async (
     const result = await db
       .update(categories)
       .set(updatedData)
-      .where(eq(categories.id, categoryId));
-    return result;
+      .where(eq(categories.id, categoryId))
+      .returning();
+    return result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error("Error updating category:", error);
     throw new Error("Could not update category");
@@ -616,9 +617,7 @@ export const getUserByClerkId = async (clerkId: string) => {
 export const getAllUsers = async () => {
   try {
     const result = await db.execute(sql`SELECT * from users`);
-    console.log("SQL Select Users: ", result.rows);
     const allUsers = await db.select().from(users).execute();
-    console.log("All Users: ", allUsers);
     //return allUsers;
     return result.rows;
   } catch (error) {
@@ -748,7 +747,6 @@ export const getEquipmentById = async (equipmentId: number) => {
 //👇🏻 delete an equipment item
 export const deleteEquipment = async (equipmentId: number) => {
   try {
-    console.log("actions is Deleting equipment with ID:", equipmentId);
     const result = await db
       .delete(equipment)
       .where(eq(equipment.id, equipmentId));

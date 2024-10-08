@@ -27,7 +27,6 @@ export default function AdminPage() {
     axios
       .get("/api/admin/getUsers")
       .then((response) => {
-        console.log("Users in admin:", response.data.users);
         setUsers(response.data.users);
         setLoading(false);
       })

@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const equipmentData: Partial<Equipment> = await req.json();
-    console.log("Equipment data:", equipmentData);
     // Validate required fields
     if (!equipmentData.projectId || !equipmentData.equipmentName) {
       return NextResponse.json(

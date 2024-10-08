@@ -20,8 +20,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { userId, permission_level } = body;
-    console.log("userId", userId);
-    console.log("permission_level", permission_level);
     // Ensure permission_level is valid
     if (!["read", "write", "admin"].includes(permission_level)) {
       return NextResponse.json(

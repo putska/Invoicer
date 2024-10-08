@@ -23,7 +23,6 @@ export async function DELETE(
   if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
 
   const equipmentId = parseInt(params.id, 10);
-  console.log("Deleting equipment with ID:", equipmentId);
   try {
     await deleteEquipment(equipmentId);
     return NextResponse.json(
