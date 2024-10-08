@@ -20,7 +20,7 @@ jobs:
 
       - name: Deploy Application
         run: ssh -o StrictHostKeyChecking=no swatts@209.38.77.21
-          cd /home/swatts/Invoicer &&
+          'cd /home/swatts/Invoicer &&
           git fetch origin main &&
           git reset --hard origin/main &&
           git clean -fd &&
