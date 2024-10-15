@@ -9,6 +9,7 @@ import {
   activities,
   manpower,
   users,
+  laborSnapshots,
 } from "./schema";
 
 if (!process.env.NEON_DATABASE_URL) {
@@ -48,7 +49,11 @@ export const usersDB = drizzle(sql, {
   schema: { users },
 });
 
+export const laborSnapshotsDB = drizzle(sql, {
+  schema: { laborSnapshots },
+});
+
 // New database instance for the average manpower function
 export const averageManpowerDB = drizzle(sql, {
-  schema: { projects, categories, activities, manpower },
+  schema: { projects, categories, activities, manpower, laborSnapshots },
 });

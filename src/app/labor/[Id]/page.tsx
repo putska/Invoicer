@@ -9,6 +9,7 @@ import { format, addDays } from "date-fns";
 import { PermissionContext } from "../../../context/PermissionContext";
 import { useSocket } from "../../../context/SocketContext";
 import { useRouter } from "next/navigation";
+import { GridApi } from "ag-grid-community";
 
 interface Category {
   categoryId: number;
@@ -49,12 +50,19 @@ const LaborGrid: React.FC = () => {
   const params = useParams();
   const Id = params.Id;
   const router = useRouter();
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [columnDefs, setColumnDefs] = useState<any[]>([]);
   const [rowData, setRowData] = useState<RowData[]>([]);
+  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
   const socket = useSocket(); //Get the socket instance from the context
+
+  const onGridReady = (params) => {
+    setGridApi(params.api); // Store the grid API instance
+  };
 
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
 
@@ -144,6 +152,25 @@ const LaborGrid: React.FC = () => {
     }
   }, [project]);
 
+  // Fetch snapshots when the project is selected
+  useEffect(() => {
+    if (selectedProject) {
+      const fetchSnapshots = async () => {
+        try {
+          const snapshotRes = await fetch(
+            `/api/snapshot/all/${selectedProject}`
+          );
+          const snapshotData = await snapshotRes.json();
+          setSnapshots(snapshotData.snapshots || []);
+        } catch (error) {
+          console.error("Error fetching snapshots:", error);
+        }
+      };
+
+      fetchSnapshots();
+    }
+  }, [selectedProject]);
+
   /* Socket Stuff!!!! */
 
   // Listen for real-time updates from the WebSocket
@@ -170,6 +197,58 @@ const LaborGrid: React.FC = () => {
       socket.off("edit", handleExternalEdit);
     };
   }, [socket]);
+
+  const loadSnapshot = async (snapshotId: string) => {
+    try {
+      const res = await fetch(`/api/snapshot/${snapshotId}`);
+      const data = await res.json();
+      if (data.length > 0 && data[0].snapshotData) {
+        const snapshotData = JSON.parse(data[0].snapshotData);
+
+        // Generate columns based on project dates
+        if (project) {
+          const dynamicColumns = generateDateColumns(
+            new Date(project.startDate),
+            new Date(project.endDate)
+          );
+          setRowData(snapshotData.rowData);
+
+          setColumnDefs(snapshotData.columnDefs);
+          setColumnDefs(generateColumnDefs(dynamicColumns));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading snapshot:", error);
+    }
+  };
+
+  // Function to save the current state as a snapshot
+  const saveSnapshot = async () => {
+    if (!selectedProject) return;
+    const snapshotData = {
+      rowData,
+      columnDefs,
+    };
+    try {
+      const res = await fetch(`/api/snapshot`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: selectedProject,
+          snapshotData,
+        }),
+      });
+      if (res.ok) {
+        console.log("Snapshot saved successfully");
+      } else {
+        console.error("Failed to save snapshot");
+      }
+    } catch (error) {
+      console.error("Error saving snapshot:", error);
+    }
+  };
 
   // IndentCellRenderer function defined inside the component
   const IndentCellRenderer = (props: any) => {
@@ -434,6 +513,32 @@ const LaborGrid: React.FC = () => {
           <p className="text-gray-700 text-left">{project?.description}</p>
         </div>
       </div>
+      <div className="mb-4 flex items-center gap-4">
+        <button
+          onClick={saveSnapshot}
+          className="bg-green-500 text-white px-4 py-2 rounded"
+        >
+          Save Snapshot
+        </button>
+        <select
+          className="p-2 border border-gray-200 rounded-sm"
+          value={selectedSnapshot || ""}
+          onChange={(e) => {
+            const snapshotId = e.target.value;
+            if (snapshotId) {
+              loadSnapshot(snapshotId);
+              setSelectedSnapshot(snapshotId);
+            }
+          }}
+        >
+          <option value="">-- Select a Snapshot --</option>
+          {snapshots.map((snapshot) => (
+            <option key={snapshot.snapshotId} value={snapshot.snapshotId}>
+              {snapshot.snapshotId}
+            </option>
+          ))}
+        </select>
+      </div>
       <div
         className="ag-theme-alpine"
         style={{ height: "600px", width: "100%" }}
@@ -463,7 +568,7 @@ const LaborGrid: React.FC = () => {
       </div>
       <button
         onClick={() => navigateToEquipment(router, Id)}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
+        className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
       >
         Equipment View
       </button>

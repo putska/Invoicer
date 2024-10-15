@@ -156,3 +156,10 @@ export interface Equipment {
   createdAt: date;
   updatedAt: date;
 }
+
+export interface LaborSnapshot {
+  snapshotId: string; // ISO string representing the date and time
+  projectId: number; // The project ID related to this snapshot
+  createdAt: Date; // The timestamp when the snapshot was created
+  snapshotData: text; // The labor data stored as a JSON object
+}

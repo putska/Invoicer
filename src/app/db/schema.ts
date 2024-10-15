@@ -8,8 +8,7 @@ import {
   integer,
   numeric,
   boolean,
-  primaryKey,
-  bigint,
+  unique,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -122,4 +121,14 @@ export const equipment = pgTable("equipment", {
   notes: text("notes"), // Field for additional notes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const laborSnapshots = pgTable("labor_snapshots", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id),
+  snapshotId: text("snapshot_id").notNull(), // Storing as a string (e.g., ISO 8601)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  snapshotData: text("snapshot_data").notNull(), // Store the labor plan data as JSON
 });

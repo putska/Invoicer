@@ -9,6 +9,7 @@ import {
   manpower,
   users,
   equipment,
+  laborSnapshots,
 } from "./schema";
 import {
   Customer,
@@ -894,5 +895,51 @@ export const getNextActivitySortOrder = async (
   } catch (error) {
     console.error("Error calculating next sortOrder for activities:", error);
     throw new Error("Could not calculate sortOrder for new activity");
+  }
+};
+
+// Function to store a snapshot
+export const storeSnapshot = async (
+  projectId: number,
+  snapshotData: object
+) => {
+  try {
+    const snapshotId = new Date().toISOString(); // Use the current date and time as the snapshotId
+    await db.insert(laborSnapshots).values({
+      snapshotId,
+      projectId,
+      createdAt: new Date(),
+      snapshotData: JSON.stringify(snapshotData), // Convert the object to JSON
+    });
+    return snapshotId; // Return the generated snapshotId
+  } catch (error) {
+    console.error("Error storing snapshot:", error);
+    throw new Error("Failed to store snapshot");
+  }
+};
+
+// Function to retrieve snapshots for a project
+export const getSnapshotsByProjectId = async (projectId: number) => {
+  try {
+    return await db
+      .select()
+      .from(laborSnapshots)
+      .where(eq(laborSnapshots.projectId, projectId));
+  } catch (error) {
+    console.error("Error retrieving snapshots:", error);
+    throw new Error("Failed to retrieve snapshots");
+  }
+};
+
+// Function to retrieve a specific snapshot by snapshotId
+export const getSnapshotById = async (snapshotId: string) => {
+  try {
+    return await db
+      .select()
+      .from(laborSnapshots)
+      .where(eq(laborSnapshots.snapshotId, snapshotId));
+  } catch (error) {
+    console.error("Error retrieving snapshot:", error);
+    throw new Error("Failed to retrieve snapshot");
   }
 };

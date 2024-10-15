@@ -36,6 +36,20 @@
       "when": 1728331995101,
       "tag": "0004_windy_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1728690713390,
+      "tag": "0005_lumpy_valeria_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1728691006873,
+      "tag": "0006_right_shaman",
+      "breakpoints": true
     }
   ]
 }
