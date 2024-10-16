@@ -163,3 +163,52 @@ export interface LaborSnapshot {
   createdAt: Date; // The timestamp when the snapshot was created
   snapshotData: text; // The labor data stored as a JSON object
 }
+
+// types.d.ts
+
+// Interface for Vendor
+export interface Vendor {
+  id?: number;
+  vendorName: string;
+  vendorAddress: string;
+  vendorCity: string;
+  vendorState: string;
+  vendorZip: string;
+  vendorPhone?: string;
+  vendorEmail?: string;
+  vendorContact?: string;
+  internalVendorId?: string;
+  taxable: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Interface for Purchase Order (PO)
+export interface PurchaseOrder {
+  id?: number;
+  vendorId: number;
+  poNumber: string;
+  jobNumber: string;
+  projectManager: string;
+  poDate: Date;
+  dueDate?: Date;
+  shipVia?: string;
+  shipTo?: string;
+  shipToAddress?: string;
+  shipToCity?: string;
+  shipToState?: string;
+  shipToZip?: string;
+  costCode: string;
+  freight: number;
+  boxingCharges: number;
+  poAmount: number;
+  taxRate: string;
+  taxable: boolean;
+  warrantyYears?: number;
+  shortDescription: string;
+  longDescription?: string;
+  notes?: string;
+  deliveryDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}

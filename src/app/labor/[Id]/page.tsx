@@ -60,7 +60,7 @@ const LaborGrid: React.FC = () => {
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
   const socket = useSocket(); //Get the socket instance from the context
 
-  const onGridReady = (params) => {
+  const onGridReady = (params: { api: GridApi }) => {
     setGridApi(params.api); // Store the grid API instance
   };
 
@@ -269,7 +269,6 @@ const LaborGrid: React.FC = () => {
     const columns: any[] = [];
     let currentDate = startDate;
     let currentMonth = "";
-
     while (currentDate <= endDate) {
       const monthYear = format(currentDate, "MMM yyyy");
 

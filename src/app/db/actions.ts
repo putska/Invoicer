@@ -10,6 +10,8 @@ import {
   users,
   equipment,
   laborSnapshots,
+  vendors,
+  purchaseOrders,
 } from "./schema";
 import {
   Customer,
@@ -20,6 +22,8 @@ import {
   Equipment,
   CategorySortOrderUpdate,
   ActivitySortOrderUpdate,
+  Vendor,
+  PurchaseOrder,
 } from "../../../types";
 import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
 
@@ -941,5 +945,172 @@ export const getSnapshotById = async (snapshotId: string) => {
   } catch (error) {
     console.error("Error retrieving snapshot:", error);
     throw new Error("Failed to retrieve snapshot");
+  }
+};
+
+// Get all vendors
+export const getAllVendors = async () => {
+  try {
+    const result = await db.select().from(vendors).orderBy(vendors.vendorName);
+    return result;
+  } catch (error) {
+    console.error("Error fetching vendors:", error);
+    throw new Error("Could not fetch vendors");
+  }
+};
+
+// Get vendor by ID
+export const getVendorById = async (vendorId: number) => {
+  try {
+    const [vendor] = await db
+      .select()
+      .from(vendors)
+      .where(eq(vendors.id, vendorId))
+      .limit(1);
+    return vendor || null;
+  } catch (error) {
+    console.error("Error fetching vendor:", error);
+    throw new Error("Could not fetch vendor");
+  }
+};
+
+// Add a new vendor
+export const addVendor = async (vendorData: Omit<Vendor, "id">) => {
+  try {
+    const [newVendor] = await db.insert(vendors).values(vendorData).returning();
+    return newVendor;
+  } catch (error) {
+    console.error("Error adding vendor:", error);
+    throw new Error("Could not add vendor");
+  }
+};
+
+// Update an existing vendor
+export const updateVendor = async (
+  vendorId: number,
+  updatedData: Partial<Vendor>
+) => {
+  try {
+    const result = await db
+      .update(vendors)
+      .set(updatedData)
+      .where(eq(vendors.id, vendorId));
+    return result;
+  } catch (error) {
+    console.error("Error updating vendor:", error);
+    throw new Error("Could not update vendor");
+  }
+};
+
+// Delete a vendor
+export const deleteVendor = async (vendorId: number) => {
+  try {
+    const result = await db.delete(vendors).where(eq(vendors.id, vendorId));
+    return result;
+  } catch (error) {
+    console.error("Error deleting vendor:", error);
+    throw new Error("Could not delete vendor");
+  }
+};
+
+// Get all POs by vendor ID
+export const getPOsByVendorId = async (vendorId: number) => {
+  try {
+    const result = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.vendorId, vendorId))
+      .orderBy(purchaseOrders.poDate);
+    return result;
+  } catch (error) {
+    console.error("Error fetching POs:", error);
+    throw new Error("Could not fetch purchase orders");
+  }
+};
+
+// Example of "get all POs" function
+export const getAllPOs = async () => {
+  try {
+    const result = await db
+      .select()
+      .from(purchaseOrders)
+      .orderBy(purchaseOrders.poNumber);
+    return result;
+  } catch (error) {
+    console.error("Error fetching all POs:", error);
+    throw new Error("Could not fetch purchase orders");
+  }
+};
+
+// /app/db/actions.ts
+
+// Get all purchase orders for a specific job number
+export const getPOsByJobNumber = async (jobNumber: string) => {
+  try {
+    const result = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.jobNumber, jobNumber))
+      .orderBy(purchaseOrders.poDate); // You can adjust the sorting as needed
+    return result;
+  } catch (error) {
+    console.error("Error fetching purchase orders by job number:", error);
+    throw new Error("Could not fetch purchase orders");
+  }
+};
+
+// Get a PO by ID
+export const getPOById = async (poId: number) => {
+  try {
+    const [po] = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.id, poId))
+      .limit(1);
+    return po || null;
+  } catch (error) {
+    console.error("Error fetching PO:", error);
+    throw new Error("Could not fetch purchase order");
+  }
+};
+
+// Add a new PO
+export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
+  try {
+    const [newPO] = await db.insert(purchaseOrders).values(poData).returning();
+    return newPO;
+  } catch (error) {
+    console.error("Error adding PO:", error);
+    throw new Error("Could not add purchase order");
+  }
+};
+
+// Update an existing PO
+export const updatePurchaseOrder = async (
+  poId: number,
+  updatedData: Partial<PurchaseOrder>
+) => {
+  try {
+    const result = await db
+      .update(purchaseOrders)
+      .set(updatedData)
+      .where(eq(purchaseOrders.id, poId));
+    return result;
+  } catch (error) {
+    console.error("Error updating PO:", error);
+    throw new Error("Could not update purchase order");
+  }
+};
+
+// Delete a PO
+export const deletePurchaseOrder = async (poId: number) => {
+  try {
+    const result = await db
+      .delete(purchaseOrders)
+      .where(eq(purchaseOrders.id, poId));
+    return result;
+  } catch (error) {
+    console.error("Error deleting PO:", error);
+    throw new Error("Could not delete purchase order");
   }
 };

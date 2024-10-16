@@ -50,6 +50,20 @@
       "when": 1728691006873,
       "tag": "0006_right_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1729028131332,
+      "tag": "0007_eager_captain_flint",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1729096940145,
+      "tag": "0008_remarkable_gamma_corps",
+      "breakpoints": true
     }
   ]
 }
