@@ -12,6 +12,7 @@ import {
   laborSnapshots,
   vendors,
   purchaseOrders,
+  attachments,
 } from "./schema";
 import {
   Customer,
@@ -26,6 +27,10 @@ import {
   PurchaseOrder,
 } from "../../../types";
 import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
+import { Dropbox } from "dropbox";
+import fetch from "node-fetch";
+
+import { v4 as uuidv4 } from "uuid";
 
 import { act } from "react";
 
@@ -1077,7 +1082,16 @@ export const getPOById = async (poId: number) => {
 // Add a new PO
 export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
   try {
-    const [newPO] = await db.insert(purchaseOrders).values(poData).returning();
+    const [newPO] = await db
+      .insert(purchaseOrders)
+      .values({
+        ...poData,
+        poAmount: poData.poAmount.toString(), // Convert poAmount to string
+        freight: poData.freight.toString(), // Convert freight to string
+        boxingCharges: poData.boxingCharges?.toString(), // Convert boxingCharges to string if defined
+        taxRate: poData.taxRate?.toString(), // Convert taxRate to string if defined
+      })
+      .returning();
     return newPO;
   } catch (error) {
     console.error("Error adding PO:", error);
@@ -1085,16 +1099,36 @@ export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
   }
 };
 
-// Update an existing PO
 export const updatePurchaseOrder = async (
   poId: number,
   updatedData: Partial<PurchaseOrder>
 ) => {
   try {
+    const updatedDataWithStrings = {
+      ...updatedData,
+      poAmount:
+        updatedData.poAmount !== undefined
+          ? updatedData.poAmount.toString()
+          : undefined,
+      freight:
+        updatedData.freight !== undefined
+          ? updatedData.freight.toString()
+          : undefined,
+      boxingCharges:
+        updatedData.boxingCharges !== undefined
+          ? updatedData.boxingCharges.toString()
+          : undefined,
+      taxRate:
+        updatedData.taxRate !== undefined
+          ? updatedData.taxRate.toString()
+          : undefined, // taxRate is likely a decimal stored as a string
+    };
+
     const result = await db
       .update(purchaseOrders)
-      .set(updatedData)
+      .set(updatedDataWithStrings)
       .where(eq(purchaseOrders.id, poId));
+
     return result;
   } catch (error) {
     console.error("Error updating PO:", error);
@@ -1112,5 +1146,148 @@ export const deletePurchaseOrder = async (poId: number) => {
   } catch (error) {
     console.error("Error deleting PO:", error);
     throw new Error("Could not delete purchase order");
+  }
+};
+
+// Upload a file to Dropbox and store metadata in the database
+export async function uploadAttachment({
+  tableName,
+  recordId,
+  notes,
+  fileName,
+  fileSize,
+  fileData, // Now passed as Buffer
+}: {
+  tableName: string;
+  recordId: number;
+  notes: string;
+  fileName: string;
+  fileSize: number;
+  fileData: Buffer; // Buffer type
+}) {
+  try {
+    const dbx = new Dropbox({
+      accessToken: process.env.DROPBOX_ACCESS_TOKEN!,
+      fetch, // Ensure fetch is passed here for server-side
+    });
+
+    // Upload the file to Dropbox
+    const uploadResponse = await dbx.filesUpload({
+      path: `/${fileName}`,
+      contents: fileData, // Buffer
+    });
+
+    const dropboxFileUrl = uploadResponse.result.path_display; // Get the file path in Dropbox
+    const fileUrl = dropboxFileUrl; // Use the Dropbox file path as the file URL
+    // Ensure values are not undefined
+    if (!tableName || !recordId || !fileName || !fileUrl || !fileSize) {
+      throw new Error("Missing required fields for the attachment");
+    }
+
+    // Insert metadata into the Neon database (attachments table)
+    const result = await db.insert(attachments).values({
+      tableName, // The table where this attachment belongs
+      recordId, // Foreign key to the record this attachment belongs to
+      fileName, // Original file name
+      fileUrl: dropboxFileUrl, // Dropbox URL/path of the file
+      fileSize, // File size in bytes
+      notes: notes || "", // Optional notes
+      uploadedAt: new Date(), // Timestamp for when the file was uploaded
+    });
+
+    return { success: true, uploadResponse, dbInsertResult: result };
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    throw new Error("File upload and metadata storage failed.");
+  }
+}
+
+// Get attachments for a specific record
+export const getAttachments = async (tableName: string, recordId: number) => {
+  try {
+    // Query the database to get all attachments linked to the specific record
+    const result = await db
+      .select()
+      .from(attachments)
+      .where(
+        and(
+          eq(attachments.tableName, tableName),
+          eq(attachments.recordId, recordId)
+        )
+      );
+
+    return result;
+  } catch (error) {
+    console.error("Error fetching attachments:", error);
+    throw new Error("Failed to fetch attachments.");
+  }
+};
+
+// Delete attachment from Dropbox and database
+export const deleteAttachment = async (attachmentId: number) => {
+  try {
+    if (!process.env.DROPBOX_ACCESS_TOKEN) {
+      throw new Error("Can't find Access Token for Dropbox");
+    }
+
+    // Get the attachment record from the database
+    const [attachment] = await db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.id, attachmentId))
+      .limit(1);
+
+    if (!attachment) throw new Error("Attachment not found.");
+
+    // Initialize Dropbox
+    const dbx = new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN });
+
+    // Delete the file from Dropbox
+    await dbx.filesDeleteV2({ path: attachment.fileUrl }); // Make sure you're accessing the fileUrl from the object
+
+    // Delete the record from the attachments table
+    await db.delete(attachments).where(eq(attachments.id, attachmentId));
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting attachment:", error);
+    throw new Error("Failed to delete attachment.");
+  }
+};
+
+// Verify file size in Dropbox matches the file size in the database
+export const verifyFileSize = async (attachmentId: number) => {
+  try {
+    if (!process.env.DROPBOX_ACCESS_TOKEN) {
+      throw new Error("Can't find Access Token for Dropbox");
+    }
+
+    // Get the attachment record from the database
+    const [attachment] = await db
+      .select()
+      .from(attachments)
+      .where(eq(attachments.id, attachmentId))
+      .limit(1);
+
+    if (!attachment) throw new Error("Attachment not found.");
+
+    // Initialize Dropbox
+    const dbx = new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN });
+
+    // Get file metadata from Dropbox
+    const metadata = await dbx.filesGetMetadata({ path: attachment.fileUrl });
+
+    // Compare file sizes (metadata.size comes from Dropbox API)
+    if (
+      "size" in metadata.result &&
+      metadata.result.size !== attachment.fileSize
+    ) {
+      throw new Error("File size mismatch!");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error verifying file size:", error);
+    throw new Error("File size verification failed.");
   }
 };

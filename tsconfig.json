@@ -20,7 +20,8 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./src/*"],
-      "@types/": ["./types.d.ts"]
+      "@types/": ["./types.d.ts"],
+      "typeRoots": ["../../node_modules/@heroicons/**/*.d.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

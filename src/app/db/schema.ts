@@ -181,3 +181,15 @@ export const purchaseOrders = pgTable("purchase_orders", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Defining the 'attachments' table schema
+export const attachments = pgTable("attachments", {
+  id: serial("id").primaryKey(), // Auto-incrementing unique ID for each attachment
+  tableName: text("table_name").notNull(), // Table name the attachment is associated with
+  recordId: integer("record_id").notNull(), // ID of the record in the associated table
+  fileName: text("file_name").notNull(), // Original file name of the uploaded file
+  fileUrl: text("file_url").notNull(), // Dropbox URL where the file is stored
+  fileSize: integer("file_size").notNull(), // Size of the file in bytes
+  notes: text("notes").default(""), // Optional notes describing the attachment
+  uploadedAt: timestamp("uploaded_at").defaultNow(), // Timestamp when the file was uploaded
+});

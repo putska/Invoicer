@@ -212,3 +212,21 @@ export interface PurchaseOrder {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Attachment {
+  id: number;
+  tableName: string;
+  recordId: number;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  notes?: string;
+  uploadedAt: Date;
+}
+
+export interface AttachmentInput {
+  file: File;
+  tableName: string;
+  recordId: number;
+  notes?: string;
+}
