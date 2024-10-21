@@ -7,6 +7,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { ColDef } from "ag-grid-community";
 import AttachmentModal from "../../components/AttachmentModal";
 import { PaperClipIcon } from "@heroicons/react/24/outline";
+import { refreshAccessToken } from "../dropbox/dropboxClient";
 
 type PurchaseOrder = {
   id: number;

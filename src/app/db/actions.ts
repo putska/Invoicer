@@ -28,6 +28,7 @@ import {
 } from "../../../types";
 import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
 import { Dropbox } from "dropbox";
+import { getDropboxClient } from "../dropbox/dropboxClient";
 import fetch from "node-fetch";
 
 import { v4 as uuidv4 } from "uuid";
@@ -1166,10 +1167,7 @@ export async function uploadAttachment({
   fileData: Buffer; // Buffer type
 }) {
   try {
-    const dbx = new Dropbox({
-      accessToken: process.env.DROPBOX_ACCESS_TOKEN!,
-      fetch, // Ensure fetch is passed here for server-side
-    });
+    const dbx = await getDropboxClient(); // Initialize Dropbox client
 
     // Upload the file to Dropbox
     const uploadResponse = await dbx.filesUpload({
@@ -1195,7 +1193,7 @@ export async function uploadAttachment({
       uploadedAt: new Date(), // Timestamp for when the file was uploaded
     });
 
-    return { success: true, uploadResponse, dbInsertResult: result };
+    return { success: true, uploadResponse };
   } catch (error) {
     console.error("Error uploading file:", error);
     throw new Error("File upload and metadata storage failed.");

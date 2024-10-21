@@ -1,18 +1,17 @@
+// src/app/api/attachments/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { uploadAttachment } from "../../../app/db/actions";
 import { parse } from "parse-multipart-data";
 
-// Disable automatic body parsing by Next.js
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Exporting route segment config (if needed, based on future Next.js updates)
+// Currently, no equivalent for bodyParser in Route Segment Config
 
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
-    const boundary = contentType.split("boundary=")[1];
+    const boundaryMatch = contentType.match(/boundary=(.*)$/);
+    const boundary = boundaryMatch ? boundaryMatch[1] : null;
 
     if (!boundary) {
       return NextResponse.json(

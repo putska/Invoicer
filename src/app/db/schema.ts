@@ -166,8 +166,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
   shipToState: text("ship_to_state"),
   shipToZip: text("ship_to_zip"),
   costCode: text("cost_code").notNull(), // Related cost code
-  freight: numeric("freight").notNull().default(0), // Freight charges
-  boxingCharges: numeric("boxing_charges").notNull().default(0), // Boxing charges
+  freight: numeric("freight").notNull().default("0"), // Freight charges
+  boxingCharges: numeric("boxing_charges").notNull().default("0"), // Boxing charges
   poAmount: numeric("po_amount").notNull(), // Total amount for the PO
   taxRate: decimal("tax_rate", { precision: 5, scale: 2 }) // Decimal with precision 5 and scale 2
     .default("9.75") // Default value as a string

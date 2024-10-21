@@ -213,6 +213,34 @@ export interface PurchaseOrder {
   updatedAt: Date;
 }
 
+// src/app/db/types.ts
+
+export interface PurchaseOrderUpdate {
+  vendorId: number;
+  poNumber: string;
+  jobNumber: string;
+  projectManager: string;
+  poDate: string; // ISO date string
+  dueDate?: string; // ISO date string
+  deliveryDate?: string; // ISO date string
+  shipVia?: string;
+  shipTo?: string;
+  shipToAddress?: string;
+  shipToCity?: string;
+  shipToState?: string;
+  shipToZip?: string;
+  costCode: string;
+  freight?: number;
+  boxingCharges?: number;
+  poAmount: number;
+  taxRate: string;
+  taxable: boolean;
+  warrantyYears?: number;
+  shortDescription?: string;
+  longDescription?: string;
+  notes?: string;
+}
+
 export interface Attachment {
   id: number;
   tableName: string;

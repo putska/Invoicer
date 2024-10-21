@@ -7,9 +7,10 @@ import {
   deletePurchaseOrder,
 } from "../../../db/actions";
 import { authenticate, authorize } from "../../../../app/api/admin/helpers";
+import { PurchaseOrderUpdate } from "../../../../../types";
 import { z } from "zod";
 
-export const purchaseOrderSchema = z.object({
+const purchaseOrderSchema = z.object({
   vendorId: z.number().int().positive(),
   poNumber: z.string().min(1, "PO number is required"),
   jobNumber: z.string().min(1, "Job number is required"),
@@ -99,7 +100,6 @@ export async function PUT(
 
     // Validate input
     const body = await req.json();
-    console.log("Received Body: ", body);
     const result = purchaseOrderSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
