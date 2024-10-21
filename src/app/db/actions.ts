@@ -492,7 +492,8 @@ export const getTreeViewData = async (projectId: number) => {
         sortOrder: categories.sortOrder,
       })
       .from(categories)
-      .where(eq(categories.projectId, projectId));
+      .where(eq(categories.projectId, projectId))
+      .orderBy(categories.sortOrder);
 
     // Get list of category IDs
     const categoryIds = fetchedCategories.map(
@@ -516,6 +517,7 @@ export const getTreeViewData = async (projectId: number) => {
           .from(activities)
           .leftJoin(equipment, eq(activities.equipmentId, equipment.id))
           .where(inArray(activities.categoryId, categoryIds))
+          .orderBy(activities.sortOrder)
       : [];
 
     // Combine categories and activities
