@@ -66,6 +66,58 @@ const LaborGrid: React.FC = () => {
 
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
 
+  const holidays = [
+    "2024-12-23", // DDO
+    "2024-12-24", // Christmas Eve
+    "2024-12-25", // Christmas
+    "2024-11-11", // Veterans Day
+    "2024-11-28", // Thanksgiving
+    "2024-11-29", // Day after Thanksgiving
+    "2025-01-01", // New Year
+    "2025-01-20", // MLK Day
+    "2025-02-10", // DDO
+    "2025-02-17", // Presidents Day
+    "2025-04-18", // DDO
+    "2025-05-23", // DDO
+    "2025-05-26", // Memorial Day
+    "2025-07-04", // Independence Day
+    "2025-07-07", // DDO
+    "2025-08-29", // DDO
+    "2025-09-01", // Labor Day
+    "2025-11-11", // Veterans Day
+    "2025-11-27", // Thanksgiving
+    "2025-11-28", // Day after Thanksgiving
+    "2025-12-25", // Christmas
+    "2025-12-26", // Christmas Day
+    "2026-01-01", // New Year
+    "2026-01-02", // DDO
+    "2026-01-19", // MLK Day
+    "2026-02-09", // DDO
+    "2026-02-16", // Presidents Day
+    "2026-04-03", // DDO
+    "2026-05-25", // Memorial Day
+    "2026-06-19", // Junteenth
+    "2026-07-03", // Independence Day
+    "2026-07-06", // DDO
+    "2026-08-07", // DDO
+    "2026-09-04", // DDO
+    "2026-09-07", // Labor Day
+    "2026-11-11", // Veterans Day
+    "2026-11-26", // Thanksgiving
+    "2026-11-27", // Day after Thanksgiving
+    "2026-12-24", // Christmas Eve
+    "2026-12-25", // Christmas
+    "2027-01-01", // New Year
+    "2027-01-18", // MLK Day
+    "2027-02-15", // Presidents Day
+    "2027-03-26", // DDO
+    "2027-05-31", // Memorial Day
+    "2027-05-28", // DDO
+    "2027-06-18", // Junteenth
+    "2027-07-05", // Independence Day
+    "2027-07-08", // DDO
+  ];
+
   useEffect(() => {
     if (Id) {
       setSelectedProject(Number(Id));
@@ -284,14 +336,19 @@ const LaborGrid: React.FC = () => {
       const dayField = `day_${format(currentDate, "yyyy_MM_dd")}`;
       const dayHeader = format(currentDate, "d");
       const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+      const currentDateString = format(currentDate, "yyyy-MM-dd"); // Format current date to match holiday format
 
       columns[columns.length - 1].children.push({
         headerName: dayHeader,
         field: dayField,
         width: 60,
         cellStyle: () => {
-          return dayOfWeek === 0 || dayOfWeek === 6
-            ? { backgroundColor: "#f0f0f0" } // Light grey for weekends
+          // Determine if the current date is a weekend or holiday
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const isHoliday = holidays.includes(currentDateString);
+
+          return isWeekend || isHoliday
+            ? { backgroundColor: "#f0f0f0" } // Light grey for weekends or holidays
             : null;
         },
         valueGetter: (params: any) => {
