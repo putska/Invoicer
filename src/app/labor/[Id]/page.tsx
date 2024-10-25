@@ -171,7 +171,6 @@ const LaborGrid: React.FC = () => {
           const manpowerRes = await fetch(`/api/manpower`);
           const manpowerResponse = await manpowerRes.json();
           const manpowerData = manpowerResponse?.manpowerData || [];
-
           if (!Array.isArray(manpowerData)) {
             throw new Error("Manpower data is not an array");
           }

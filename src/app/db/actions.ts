@@ -182,20 +182,6 @@ export const updateProject = async (
   }
 };
 
-// Get manpower data by project ID
-export const getManpowerByProjectId = async (projectId: number) => {
-  try {
-    const result = await db
-      .select()
-      .from(manpower)
-      .where(eq(manpower.id, projectId)); // Assuming you have projectId in manpower table
-    return result;
-  } catch (error) {
-    console.error("Error fetching manpower:", error);
-    throw new Error("Could not fetch manpower");
-  }
-};
-
 // Fetch all manpower data
 export const getAllManpower = async () => {
   try {
@@ -479,6 +465,95 @@ export const deleteActivity = async (activityId: number) => {
   } catch (error) {
     console.error("Error deleting activity:", error);
     throw new Error("Could not delete activity");
+  }
+};
+
+// Function to get all manpower records for a given projectId
+export const getManpowerByProjectId = async (projectId: number) => {
+  try {
+    return await db
+      .select({
+        manpowerId: manpower.id,
+        activityId: manpower.activityId,
+        date: manpower.date,
+        manpowerCount: manpower.manpower,
+      })
+      .from(manpower)
+      .innerJoin(activities, eq(manpower.activityId, activities.id))
+      .innerJoin(categories, eq(activities.categoryId, categories.id))
+      .where(eq(categories.projectId, projectId));
+  } catch (error) {
+    console.error("Error fetching manpower records:", error);
+    throw new Error("Failed to fetch manpower records");
+  }
+};
+
+// Function to get the startDate for a given projectId
+export const getProjectStartDate = async (projectId: number) => {
+  try {
+    const [project] = await db
+      .select({ startDate: projects.startDate })
+      .from(projects)
+      .where(eq(projects.id, projectId));
+
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    return project.startDate;
+  } catch (error) {
+    console.error("Error fetching project start date:", error);
+    throw new Error("Failed to fetch project start date");
+  }
+};
+
+// Function to update the start date of a project
+export const updateProjectStartDate = async (
+  projectId: number,
+  newStartDate: string
+) => {
+  try {
+    const parsedDate = new Date(newStartDate);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error("Invalid start date");
+    }
+    await db
+      .update(projects)
+      .set({ startDate: parsedDate.toISOString(), updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+  } catch (error) {
+    console.error(
+      "Error updating project start date for projectId",
+      projectId,
+      "with newStartDate",
+      newStartDate,
+      ":",
+      error
+    );
+    throw new Error("Failed to update project start date");
+  }
+};
+
+// Function to update the date of a manpower record
+export const updateManpowerDate = async (manpowerId: number, newDate: Date) => {
+  try {
+    if (isNaN(newDate.getTime())) {
+      throw new Error("Invalid manpower date");
+    }
+    await db
+      .update(manpower)
+      .set({ date: newDate.toISOString(), updatedAt: new Date() })
+      .where(eq(manpower.id, manpowerId));
+  } catch (error) {
+    console.error(
+      "Error updating manpower date for manpowerId",
+      manpowerId,
+      "with newDate",
+      newDate.toISOString(),
+      ":",
+      error
+    );
+    throw new Error("Failed to update manpower date");
   }
 };
 

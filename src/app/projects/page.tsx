@@ -64,8 +64,42 @@ export default function Projects() {
 
   const updateProject = async (projectData: Partial<Project>) => {
     if (!projectData.id) return; // Ensure the project has an ID
+
     setLoading(true);
+
     try {
+      // Check if the start date has changed
+      const originalProject = projects.find(
+        (proj) => proj.id === projectData.id
+      );
+      if (
+        originalProject &&
+        projectData.startDate &&
+        projectData.startDate !== originalProject.startDate
+      ) {
+        // Call the updateStartDate API route
+        const response = await fetch(`/api/projects/updateStartDate`, {
+          method: "PUT",
+          body: JSON.stringify({
+            projectId: projectData.id,
+            newStartDate: projectData.startDate,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            result.error || "Failed to update project start date"
+          );
+        }
+
+        console.log("Start date and manpower records updated successfully");
+      }
+
+      // Update the project as usual
       const response = await fetch(`/api/projects/${projectData.id}`, {
         method: "PUT",
         body: JSON.stringify(projectData),
@@ -73,11 +107,14 @@ export default function Projects() {
           "Content-Type": "application/json",
         },
       });
+
       const result = await response.json();
       alert(result.message);
-      fetchProjects(); // Refresh the projects list
+
+      // Refresh the projects list
+      fetchProjects();
     } catch (err) {
-      console.log(err);
+      console.error("Error updating project:", err);
     } finally {
       setLoading(false);
     }
