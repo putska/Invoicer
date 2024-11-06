@@ -13,6 +13,7 @@ import {
   vendors,
   purchaseOrders,
   attachments,
+  laborData,
 } from "./schema";
 import {
   Customer,
@@ -25,6 +26,7 @@ import {
   ActivitySortOrderUpdate,
   Vendor,
   PurchaseOrder,
+  LaborData,
 } from "../../../types";
 import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
 import { Dropbox } from "dropbox";
@@ -1365,4 +1367,57 @@ export const verifyFileSize = async (attachmentId: number) => {
     console.error("Error verifying file size:", error);
     throw new Error("File size verification failed.");
   }
+};
+
+//👇🏻 Retrieve labor data for a specific project
+export const getLaborDataByProject = async (jobNumber: string) => {
+  return await db
+    .select()
+    .from(laborData)
+    .where(eq(laborData.jobNumber, jobNumber))
+    .orderBy(laborData.date);
+};
+
+//👇🏻 Retrieve a single labor data entry by its ID
+export const getSingleLaborData = async (id: number) => {
+  return await db.select().from(laborData).where(eq(laborData.id, id));
+};
+
+//👇🏻 Add a new labor data entry
+export const addLaborData = async (entry: Omit<LaborData, "id">) => {
+  try {
+    const [newEntry] = await db
+      .insert(laborData)
+      .values({
+        ...entry,
+        hours: entry.hours !== undefined ? String(entry.hours) : undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newEntry;
+  } catch (error) {
+    console.error("Error adding labor data:", error);
+    throw new Error("Could not add labor data");
+  }
+};
+
+//👇🏻 Update an existing labor data entry
+export const updateLaborData = async (
+  id: number,
+  entry: Partial<LaborData>
+) => {
+  await db
+    .update(laborData)
+    .set({
+      ...entry,
+      hours: entry.hours !== undefined ? String(entry.hours) : undefined,
+      updatedAt: new Date(),
+    })
+    .where(eq(laborData.id, id));
+};
+
+//👇🏻 Delete a labor data entry by its ID
+export const deleteLaborData = async (id: number) => {
+  await db.delete(laborData).where(eq(laborData.id, id));
 };

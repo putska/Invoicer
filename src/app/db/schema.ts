@@ -52,6 +52,7 @@ export const projects = pgTable("projects", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   status: text("status").notNull().default("active"), // New field for project status
+  jobNumber: text("job_number").unique(), //added field for job number
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -192,4 +193,33 @@ export const attachments = pgTable("attachments", {
   fileSize: integer("file_size").notNull(), // Size of the file in bytes
   notes: text("notes").default(""), // Optional notes describing the attachment
   uploadedAt: timestamp("uploaded_at").defaultNow(), // Timestamp when the file was uploaded
+});
+
+// Define the labor data schema
+export const laborData = pgTable("labor_data", {
+  id: serial("id").primaryKey(),
+  lastName: text("last_name"),
+  firstName: text("first_name"),
+  eid: integer("eid"),
+  day: text("day"),
+  date: text("date"), // Stored as text for easier handling in JavaScript
+  projectName: text("project_name"),
+  jobNumber: text("job_number"), // Linking via job number field
+  costCodeDivision: text("cost_code_division"),
+  costCodeNumber: text("cost_code_number"),
+  costCodeDescription: text("cost_code_description"),
+  classification: text("classification"),
+  shift: text("shift"),
+  payType: text("pay_type"),
+  hours: numeric("hours"), // Represents hours worked, allowing decimal values
+  startTime: text("start_time"), // Stored as text for reporting purposes
+  endTime: text("end_time"), // Stored as text for reporting purposes
+  breaks: integer("breaks"),
+  mealBreaks: integer("meal_breaks"),
+  totalBreakTime: text("total_break_time"), // Stored as text for reporting purposes
+  workLogName: text("work_log_name"),
+  payrollNotes: text("payroll_notes"),
+  payrollAttachments: text("payroll_attachments"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });

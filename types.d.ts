@@ -258,3 +258,32 @@ export interface AttachmentInput {
   recordId: number;
   notes?: string;
 }
+
+// Define the TypeScript interface for the labor data
+export interface LaborData {
+  id: number;
+  lastName: string | null;
+  firstName: string | null;
+  eid: number | null;
+  day: string | null;
+  date: string | null;
+  projectName: string | null;
+  jobNumber: string | null;
+  costCodeDivision: string | null;
+  costCodeNumber: string | null;
+  costCodeDescription: string | null;
+  classification: string | null;
+  shift?: string | null;
+  payType: string | null;
+  hours: number | null;
+  startTime: string | null;
+  endTime: string | null;
+  breaks: number | null;
+  mealBreaks: number | null;
+  totalBreakTime: string | null;
+  workLogName: string | null;
+  payrollNotes: string | null;
+  payrollAttachments: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
