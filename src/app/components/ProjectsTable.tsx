@@ -1,13 +1,14 @@
 // app/components/ProjectsTable.tsx
 
 import React, { useContext } from "react";
-import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Import icons
+import { FaEdit, FaTrash, FaList, FaTools } from "react-icons/fa"; // Import icons
 import Link from "next/link";
 import { PermissionContext } from "../../context/PermissionContext"; // Adjust the import path accordingly
 
 interface Project {
   id: number;
   name: string;
+  jobNumber?: string;
   description?: string;
   startDate: string;
   endDate?: string;
@@ -37,12 +38,13 @@ export default function ProjectsTable({
       <thead>
         <tr>
           {/* Table headers */}
+          <th className="py-2">Job#</th>
           <th className="py-2">Name</th>
           <th className="py-2">Description</th>
           <th className="py-2">Start Date</th>
           <th className="py-2">End Date</th>
           <th className="py-2">Status</th>
-          <th className="py-2">Actions</th> {/* New column for actions */}
+          <th className="py-2">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -94,6 +96,14 @@ export default function ProjectsTable({
                   title="Manage Categories"
                 >
                   <FaList />
+                </button>
+              </Link>
+              <Link href={`/labor-data/${project.jobNumber}/`} passHref>
+                <button
+                  className="text-purple-500 hover:text-purple-700"
+                  title="View Labor Data"
+                >
+                  <FaTools />
                 </button>
               </Link>
             </td>

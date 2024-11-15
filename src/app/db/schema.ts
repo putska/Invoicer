@@ -9,6 +9,7 @@ import {
   numeric,
   boolean,
   decimal,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -74,6 +75,7 @@ export const activities = pgTable("activities", {
     .notNull()
     .references(() => categories.id), // Foreign key to categories
   name: text("name").notNull(),
+  costCode: text("cost_code"), // Field for cost code
   equipmentId: integer("equipment_id").references(() => equipment.id), // Foreign key to categories
   sortOrder: integer("sort_order").notNull(),
   estimatedHours: integer("estimated_hours"),
@@ -211,7 +213,7 @@ export const laborData = pgTable("labor_data", {
   classification: text("classification"),
   shift: text("shift"),
   payType: text("pay_type"),
-  hours: numeric("hours"), // Represents hours worked, allowing decimal values
+  hours: doublePrecision("hours"), // Represents hours worked, allowing decimal values
   startTime: text("start_time"), // Stored as text for reporting purposes
   endTime: text("end_time"), // Stored as text for reporting purposes
   breaks: integer("breaks"),

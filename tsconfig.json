@@ -23,6 +23,14 @@
       "@types/": ["./types.d.ts"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "bulk_import_script.ts",
+    "src/app/db/schema.js",
+    "src/app/db/lib/drizzle.js"
+  ],
   "exclude": ["node_modules"]
 }

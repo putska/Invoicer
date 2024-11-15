@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 
 import { PT_Sans } from "next/font/google";
+import { forwardRef } from "react";
 import {
   ClerkProvider,
   SignInButton,
@@ -19,6 +20,8 @@ const ptSans = PT_Sans({
   subsets: ["latin"], // Specify the font subset
   weight: ["400", "700"], // Add specific weights if needed
 });
+
+import { ForwardedRef } from "react";
 
 export const metadata = {
   title: "CSE",
@@ -56,6 +59,9 @@ export default function RootLayout({
                     {/*-- if user is signed in --*/}
                     <SignedIn>
                       <Link href="/summary">Dashboard</Link>
+
+                      <Link href="/projects">Projects</Link>
+
                       <UserButton showName />
                     </SignedIn>
                   </div>

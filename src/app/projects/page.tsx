@@ -20,7 +20,7 @@ export default function Projects() {
     null
   );
 
-  //get the user's permission level
+  // Get the user's permission level
   const { hasWritePermission } = useContext(PermissionContext);
 
   const fetchProjects = useCallback(async () => {
@@ -151,16 +151,16 @@ export default function Projects() {
 
   return (
     <div className="w-full">
-      <main className="min-h-[90vh] flex items-start">
-        <div className="md:w-5/6 w-full h-full p-6">
+      <main className="min-h-[90vh] flex flex-col items-start p-6">
+        <div className="md:w-5/6 w-full h-full">
           <h2 className="text-2xl font-bold">Projects</h2>
           <p className="opacity-70 mb-4">Create and view all your projects</p>
 
-          <div className="w-full">
+          <div className="w-full mb-4">
             <h2 className="bg-blue-500 text-white p-2 rounded-t-md">
               Projects
             </h2>
-            <div className="ag-theme-alpine w-full" style={{ height: 400 }}>
+            <div className="ag-theme-alpine w-full mb-4 flex-1 overflow-auto">
               <ProjectsTable
                 projects={projects}
                 deleteProject={deleteProject}
@@ -169,43 +169,35 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="flex flex-col items-start mt-4">
-            <button
-              className={`bg-blue-500 text-white p-2 rounded-md mb-4 
-              ${
-                !hasWritePermission
-                  ? "bg-gray-400 cursor-not-allowed opacity-50"
-                  : "hover:bg-blue-700"
-              }`}
-              onClick={handleAddProject}
-              disabled={!hasWritePermission}
-              aria-disabled={!hasWritePermission}
-              title={
-                hasWritePermission
-                  ? "Add a new project"
-                  : "You do not have permission to add projects"
-              }
-            >
-              Add Project
-            </button>
+          {/* Add Project Button */}
+          {hasWritePermission && (
+            <div className="flex justify-start mt-4">
+              <button
+                className="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 .z-10"
+                onClick={handleAddProject}
+                title="Add a new project"
+              >
+                Add Project
+              </button>
+            </div>
+          )}
 
-            {/* Render the modal when showModal is true */}
-            {showModal && (
-              <AddProjectModal
-                onClose={() => setShowModal(false)}
-                onSubmit={editMode ? updateProject : createProject}
-                project={currentProject} // Pass the current project if editing
-                isEditMode={editMode} // Indicate if we're in edit mode
-              />
-            )}
+          {/* Modal and Link */}
+          {showModal && (
+            <AddProjectModal
+              onClose={() => setShowModal(false)}
+              onSubmit={editMode ? updateProject : createProject}
+              project={currentProject} // Pass the current project if editing
+              isEditMode={editMode} // Indicate if we're in edit mode
+            />
+          )}
 
-            <Link
-              href="/summary"
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              Back to summary page
-            </Link>
-          </div>
+          <Link
+            href="/summary"
+            className="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block"
+          >
+            Back to summary page
+          </Link>
         </div>
       </main>
     </div>

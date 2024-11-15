@@ -34,7 +34,7 @@ const ManpowerSummary: React.FC = () => {
       setColumnDefs(generateColumnDefs(dynamicColumns));
 
       // Transform the data to match the required format
-      const transformedData = transformData(
+      const transformedData = await transformData(
         projectsData.projects,
         manpowerData.data,
         dynamicColumns
@@ -50,40 +50,49 @@ const ManpowerSummary: React.FC = () => {
   }, []);
 
   // Helper function to transform the data
-  const transformData = (
+  const transformData = async (
     projects: Project[],
     manpowerData: SummaryManpower[],
     dynamicColumns: any[]
   ) => {
-    return projects.map((project) => {
-      const projectData: any = {
-        project_id: project.id,
-        project_name: project.name,
-      };
+    return await Promise.all(
+      projects.map(async (project) => {
+        const projectData: any = {
+          jobNumber: project.jobNumber,
+          project_name: project.name,
+        };
 
-      dynamicColumns.forEach((column) => {
-        column.children.forEach((child: any) => {
-          const [year, month] = child.field.split("-").map(Number);
+        // Fetch total hours for the project
+        const totalHoursRes = await fetch(
+          `/api/labor-data/project/${project.jobNumber}/total-hours`
+        );
+        const totalHoursData = await totalHoursRes.json();
+        projectData.total_hours = totalHoursData.totalHours;
 
-          // Find manpower data for the specific project, year, and month
-          const manpowerEntry = manpowerData.find(
-            (entry) =>
-              entry.project_id === project.id &&
-              Number(entry.year) === year &&
-              Number(entry.month) === month
-          );
+        dynamicColumns.forEach((column) => {
+          column.children.forEach((child: any) => {
+            const [year, month] = child.field.split("-").map(Number);
 
-          // Assign manpower to the correct field in the row data
-          projectData[child.field] = manpowerEntry
-            ? roundUpToEven(
-                Number(manpowerEntry.average_manpower_per_day_with_manpower)
-              )
-            : 0;
+            // Find manpower data for the specific project, year, and month
+            const manpowerEntry = manpowerData.find(
+              (entry) =>
+                entry.project_id === project.id &&
+                Number(entry.year) === year &&
+                Number(entry.month) === month
+            );
+
+            // Assign manpower to the correct field in the row data
+            projectData[child.field] = manpowerEntry
+              ? roundUpToEven(
+                  Number(manpowerEntry.average_manpower_per_day_with_manpower)
+                )
+              : 0;
+          });
         });
-      });
 
-      return projectData;
-    });
+        return projectData;
+      })
+    );
   };
 
   // Helper function to generate date columns
@@ -110,7 +119,7 @@ const ManpowerSummary: React.FC = () => {
               field: `${year}-${month}`, // Field name should match how data is referenced
               width: 100,
               cellStyle: (params: any) => {
-                const projectColor = getProjectColor(params.data?.project_id);
+                const projectColor = getProjectColor(params.data?.jobNumber);
                 return {
                   backgroundColor: params.value > 0 ? projectColor : undefined, // Color cells with data
                 };
@@ -126,7 +135,7 @@ const ManpowerSummary: React.FC = () => {
           field: `${year}-${month}`,
           width: 100,
           cellStyle: (params: any) => {
-            const projectColor = getProjectColor(params.data?.project_id);
+            const projectColor = getProjectColor(params.data?.jobNumber);
             return {
               backgroundColor: params.value > 0 ? projectColor : undefined,
             };
@@ -144,12 +153,13 @@ const ManpowerSummary: React.FC = () => {
   // Helper function to generate column definitions for AG Grid
   const generateColumnDefs = (dynamicColumns: any[]) => {
     const staticColumns = [
-      { headerName: "Project ID", field: "project_id" },
+      { headerName: "Job Number", field: "jobNumber" }, // Replace Project ID with Job Number
       {
         headerName: "Project Name",
         field: "project_name",
         cellRenderer: ProjectNameRenderer, // Use cellRenderer with the component
       },
+      { headerName: "Hours Used", field: "total_hours" }, // Add Total Hours column
     ];
 
     return [...staticColumns, ...dynamicColumns];
@@ -161,9 +171,9 @@ const ManpowerSummary: React.FC = () => {
   };
 
   // Generate a random color based on project ID
-  const getProjectColor = (projectId: number | string) => {
+  const getProjectColor = (jobNumber: string) => {
     const colors = ["#ff9999", "#99ccff", "#99ff99", "#ffcc99", "#ffb3ff"];
-    return colors[Number(projectId) % colors.length];
+    return colors[Number(jobNumber) % colors.length];
   };
 
   // Calculate total manpower for each column

@@ -11,6 +11,7 @@ const activitySchema = z.object({
   categoryId: z.number().min(1, "Category ID must be a positive number"),
   name: z.string().min(1, "Name is required"),
   // Remove sortOrder from frontend; backend handles it
+  costCode: z.string().min(1, "Cost code is required"),
   estimatedHours: z.number().min(0).optional(),
   equipmentId: z.number().nullable().optional(),
   notes: z.string().optional(),

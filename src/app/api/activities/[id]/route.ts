@@ -14,6 +14,7 @@ import { z } from "zod";
 const activityUpdateSchema = z.object({
   categoryId: z.number().min(1).optional(),
   name: z.string().min(1).optional(),
+  costCode: z.string().min(1).optional(),
   estimatedHours: z.number().min(0).optional(),
   equipmentId: z.number().nullable().optional(),
   notes: z.string().optional(),

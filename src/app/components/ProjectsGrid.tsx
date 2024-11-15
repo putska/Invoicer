@@ -8,7 +8,7 @@ import { ColDef, ICellRendererParams } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { PermissionContext } from "../../context/PermissionContext"; // Adjust the import path accordingly
-import { FaEdit, FaTrash, FaList, FaTools } from "react-icons/fa";
+import { FaEdit, FaTrash, FaList, FaTools, FaUsers } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
 import { Project } from "../../../types";
@@ -30,6 +30,7 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
   // Define column definitions with cell renderers for actions
   const columnDefs: ColDef<Project>[] = useMemo(
     () => [
+      { headerName: "Job#", field: "jobNumber", sortable: true, filter: true },
       { headerName: "Name", field: "name", sortable: true, filter: true },
       {
         headerName: "Description",
@@ -117,6 +118,13 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
                 title="Manage Equipment"
               >
                 <FaTools />
+              </button>
+              <button
+                onClick={() => router.push(`/labor-data/${project.jobNumber}`)}
+                className="text-purple-500 hover:text-purple-700"
+                title="Manage Equipment"
+              >
+                <FaUsers />
               </button>
             </div>
           );

@@ -51,6 +51,7 @@ export async function PUT(
     // Exclude fields that should not be updated
     const allowedFields: (keyof Project)[] = [
       "name",
+      "jobNumber",
       "description",
       "startDate",
       "endDate",

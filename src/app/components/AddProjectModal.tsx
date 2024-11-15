@@ -15,6 +15,7 @@ export default function AddProjectModal({
   isEditMode = false,
 }: AddProjectModalProps) {
   const [projectName, setProjectName] = useState("");
+  const [projectJobNumber, setProjectJobNumber] = useState(""); // New state for job number
   const [projectDescription, setProjectDescription] = useState("");
   const [projectStartDate, setProjectStartDate] = useState("");
   const [projectEndDate, setProjectEndDate] = useState("");
@@ -23,12 +24,14 @@ export default function AddProjectModal({
     if (isEditMode && project) {
       // Populate form fields with existing project data
       setProjectName(project.name || "");
+      setProjectJobNumber(project.jobNumber || ""); // Set job number
       setProjectDescription(project.description || "");
       setProjectStartDate(project.startDate || "");
       setProjectEndDate(project.endDate || "");
     } else {
       // Reset form fields for adding a new project
       setProjectName("");
+      setProjectJobNumber(""); // Reset job number
       setProjectDescription("");
       setProjectStartDate("");
       setProjectEndDate("");
@@ -42,6 +45,7 @@ export default function AddProjectModal({
     const projectData: Partial<Project> = {
       id: project?.id, // Include the ID if editing
       name: projectName,
+      jobNumber: projectJobNumber, // Include job number
       description: projectDescription,
       startDate: projectStartDate,
       endDate: projectEndDate,
@@ -79,6 +83,19 @@ export default function AddProjectModal({
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 placeholder="Project Name"
+                required
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Job Number:
+              </label>
+              <input
+                type="text"
+                value={projectJobNumber}
+                onChange={(e) => setProjectJobNumber(e.target.value)}
+                placeholder="Job Number"
                 required
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
               />

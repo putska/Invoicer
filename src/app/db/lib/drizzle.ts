@@ -10,7 +10,10 @@ import {
   activities,
   manpower,
   users,
-} from "../schema"; // Adjust the path if necessary
+  laborData,
+  attachments,
+  purchaseOrders,
+} from "../schema.js"; // Adjust the path if necessary
 
 if (!process.env.NEON_DATABASE_URL) {
   throw new Error("DATABASE_URL must be a Neon Postgres connection string");
@@ -28,5 +31,8 @@ export const db = drizzle(sql, {
     activities,
     manpower,
     users,
+    laborData,
+    attachments,
+    purchaseOrders,
   },
 });

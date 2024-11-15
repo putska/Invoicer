@@ -15,6 +15,7 @@ import {
 const projectSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
+  jobNumber: z.string().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // Example regex for ISO date format
   endDate: z
     .string()
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
 
     const newProject = await addProject({
       name: projectData.name,
+      jobNumber: projectData.jobNumber || "",
       description: projectData.description || "",
       startDate: projectData.startDate,
       endDate: projectData.endDate || undefined,

@@ -28,7 +28,7 @@ import {
   PurchaseOrder,
   LaborData,
 } from "../../../types";
-import { desc, eq, and, inArray, sql, asc } from "drizzle-orm";
+import { desc, eq, and, sum, inArray, sql, asc } from "drizzle-orm";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../dropbox/dropboxClient";
 import fetch from "node-fetch";
@@ -143,6 +143,7 @@ export const addProject = async (project: Project) => {
     .insert(projects)
     .values({
       name: project.name,
+      jobNumber: project.jobNumber,
       description: project.description || "",
       startDate: project.startDate,
       endDate: project.endDate || undefined,
@@ -151,6 +152,7 @@ export const addProject = async (project: Project) => {
     .returning({
       id: projects.id,
       name: projects.name,
+      jobNumber: projects.jobNumber,
       description: projects.description,
       startDate: projects.startDate,
       endDate: projects.endDate,
@@ -310,6 +312,7 @@ export const getActivityById = async (
           equipmentId: result[0].equipmentId
             ? result[0].equipmentId.toString()
             : undefined,
+          costCode: result[0].costCode ?? "",
           estimatedHours: result[0].estimatedHours ?? undefined,
           notes: result[0].notes ?? undefined,
           createdAt: result[0].createdAt.toISOString(),
@@ -402,6 +405,7 @@ export const deleteCategory = async (categoryId: number) => {
 // Create a new activity
 export const createActivity = async (activity: {
   categoryId: number;
+  costCode: string;
   equipmentId?: number | null;
   name: string;
   sortOrder?: number;
@@ -415,6 +419,7 @@ export const createActivity = async (activity: {
       .insert(activities)
       .values({
         categoryId: activity.categoryId,
+        costCode: activity.costCode,
         equipmentId: activity.equipmentId,
         name: activity.name,
         sortOrder: newSortOrder,
@@ -436,6 +441,7 @@ export const updateActivity = async (
   activityId: number,
   updatedData: Partial<{
     name: string;
+    costCode: string;
     equipmentId?: number | null;
     sortOrder?: number;
     estimatedHours?: number;
@@ -690,6 +696,7 @@ export const getFieldMonitorData = async (projectId: number) => {
       sortOrder: categories.sortOrder,
       activityId: activities.id,
       activityName: activities.name,
+      costCode: activities.costCode,
       estimatedHours: activities.estimatedHours,
       completed: activities.completed,
       notes: activities.notes,
@@ -1378,6 +1385,55 @@ export const getLaborDataByProject = async (jobNumber: string) => {
     .orderBy(laborData.date);
 };
 
+//👇🏻 Retrieve total hours for a specific project
+export const getTotalHoursByProject = async (jobNumber: string) => {
+  const result = await db
+    .select({
+      //totalHours: db.sum(laborData.hours), // Aggregate sum directly
+      totalHours: sql<number>`SUM(COALESCE(${laborData.hours}, 0))`, // Using SQL template
+    })
+    .from(laborData)
+    .where(eq(laborData.jobNumber, jobNumber));
+
+  // If totalHours is null, default to 0
+  return result[0]?.totalHours ?? 0;
+};
+
+//👇🏻 Retrieve total hours for a specific project
+export const getTotalHoursGroupedByCostCode = async (jobNumber: string) => {
+  const result = await db
+    .select({
+      costCodeNumber: laborData.costCodeNumber,
+      totalHours: sql<number>`SUM(COALESCE(${laborData.hours}, 0))`, // Using SQL template
+    })
+    .from(laborData)
+    .where(eq(laborData.jobNumber, jobNumber))
+    .groupBy(laborData.costCodeNumber);
+
+  // Handle case where totalHours might be null in the aggregation
+  return result.map((row) => ({
+    ...row,
+    totalHours: row.totalHours ?? 0,
+  }));
+};
+
+//👇🏻 Retrieve labor data by cost code number, sorted by date (newest to oldest)
+export const getLaborDataByCostCode = async (
+  jobNumber: string,
+  costCodeNumber: string
+) => {
+  return await db
+    .select()
+    .from(laborData)
+    .where(
+      and(
+        eq(laborData.jobNumber, jobNumber),
+        eq(laborData.costCodeNumber, costCodeNumber)
+      )
+    )
+    .orderBy(desc(laborData.date));
+};
+
 //👇🏻 Retrieve a single labor data entry by its ID
 export const getSingleLaborData = async (id: number) => {
   return await db.select().from(laborData).where(eq(laborData.id, id));
@@ -1390,7 +1446,7 @@ export const addLaborData = async (entry: Omit<LaborData, "id">) => {
       .insert(laborData)
       .values({
         ...entry,
-        hours: entry.hours !== undefined ? String(entry.hours) : undefined,
+        hours: entry.hours,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -1411,7 +1467,7 @@ export const updateLaborData = async (
     .update(laborData)
     .set({
       ...entry,
-      hours: entry.hours !== undefined ? String(entry.hours) : undefined,
+      hours: entry.hours,
       updatedAt: new Date(),
     })
     .where(eq(laborData.id, id));

@@ -29,6 +29,7 @@ const FieldMonitorPage = () => {
         sortOrder,
         activityId,
         activityName,
+        costCode,
         estimatedHours,
         completed,
         notes,
@@ -49,6 +50,7 @@ const FieldMonitorPage = () => {
       categoryMap[categoryId].activities.push({
         id: activityId,
         name: activityName,
+        costCode,
         estimatedHours,
         completed,
         notes,

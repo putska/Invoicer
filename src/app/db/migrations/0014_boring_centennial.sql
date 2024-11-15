@@ -1,0 +1,1 @@
+ALTER TABLE "activities" ALTER COLUMN "cost_code" DROP NOT NULL;

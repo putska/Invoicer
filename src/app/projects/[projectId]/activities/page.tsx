@@ -36,6 +36,7 @@ interface Category {
 interface Activity {
   activityId: number; // from the combined query
   activityName: string; // from the combined query
+  costCode: string;
   sortOrder: number;
   estimatedHours: number;
   notes: string;
@@ -67,6 +68,7 @@ export default function ActivitiesPage({
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [newItemName, setNewItemName] = useState<string>("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
+  const [costCode, setCostCode] = useState<string>("");
   const [estimatedHours, setEstimatedHours] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [completed, setCompleted] = useState<boolean>(false);
@@ -190,7 +192,7 @@ export default function ActivitiesPage({
             body: JSON.stringify({
               categoryId: categoryToAddTo,
               name: newItemName,
-              // Remove sortOrder; backend handles it if necessary
+              costCode,
               estimatedHours,
               equipmentId: selectedEquipment?.id || null,
               notes,
@@ -214,6 +216,7 @@ export default function ActivitiesPage({
                               ...activityItem,
                               activityName: activity.name,
                               sortOrder: activity.sortOrder,
+                              costCode: activity.costCode,
                               estimatedHours: activity.estimatedHours,
                               equipmentId: activity.equipmentId,
                               notes: activity.notes,
@@ -238,7 +241,7 @@ export default function ActivitiesPage({
               categoryId: categoryToAddTo,
               projectId: Number(projectId), // Ensure projectId is sent
               name: newItemName,
-              // Remove sortOrder; backend handles it
+              costCode,
               estimatedHours,
               equipmentId: selectedEquipment?.id || null,
               notes,
@@ -261,6 +264,7 @@ export default function ActivitiesPage({
                           categoryId: categoryToAddTo,
                           activityName: newActivity.name,
                           sortOrder: newActivity.sortOrder, // Assigned by backend
+                          costCode: newActivity.costCode,
                           estimatedHours: newActivity.estimatedHours || 0,
                           equipmentId: newActivity.equipmentId || null,
                           equipmentName: newActivity.equipmentName || null,
@@ -351,6 +355,7 @@ export default function ActivitiesPage({
       setCurrentItemId(null);
       setNewItemName("");
       setNewSortOrder(0); // Optionally remove if not needed
+      setCostCode("");
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
@@ -379,6 +384,7 @@ export default function ActivitiesPage({
     setCurrentItemId(null);
     setNewItemName("");
     setNewSortOrder(0);
+    setCostCode("");
     setEstimatedHours(0);
     setNotes("");
     setCompleted(false);
@@ -399,7 +405,7 @@ export default function ActivitiesPage({
       setCurrentItemId(item.categoryId);
       setNewItemName(item.categoryName);
       setNewSortOrder(item.sortOrder || 0);
-      // Reset activity-specific fields
+      setCostCode("");
       setEstimatedHours(0);
       setNotes("");
       setCompleted(false);
@@ -409,6 +415,7 @@ export default function ActivitiesPage({
       setCurrentItemId(item.activityId);
       setNewItemName(item.activityName);
       setNewSortOrder(item.sortOrder || 0);
+      setCostCode(item.costCode || "");
       setEstimatedHours(item.estimatedHours || 0);
       setNotes(item.notes || "");
       setCompleted(item.completed || false);
@@ -1004,6 +1011,15 @@ export default function ActivitiesPage({
                 />
                 {dialogType === "activity" && (
                   <>
+                    <TextField
+                      margin="dense"
+                      label="Cost Code"
+                      type="text"
+                      fullWidth
+                      value={costCode}
+                      onChange={(e) => setCostCode(e.target.value)}
+                      disabled={!hasWritePermission}
+                    />
                     <TextField
                       margin="dense"
                       label="Estimated Hours"

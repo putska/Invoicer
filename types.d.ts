@@ -34,6 +34,7 @@ interface BankInfo {
 export interface Project {
   id?: number;
   name: string;
+  jobNumber: string;
   description?: string;
   startDate: string;
   endDate?: string;
@@ -55,6 +56,7 @@ export interface Category {
 export interface Activity {
   id?: number;
   categoryId: string; // Reference to the Category ID
+  costCode: string;
   name: string;
   equipmentId?: string; // Since it's a one-to-one relationship
   sortOrder?: number;
@@ -121,6 +123,7 @@ export interface Manpower {
 export interface SummaryManpower {
   project_id: number;
   project_name: string;
+  jobNumber: string; // Add this line
   year: number;
   month: number;
   total_manpower: number;
@@ -261,7 +264,7 @@ export interface AttachmentInput {
 
 // Define the TypeScript interface for the labor data
 export interface LaborData {
-  id: number;
+  id?: number;
   lastName: string | null;
   firstName: string | null;
   eid: number | null;
