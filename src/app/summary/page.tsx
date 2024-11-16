@@ -58,6 +58,7 @@ const ManpowerSummary: React.FC = () => {
     return await Promise.all(
       projects.map(async (project) => {
         const projectData: any = {
+          id: project.id,
           jobNumber: project.jobNumber,
           project_name: project.name,
         };
@@ -153,6 +154,7 @@ const ManpowerSummary: React.FC = () => {
   // Helper function to generate column definitions for AG Grid
   const generateColumnDefs = (dynamicColumns: any[]) => {
     const staticColumns = [
+      { headerName: "Project ID", field: "id" }, // Hide the ID column
       { headerName: "Job Number", field: "jobNumber" }, // Replace Project ID with Job Number
       {
         headerName: "Project Name",

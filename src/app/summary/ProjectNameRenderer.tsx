@@ -5,12 +5,12 @@ import Link from "next/link";
 interface ProjectNameRendererProps {
   value: string; // This represents the project name
   data: {
-    project_id: number; // The ID of the project
+    id: number; // The ID of the project
   };
 }
 
 const ProjectNameRenderer: React.FC<ProjectNameRendererProps> = (props) => {
-  const projectId = props.data.project_id;
+  const projectId = props.data.id;
   const projectName = props.value;
 
   return <Link href={`/labor/${projectId}`}>{projectName}</Link>;

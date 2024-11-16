@@ -122,7 +122,7 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               <button
                 onClick={() => router.push(`/labor-data/${project.jobNumber}`)}
                 className="text-purple-500 hover:text-purple-700"
-                title="Manage Equipment"
+                title="Labor Information"
               >
                 <FaUsers />
               </button>
