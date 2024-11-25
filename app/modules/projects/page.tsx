@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useState, useContext } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import ProjectsTable from "../components/ProjectsGrid";
-import AddProjectModal from "../components/AddProjectModal"; // Adding and Editing projects
-import { PermissionContext } from "../context/PermissionContext";
-import { Project } from "../types";
+import ProjectsTable from "../../components/ProjectsGrid";
+import AddProjectModal from "../../components/AddProjectModal"; // Adding and Editing projects
+import { PermissionContext } from "../../context/PermissionContext";
+import { Project } from "../../types";
 import { useRouter } from "next/router";
 
 export default function Projects() {
@@ -193,7 +193,7 @@ export default function Projects() {
           )}
 
           <Link
-            href="/summary"
+            href="/modules/summary"
             className="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block"
           >
             Back to summary page

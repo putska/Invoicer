@@ -4,10 +4,10 @@
 import React, { useState, useEffect, useCallback, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { AgGridReact } from "ag-grid-react";
-import { Equipment } from "../../../types";
+import { Equipment } from "../../../../types";
 import { ColDef } from "ag-grid-community";
-import { PermissionContext } from "../../../context/PermissionContext";
-import EquipmentFormModal from "../../../components/EquipmentFormModal";
+import { PermissionContext } from "../../../../context/PermissionContext";
+import EquipmentFormModal from "../../../../components/EquipmentFormModal";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { useParams } from "next/navigation";
 

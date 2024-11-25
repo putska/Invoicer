@@ -58,9 +58,13 @@ export default function RootLayout({
                     </SignedOut>
                     {/*-- if user is signed in --*/}
                     <SignedIn>
-                      <Link href="/summary">Dashboard</Link>
+                      <Link href="/modules/summary">Dashboard</Link>
 
-                      <Link href="/projects">Projects</Link>
+                      <Link href="/modules/projects">Projects</Link>
+
+                      <Link href="/modules/purchasing">Purchase Orders</Link>
+
+                      <Link href="/modules/materials">Shop Materials</Link>
 
                       <UserButton showName />
                     </SignedIn>

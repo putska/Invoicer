@@ -5,7 +5,7 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import AddEditMaterialModal from "./AddEditMaterialModal";
-import { Material } from "../types"; // Adjust the import based on your project structure
+import { Material } from "../../types"; // Adjust the import based on your project structure
 import { ColDef } from "ag-grid-community"; // Ensure you import this from ag-grid
 
 const MaterialsPage = () => {

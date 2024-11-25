@@ -5,7 +5,7 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { format, addMonths } from "date-fns";
-import { Project, SummaryManpower } from "../types";
+import { Project, SummaryManpower } from "../../types";
 import ProjectNameRenderer from "./ProjectNameRenderer";
 import Link from "next/link";
 

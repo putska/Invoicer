@@ -12,7 +12,7 @@ import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
-import { PermissionContext } from "../../../context/PermissionContext";
+import { PermissionContext } from "../../../../context/PermissionContext";
 import { FaEdit, FaTrash, FaList } from "react-icons/fa"; // Ensure these are imported if used elsewhere
 import {
   DragDropContext,
@@ -24,7 +24,7 @@ import {
   Equipment,
   CategorySortOrderUpdate,
   ActivitySortOrderUpdate,
-} from "../../../types";
+} from "../../../../types";
 
 interface Category {
   categoryId: number;

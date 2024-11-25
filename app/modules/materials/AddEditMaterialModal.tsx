@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Material } from "../types";
+import { Material } from "../../types";
 
 interface Props {
   isOpen: boolean;

@@ -104,7 +104,7 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               {/* Categories Button */}
               <button
                 onClick={() =>
-                  router.push(`/projects/${project.id}/activities`)
+                  router.push(`/modules/projects/${project.id}/activities`)
                 }
                 className="text-green-500 hover:text-green-700"
                 title="Manage Categories"
@@ -113,14 +113,18 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               </button>
               {/* Equipment Button */}
               <button
-                onClick={() => router.push(`/projects/${project.id}/equipment`)}
+                onClick={() =>
+                  router.push(`/modules/projects/${project.id}/equipment`)
+                }
                 className="text-purple-500 hover:text-purple-700"
                 title="Manage Equipment"
               >
                 <FaTools />
               </button>
               <button
-                onClick={() => router.push(`/labor-data/${project.jobNumber}`)}
+                onClick={() =>
+                  router.push(`/modules/labor-data/${project.jobNumber}`)
+                }
                 className="text-purple-500 hover:text-purple-700"
                 title="Labor Information"
               >

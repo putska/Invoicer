@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { COST_CODE_DESCRIPTIONS } from "../../lib/costCodeDescriptions";
+import { COST_CODE_DESCRIPTIONS } from "../../../constants/costCodeDescriptions";
 
 // Define fetcher
 const fetcher = (url: string) => fetch(url).then((res) => res.json());

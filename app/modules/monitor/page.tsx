@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { Category, Activity, Project } from "../types";
+import { Category, Activity, Project } from "../../types";
 import { useUser } from "@clerk/nextjs"; // For authentication
 
 const FieldMonitorPage = () => {

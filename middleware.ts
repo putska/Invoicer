@@ -6,16 +6,10 @@ import { getUserByClerkId } from "./app/db/actions"; // Import the action functi
 import { User } from "./app/types"; // Ensure correct path
 
 // Define protected routes that require authentication
-const protectedRoutes = createRouteMatcher([
-  "/admin(.*)",
-  "/labor(.*)",
-  "/monitor(.*)",
-  "/projects(.*)",
-  "/summary(.*)",
-]);
+const protectedRoutes = createRouteMatcher(["/modules(.*)"]);
 
 // Define admin routes that require authentication and admin permission
-const adminRoutes = createRouteMatcher(["/admin"]);
+const adminRoutes = createRouteMatcher(["/modules/admin"]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Handle general protected routes

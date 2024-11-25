@@ -34,7 +34,7 @@ import {
 } from "../types";
 import { desc, eq, and, sum, inArray, sql, asc } from "drizzle-orm";
 import { Dropbox } from "dropbox";
-import { getDropboxClient } from "../dropbox/dropboxClient";
+import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 //import fetch from "node-fetch";
 
 //import { v4 as uuidv4 } from "uuid";
