@@ -1,1 +1,0 @@
-ALTER TABLE "labor_data" ALTER COLUMN "hours" SET DATA TYPE double precision;

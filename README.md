@@ -1,54 +1,36 @@
-# Portal project with Next.js, Drizzle, Clerk and Neon
-
-A modern, scalable portal using Next.js and Neon
-
-![image](https://github.com/user-attachments/assets/4b68fdb4-75b7-4638-99e1-c3e01cae807d)
-
-## Overview
-
-This is the CSE Portal file. Our first module is for labor. The second module handles purchase orders.
-
-## Tutorial
-
-This project is based on the following tutorial:
-[Full Stack Development with Next.js, Clerk, and Neon Postgres](https://www.freecodecamp.org/news/build-an-invoice-saas-app-with-next-js-and-neon-postgres/)
-
-## Key Features
-
-- 🚀 Fast, responsive UI built with Next.js
-- 💾 Serverless PostgreSQL with Neon for efficient data management
-- 📊 Real-time invoice creation, editing, and management
-- 🔐 Secure user authentication with Clerk
-
-## Tech Stack
-
-- Frontend: Next.js, Tailwind CSS
-- Backend: Node.js, Express (API routes in Next.js)
-- Database: Neon Postgres
-- Authentication: Clerk
-- Deployment: Vercel (frontend), Neon (database)
-
-## Prerequisites
-
-- Node.js (v14 or later)
-- npm or yarn
-- Git
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-- Clone the repository.
-- Create a [Neon project](https://neon.tech/docs/introduction)
-- Create a [Clerk email authentication project](https://clerk.com/)
-- Get your [Resend API key](https://resend.com/)
-- Create a `.env.local` file containing the following credentials:
+First, run the development server:
 
-```txt
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-NEON_DATABASE_URL=
-RESEND_API_KEY=r
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-- Run `npm i` to install the project dependencies.
-- Run `npm run db-create` to create the database tables.
-- Start the development server by running: `npm run dev`.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

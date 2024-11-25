@@ -1,11 +1,6 @@
 {
-  "name": "cse-portal",
-  "version": "1.0.0",
-  "engines": {
-    "node": "20.x",
-    "npm": "10.x",
-    "next": "14.x"
-  },
+  "name": "cseportal",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"node server.js\"",
@@ -71,7 +66,7 @@
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.3",
+    "eslint-config-next": "^15.0.3",
     "postcss": "^8",
     "typescript": "^5.6.3"
   }

@@ -1,17 +1,13 @@
-import type { Config } from "drizzle-kit";
-import * as dotenv from "dotenv";
+import { config } from "dotenv";
+import { defineConfig } from "drizzle-kit";
 
-dotenv.config();
+config({ path: ".env" });
 
-if (!process.env.NEON_DATABASE_URL)
-  throw new Error("NEON DATABASE_URL not found in environment");
-
-export default {
-  schema: "./src/app/db/schema.ts",
-  out: "./src/app/db/migrations",
+export default defineConfig({
+  schema: "./app/db/schema.ts",
+  out: "./app/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.NEON_DATABASE_URL,
+    url: process.env.DATABASE_URL!,
   },
-  strict: true,
-} satisfies Config;
+});
