@@ -296,19 +296,23 @@ export interface Material {
   name: string; // Material name
   description?: string; // Optional description of the material
   quantity: number; // Quantity in stock
+  requisitionQuantity?: number; // Quantity requested in a requisition
   unit: string; // Unit of measurement (e.g., piece, box)
   photoUrl?: string; // URL for the material's photo
   createdAt: Date; // Timestamp when the record was created
   updatedAt: Date; // Timestamp when the record was last updated
 }
 
-export interface Request {
-  id?: number; // Primary key, optional since it's auto-generated
-  materialId: number; // Foreign key referencing the material
-  requestedBy: string; // User ID or identifier
+export interface Requisition {
+  id: number; // Primary key, auto-incremented
+  materialId: number; // Foreign key to the materials table
+  materialName?: string; // Optional, derived from the materials table
   quantity: number; // Quantity requested
-  status: "requested" | "delivered" | "canceled"; // Status of the request
-  comments?: string; // Optional comments or notes
-  createdAt: Date; // Timestamp when the record was created
-  updatedAt: Date; // Timestamp when the record was last updated
+  requestedBy: string; // UUID of the user who requested
+  jobId: string; // Optional, foreign key to the jobs table
+  userName?: string; // Optional, derived from the users table
+  status: "requested" | "delivered" | "canceled"; // Enum for status
+  comments: string; // Optional comments
+  createdAt: string; // Timestamp when the requisition was created
+  updatedAt: string; // Timestamp when the requisition was last updated
 }

@@ -30,9 +30,9 @@ import {
   PurchaseOrder,
   LaborData,
   Material,
-  Request,
+  Requisition,
 } from "../types";
-import { desc, eq, and, sum, inArray, sql, asc } from "drizzle-orm";
+import { desc, eq, and, inArray, sql, max } from "drizzle-orm";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 //import fetch from "node-fetch";
@@ -1438,6 +1438,18 @@ export const getLaborDataByCostCode = async (
     .orderBy(desc(laborData.date));
 };
 
+export const getLastLaborDateForProject = async (jobNumber: string) => {
+  const result = await db
+    .select({
+      lastLaborDate: max(laborData.date), // Use the max function to find the latest date
+    })
+    .from(laborData)
+    .where(eq(laborData.jobNumber, jobNumber));
+
+  // Return the last labor date
+  return result[0]?.lastLaborDate || null;
+};
+
 //👇🏻 Retrieve a single labor data entry by its ID
 export const getSingleLaborData = async (id: number) => {
   return await db.select().from(laborData).where(eq(laborData.id, id));
@@ -1517,10 +1529,11 @@ export const updateMaterial = async (
   id: number,
   material: Partial<Material>
 ) => {
+  const { createdAt, ...updateFields } = material;
   await db
     .update(materials)
     .set({
-      ...material,
+      ...updateFields,
       updatedAt: new Date(),
     })
     .where(eq(materials.id, id));
@@ -1533,7 +1546,28 @@ export const deleteMaterial = async (id: number) => {
 
 // Retrieve all requests
 export const getAllRequests = async () => {
-  return await db.select().from(requests).orderBy(requests.createdAt);
+  try {
+    const result = await db.execute(sql`
+      SELECT 
+        requests.id,
+        requests.material_id AS "materialId",
+        requests.quantity,
+        requests.requested_by AS "requestedBy",
+        requests.status,
+        requests.comments,
+        requests.created_at AS "createdAt",
+        requests.updated_at AS "updatedAt",
+        users.first_name || ' ' || users.last_name AS "userName",
+        materials.name AS "materialName"
+      FROM requests
+      JOIN users ON requests.requested_by = users.id
+      JOIN materials ON requests.material_id = materials.id
+    `);
+    return result.rows; // Return the rows with joined data
+  } catch (error) {
+    console.error("Error fetching all requests:", error);
+    throw new Error("Could not fetch requests");
+  }
 };
 
 // Retrieve a single request by ID
@@ -1552,15 +1586,14 @@ export const getRequestsByMaterialId = async (materialId: number) => {
 
 // Add a new request
 export const addRequest = async (
-  request: Omit<Request, "id" | "createdAt" | "updatedAt">
+  request: Omit<Requisition, "id" | "createdAt" | "updatedAt">
 ) => {
   try {
     const [newRequest] = await db
       .insert(requests)
       .values({
         ...request,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        jobId: Number(request.jobId), // Ensure jobId is a number
       })
       .returning();
     return newRequest;

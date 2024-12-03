@@ -49,7 +49,9 @@ export async function PUT(
     }
 
     const updatedData = await req.json();
-    await updateRequest(parseInt(id, 10), updatedData);
+    console.log("Updated data:", updatedData);
+    const requestUpdate = await updateRequest(parseInt(id, 10), updatedData);
+    console.log("Request update:", requestUpdate);
     return NextResponse.json({ message: "Request updated successfully" });
   } catch (error) {
     console.error("Error updating request:", error);

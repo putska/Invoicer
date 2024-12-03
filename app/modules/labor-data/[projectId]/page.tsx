@@ -31,19 +31,27 @@ const LaborDataPage = () => {
   const [selectedCostCode, setSelectedCostCode] = useState<string | null>(null);
   const [laborData, setLaborData] = useState<LaborEntry[]>([]);
 
-  const { data: costCodesData, error: costCodesError } = useSWR(
+  const { data: costCodesData } = useSWR(
     projectId
       ? `/api/labor-data/project/${projectId}/hours-by-cost-code`
       : null,
     fetcher
   );
 
-  const { data: laborDataResponse, error: laborDataError } = useSWR(
+  const { data: laborDataResponse } = useSWR(
     selectedCostCode && projectId
       ? `/api/labor-data/project/${projectId}/cost-code/${selectedCostCode}`
       : null,
     fetcher
   );
+
+  // Fetch the last labor date
+  const { data: lastLaborDateResponse, error: lastLaborDateError } = useSWR(
+    projectId ? `/api/labor-data/last-labor-date/${projectId}` : null,
+    fetcher
+  );
+
+  const lastLaborDate = lastLaborDateResponse?.lastLaborDate;
 
   // Loading states for better UX
   const [loadingCostCodes, setLoadingCostCodes] = useState<boolean>(false);
@@ -91,6 +99,15 @@ const LaborDataPage = () => {
       <h1 className="text-2xl font-bold mb-4">
         Labor Data for Project {projectId}
       </h1>
+      {lastLaborDate ? (
+        <p className="text-gray-600 mb-4">
+          Last labor imported: {new Date(lastLaborDate).toLocaleDateString()}
+        </p>
+      ) : (
+        <p className="text-gray-600 mb-4">
+          No labor data found for this project.
+        </p>
+      )}
       {selectedCostCode ? (
         <div>
           <button

@@ -10,6 +10,7 @@ import {
   boolean,
   decimal,
   doublePrecision,
+  PgJsonBuilder,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -245,6 +246,7 @@ export const requests = pgTable("requests", {
   requestedBy: uuid("requested_by")
     .notNull()
     .references(() => users.id), // Foreign key to the users table
+  jobId: integer("job_id").notNull().default(0), // Job ID associated with the request
   quantity: integer("quantity").notNull(),
   status: text("status").notNull().default("requested"), // "requested", "delivered", or "canceled"
   comments: text("comments").default(""), // Notes or specifics about the request

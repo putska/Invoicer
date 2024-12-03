@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllRequests, addRequest } from "../../db/actions";
 import { authenticate, authorize } from "../admin/helpers";
-import { Request } from "../../types";
+import { Requisition } from "../../types";
 
 // GET all requests
 export async function GET(req: NextRequest) {
@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    const request: Omit<Request, "id" | "createdAt" | "updatedAt"> =
+    const request: Omit<Requisition, "id" | "createdAt" | "updatedAt"> =
       await req.json();
-    await addRequest(request);
+    const result = await addRequest(request);
     return NextResponse.json(
       { message: "Request added successfully" },
       { status: 201 }

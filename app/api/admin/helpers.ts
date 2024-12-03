@@ -37,3 +37,19 @@ export const authorize = (user: any, requiredLevels: string[]) => {
 
   return true;
 };
+
+//Get the user's clerkID then fetch the userId from the database
+
+export const getUserId = async () => {
+  const { userId: clerkId } = auth();
+  if (!clerkId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const user = await getUserByClerkId(clerkId);
+
+  if (!user) {
+    return NextResponse.json({ message: "User not found" }, { status: 404 });
+  }
+
+  return user.id;
+};
