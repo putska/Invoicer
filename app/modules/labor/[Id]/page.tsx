@@ -551,7 +551,7 @@ const LaborGrid: React.FC = () => {
       return;
     }
 
-    router.push(`/equipment/${Id}`);
+    router.push(`/modules/equipment/${Id}`);
   };
   // Handle loading state
   if (!isLoaded) {

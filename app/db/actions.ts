@@ -130,7 +130,11 @@ export const updateBankInfo = async (info: any) => {
 
 //👇🏻 get projects list
 export const getProjects = async () => {
-  return await db.select().from(projects).orderBy(desc(projects.createdAt));
+  return await db
+    .select()
+    .from(projects)
+    // .where(eq(projects.status, "active"))
+    .orderBy(desc(projects.createdAt));
 };
 
 //👇🏻 get single project
@@ -625,6 +629,19 @@ export const getTreeViewData = async (projectId: number) => {
     throw new Error("Could not fetch categories with activities");
   }
 };
+
+export async function findManpowerByActivityAndDate(
+  activityId: number,
+  date: string
+) {
+  const result = await db
+    .select()
+    .from(manpower)
+    .where(and(eq(manpower.activityId, activityId), eq(manpower.date, date)))
+    .limit(1);
+
+  return result[0] || null; // Return the first matching record or null if none found
+}
 
 // Function to get the average manpower by month and year
 export async function getAverageManpowerByMonthAndYear() {
@@ -1138,19 +1155,69 @@ export const getAllPOs = async () => {
   }
 };
 
-// /app/db/actions.ts
+// used by the PO module to show the project name and the vendor name
+export const getPurchaseOrdersWithDetails = async () => {
+  try {
+    const result = await db
+      .select({
+        id: purchaseOrders.id,
+        poNumber: purchaseOrders.poNumber,
+        jobId: purchaseOrders.jobId,
+        projectName: projects.name, // Retrieve project name
+        vendorId: purchaseOrders.vendorId,
+        vendorName: vendors.vendorName, // Retrieve vendor name
+        projectManager: purchaseOrders.projectManager,
+        poDate: purchaseOrders.poDate,
+        dueDate: purchaseOrders.dueDate,
+        shipTo: purchaseOrders.shipTo,
+        costCode: purchaseOrders.costCode,
+        shortDescription: purchaseOrders.shortDescription,
+        longDescription: purchaseOrders.longDescription,
+        notes: purchaseOrders.notes,
+        received: purchaseOrders.received,
+        backorder: purchaseOrders.backorder,
+        createdAt: purchaseOrders.createdAt,
+        updatedAt: purchaseOrders.updatedAt,
+      })
+      .from(purchaseOrders)
+      .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id)) // Join with vendors
+      .leftJoin(projects, eq(purchaseOrders.jobId, projects.id)); // Join with projects
 
-// Get all purchase orders for a specific job number
-export const getPOsByJobNumber = async (jobNumber: string) => {
+    return result; // Return the combined data
+  } catch (error) {
+    console.error("Error fetching purchase orders with details:", error);
+    throw new Error("Could not fetch purchase orders with details");
+  }
+};
+
+// Get all POs by status
+export const getPOsByStatus = async (
+  statusField: "received" | "backorder",
+  statusValue: string
+) => {
   try {
     const result = await db
       .select()
       .from(purchaseOrders)
-      .where(eq(purchaseOrders.jobNumber, jobNumber))
-      .orderBy(purchaseOrders.poDate); // You can adjust the sorting as needed
+      .where(eq(purchaseOrders[statusField], statusValue)); // Dynamically use the status field
     return result;
   } catch (error) {
-    console.error("Error fetching purchase orders by job number:", error);
+    console.error("Error fetching POs by status:", error);
+    throw new Error("Could not fetch purchase orders");
+  }
+};
+
+// Get all purchase orders for a specific jobID
+export const getPOsByJobId = async (jobId: number) => {
+  try {
+    const result = await db
+      .select()
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.jobId, jobId)) // Changed field from jobNumber to jobId
+      .orderBy(purchaseOrders.poDate); // Adjust sorting if needed
+    return result;
+  } catch (error) {
+    console.error("Error fetching purchase orders by job ID:", error);
     throw new Error("Could not fetch purchase orders");
   }
 };
@@ -1177,10 +1244,6 @@ export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
       .insert(purchaseOrders)
       .values({
         ...poData,
-        poAmount: poData.poAmount.toString(), // Convert poAmount to string
-        freight: poData.freight.toString(), // Convert freight to string
-        boxingCharges: poData.boxingCharges?.toString(), // Convert boxingCharges to string if defined
-        taxRate: poData.taxRate?.toString(), // Convert taxRate to string if defined
       })
       .returning();
     return newPO;
@@ -1197,22 +1260,6 @@ export const updatePurchaseOrder = async (
   try {
     const updatedDataWithStrings = {
       ...updatedData,
-      poAmount:
-        updatedData.poAmount !== undefined
-          ? updatedData.poAmount.toString()
-          : undefined,
-      freight:
-        updatedData.freight !== undefined
-          ? updatedData.freight.toString()
-          : undefined,
-      boxingCharges:
-        updatedData.boxingCharges !== undefined
-          ? updatedData.boxingCharges.toString()
-          : undefined,
-      taxRate:
-        updatedData.taxRate !== undefined
-          ? updatedData.taxRate.toString()
-          : undefined, // taxRate is likely a decimal stored as a string
     };
 
     const result = await db
@@ -1438,6 +1485,37 @@ export const getLaborDataByCostCode = async (
     .orderBy(desc(laborData.date));
 };
 
+export async function getLaborDataByUniqueFields(
+  eid: number,
+  date: string,
+  jobNumber: string,
+  costCodeNumber: string,
+  hours: number
+) {
+  console.log("Checking for existing record with:", {
+    eid,
+    date,
+    jobNumber,
+    costCodeNumber,
+    hours,
+  });
+
+  const existingRecord = await db
+    .select()
+    .from(laborData)
+    .where(
+      and(
+        eq(laborData.eid, eid),
+        eq(laborData.date, date),
+        eq(laborData.jobNumber, jobNumber),
+        eq(laborData.costCodeNumber, costCodeNumber || ""),
+        eq(laborData.hours, hours)
+      )
+    )
+    .limit(1); // Ensure only one record is returned
+  return existingRecord;
+}
+
 export const getLastLaborDateForProject = async (jobNumber: string) => {
   const result = await db
     .select({
@@ -1550,6 +1628,8 @@ export const getAllRequests = async () => {
     const result = await db.execute(sql`
       SELECT 
         requests.id,
+        requests.job_id AS "jobId",
+        projects.name AS "jobName",
         requests.material_id AS "materialId",
         requests.quantity,
         requests.requested_by AS "requestedBy",
@@ -1562,6 +1642,7 @@ export const getAllRequests = async () => {
       FROM requests
       JOIN users ON requests.requested_by = users.id
       JOIN materials ON requests.material_id = materials.id
+      JOIN projects ON requests.job_id = projects.id
     `);
     return result.rows; // Return the rows with joined data
   } catch (error) {

@@ -8,15 +8,19 @@ import { ColDef } from "ag-grid-community";
 import AttachmentModal from "../../components/AttachmentModal";
 import { PaperClipIcon } from "@heroicons/react/24/outline";
 import { refreshAccessToken } from "../../modules/dropbox/dropboxClient";
+import { format } from "date-fns"; // A lightweight library for date formatting
 
 type PurchaseOrder = {
   id: number;
-  jobNumber: string;
+  poNumber: string;
+  poDate: string;
+  jobId: number; // Updated from jobNumber
+  projectName: string; // Added field
   shortDescription: string;
   vendorName: string;
-  totalAmount: number;
-  status: string;
-  attachmentCount: number; // Make sure your backend API returns this if it doesn't already
+  notes?: string;
+  received?: string; // Added field
+  backorder?: string; // Added field
 };
 
 export default function PurchaseOrderListPage() {
@@ -28,16 +32,78 @@ export default function PurchaseOrderListPage() {
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [currentAttachments, setCurrentAttachments] = useState<any[]>([]); // State to store attachments
 
+  const defaultColDef: ColDef = {
+    resizable: true, // Allow resizing
+    sortable: true, // Enable sorting
+    filter: true, // Enable filtering
+  };
+
   const columnDefs: ColDef<PurchaseOrder>[] = [
-    { headerName: "Job Number", field: "jobNumber", sortable: true },
-    { headerName: "Description", field: "shortDescription", sortable: true },
-    { headerName: "Vendor", field: "vendorName", sortable: true },
-    { headerName: "Total Amount", field: "totalAmount", sortable: true },
-    { headerName: "Status", field: "status", sortable: true },
+    {
+      headerName: "PO Number",
+      field: "poNumber",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 100,
+    },
+    {
+      headerName: "PO Date",
+      field: "poDate",
+      filter: "agTextColumnFilter",
+      valueFormatter: ({ value }) => {
+        if (!value) return ""; // Handle null or undefined dates
+        return format(new Date(value), "MM/dd/yyyy"); // Format date as MM/DD/YYYY
+      },
+      flex: 1,
+      minWidth: 100,
+    },
+    {
+      headerName: "Project",
+      field: "projectName",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 150,
+    }, // Updated
+    {
+      headerName: "Description",
+      field: "shortDescription",
+      filter: "agTextColumnFilter",
+      flex: 2,
+      minWidth: 200,
+    },
+    {
+      headerName: "Vendor",
+      field: "vendorName",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      headerName: "Notes",
+      field: "notes",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      headerName: "Received",
+      field: "received",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 150,
+    }, // New column
+    {
+      headerName: "Backorder",
+      field: "backorder",
+      filter: "agTextColumnFilter",
+      flex: 1,
+      minWidth: 150,
+    }, // New column
     {
       headerName: "Actions",
       field: "id",
-      width: 200,
+      flex: 1,
+      minWidth: 150,
       cellRenderer: (params: any) => {
         const handleOpenAttachments = (poId: number) => {
           setSelectedPO(poId);
@@ -47,9 +113,9 @@ export default function PurchaseOrderListPage() {
         return (
           <div className="flex items-center justify-between mb-3">
             <button
-              className="bg-indigo-600 px-2 py-0.75  text-white  rounded-md mr-2 mb-3"
+              className="bg-indigo-600 px-2 py-0.75 text-white rounded-md mr-2 mb-3"
               onClick={() =>
-                (window.location.href = `/purchasing/${params.value}`)
+                (window.location.href = `/modules/purchasing/${params.value}`)
               }
             >
               Edit
@@ -128,20 +194,26 @@ export default function PurchaseOrderListPage() {
   if (error) return <div>{error}</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
+    <div className="w-full  p-6 bg-white rounded-md shadow-md">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-700">
           Purchase Orders
         </h1>
         <button
-          onClick={() => (window.location.href = "/purchasing/new")}
+          onClick={() => (window.location.href = "/modules/purchasing/new")}
           className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
         >
           Add Purchase Order
         </button>
       </div>
 
-      <div className="ag-theme-alpine" style={{ height: 600, width: "100%" }}>
+      <div
+        className="ag-theme-alpine"
+        style={{
+          height: "calc(100vh - 250px)", // Adjust height dynamically (full height minus header/footer)
+          width: "100%", // Take the full width of the container
+        }}
+      >
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}

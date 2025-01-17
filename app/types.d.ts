@@ -186,32 +186,21 @@ export interface Vendor {
   updatedAt: Date;
 }
 
-// Interface for Purchase Order (PO)
 export interface PurchaseOrder {
   id?: number;
   vendorId: number;
   poNumber: string;
-  jobNumber: string;
+  jobId: number; // Changed from jobNumber to jobId
   projectManager: string;
   poDate: Date;
   dueDate?: Date;
-  shipVia?: string;
   shipTo?: string;
-  shipToAddress?: string;
-  shipToCity?: string;
-  shipToState?: string;
-  shipToZip?: string;
   costCode: string;
-  freight: number;
-  boxingCharges: number;
-  poAmount: number;
-  taxRate: string;
-  taxable: boolean;
-  warrantyYears?: number;
   shortDescription: string;
   longDescription?: string;
   notes?: string;
-  deliveryDate?: Date;
+  received?: string; // Added field
+  backorder?: string; // Added field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -220,10 +209,10 @@ export interface PurchaseOrder {
 
 export interface PurchaseOrderUpdate {
   vendorId: number;
-  poNumber: string;
+  poNumber: string; //used in PO Log
   jobNumber: string;
   projectManager: string;
-  poDate: string; // ISO date string
+  poDate: string; // used in PO Log
   dueDate?: string; // ISO date string
   deliveryDate?: string; // ISO date string
   shipVia?: string;
@@ -307,6 +296,8 @@ export interface Requisition {
   id: number; // Primary key, auto-incremented
   materialId: number; // Foreign key to the materials table
   materialName?: string; // Optional, derived from the materials table
+  jobId?: number; // Optional, foreign key to the jobs table
+  jobName?: string; // Optional, derived from the jobs table
   quantity: number; // Quantity requested
   requestedBy: string; // UUID of the user who requested
   jobId: string; // Optional, foreign key to the jobs table

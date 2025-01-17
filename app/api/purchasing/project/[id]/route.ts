@@ -1,18 +1,19 @@
 // /app/api/purchasing/project/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getPOsByJobNumber } from "../../../../db/actions";
+import { getPOsByJobId } from "../../../../db/actions"; // Updated function
 import { authenticate, authorize } from "../../../admin/helpers";
 
-// Utility function to parse job number from params
-const parseJobNumber = (params: { id: string }) => params.id;
+// Utility function to parse job ID from params
+const parseJobId = (params: { id: string }) => parseInt(params.id, 10);
 
-// GET all purchase orders for a specific project (by job number)
+// GET all purchase orders for a specific project (by job ID)
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const jobNumber = parseJobNumber(params);
+  const jobId = parseJobId(params); // Parse job ID as an integer
+
   try {
     // Authenticate the user
     const user = await authenticate();
@@ -26,8 +27,8 @@ export async function GET(
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch purchase orders by job number
-    const purchaseOrders = await getPOsByJobNumber(jobNumber);
+    // Fetch purchase orders by job ID
+    const purchaseOrders = await getPOsByJobId(jobId); // Updated function call
 
     if (purchaseOrders.length > 0) {
       return NextResponse.json(
@@ -40,13 +41,13 @@ export async function GET(
     } else {
       return NextResponse.json(
         {
-          message: `No purchase orders found for job number: ${jobNumber}`,
+          message: `No purchase orders found for job ID: ${jobId}`,
         },
         { status: 404 }
       );
     }
   } catch (err) {
-    console.error("Error fetching purchase orders by job number:", err);
+    console.error("Error fetching purchase orders by job ID:", err);
     return NextResponse.json(
       { message: "An error occurred while fetching purchase orders" },
       { status: 500 }

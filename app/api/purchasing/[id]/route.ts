@@ -13,9 +13,9 @@ import { z } from "zod";
 const purchaseOrderSchema = z.object({
   vendorId: z.number().int().positive(),
   poNumber: z.string().min(1, "PO number is required"),
-  jobNumber: z.string().min(1, "Job number is required"),
+  jobId: z.number().int().positive(), // Changed from jobNumber to jobId
   projectManager: z.string().min(1, "Project manager is required"),
-  // Handle ISO date strings for poDate, dueDate, and deliveryDate
+  // Handle ISO date strings for poDate, dueDate
   poDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), "Invalid PO date"),
@@ -23,35 +23,15 @@ const purchaseOrderSchema = z.object({
     .string()
     .optional()
     .refine((val) => !isNaN(Date.parse(val ?? "")), "Invalid due date"),
-  deliveryDate: z
-    .string()
-    .optional()
-    .refine((val) => !isNaN(Date.parse(val ?? "")), "Invalid delivery date"),
-  shipVia: z.string().optional(),
-  shipTo: z.string().optional(),
-  shipToAddress: z.string().optional(),
-  shipToCity: z.string().optional(),
-  shipToState: z
-    .string()
-    .length(2, "Ship to state must be a 2-letter code")
-    .optional(),
-  shipToZip: z
-    .string()
-    .min(5)
-    .max(10, "Ship to ZIP code is invalid")
-    .optional(),
+  shipTo: z.string().optional(), // Shipping location
   costCode: z.string().min(1, "Cost code is required"),
-  freight: z.number().min(0).default(0),
-  boxingCharges: z.number().min(0).default(0),
-  poAmount: z.number().positive(),
-  taxRate: z.string().min(1, "Tax rate is required"), // Ensure taxRate is a string
-  taxable: z.boolean(),
-  warrantyYears: z.number().optional(),
   shortDescription: z
     .string()
     .max(50, "Short description must be under 50 characters"),
-  longDescription: z.string().optional().default(""), // Default to empty string if not provided
-  notes: z.string().optional().default(""), // Default to empty string if null or missing
+  longDescription: z.string().optional().default(""), // Default to empty string
+  notes: z.string().optional().default(""), // Default to empty string
+  received: z.string().optional(), // Added field for received info
+  backorder: z.string().optional(), // Added field for backorder info
 });
 
 // Utility function for parsing purchase order ID
@@ -113,10 +93,6 @@ export async function PUT(
       ...result.data,
       poDate: new Date(result.data.poDate),
       dueDate: result.data.dueDate ? new Date(result.data.dueDate) : undefined,
-      deliveryDate: result.data.deliveryDate
-        ? new Date(result.data.deliveryDate)
-        : undefined,
-      taxRate: result.data.taxRate.toString(), // Convert taxRate to string
     });
     return NextResponse.json({
       message: "Purchase order updated successfully!",

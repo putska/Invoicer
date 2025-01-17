@@ -165,6 +165,11 @@ export default function Projects() {
                 projects={projects}
                 deleteProject={deleteProject}
                 editProject={handleEditProject} // Pass the edit handler
+                defaultFilter={{
+                  field: "status",
+                  filter: "equals",
+                  value: "active",
+                }} // Set default filter
               />
             </div>
           </div>

@@ -8,6 +8,7 @@ import { format, addMonths } from "date-fns";
 import { Project, SummaryManpower } from "../../types";
 import ProjectNameRenderer from "./ProjectNameRenderer";
 import Link from "next/link";
+import { AutoWidthCalculator } from "ag-grid-community";
 
 const ManpowerSummary: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -23,7 +24,11 @@ const ManpowerSummary: React.FC = () => {
       const manpowerRes = await fetch("/api/summaryManpower");
       const projectsData = await projectsRes.json();
       const manpowerData = await manpowerRes.json();
-      setProjects(projectsData.projects);
+      // Filter projects where the status is "active"
+      const activeProjects = projectsData.projects.filter(
+        (project: Project) => project.status === "active"
+      );
+      setProjects(activeProjects);
       setManpowerData(manpowerData.data);
 
       // Generate the calendar and the column definitions for AG Grid
@@ -35,7 +40,7 @@ const ManpowerSummary: React.FC = () => {
 
       // Transform the data to match the required format
       const transformedData = await transformData(
-        projectsData.projects,
+        activeProjects,
         manpowerData.data,
         dynamicColumns
       );
@@ -154,14 +159,28 @@ const ManpowerSummary: React.FC = () => {
   // Helper function to generate column definitions for AG Grid
   const generateColumnDefs = (dynamicColumns: any[]) => {
     const staticColumns = [
-      { headerName: "Project ID", field: "id" }, // Hide the ID column
-      { headerName: "Job Number", field: "jobNumber" }, // Replace Project ID with Job Number
+      {
+        headerName: "Project ID",
+        field: "id",
+        width: 100,
+      },
+      { headerName: "Job Number", field: "jobNumber", width: 150 }, // Replace Project ID with Job Number
       {
         headerName: "Project Name",
         field: "project_name",
         cellRenderer: ProjectNameRenderer, // Use cellRenderer with the component
       },
-      { headerName: "Hours Used", field: "total_hours" }, // Add Total Hours column
+      {
+        headerName: "Hours Used",
+        field: "total_hours",
+        valueFormatter: (params: any) => {
+          if (!params.value) return "";
+          const roundedValue = Math.ceil(params.value); // Round up
+          return roundedValue.toLocaleString(); // Format with comma separator
+        },
+        cellStyle: { textAlign: "right" }, // Align text to the right
+        width: 120,
+      },
     ];
 
     return [...staticColumns, ...dynamicColumns];
@@ -212,7 +231,7 @@ const ManpowerSummary: React.FC = () => {
       />
       <div className="flex justify-left mt-4">
         <Link
-          href="/projects"
+          href="/modules/projects"
           className="bg-blue-500 text-white px-4 py-2 rounded"
         >
           Go to Projects Page

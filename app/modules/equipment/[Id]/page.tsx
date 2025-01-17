@@ -361,7 +361,7 @@ const EquipmentGrid: React.FC = () => {
       return;
     }
 
-    router.push(`/labor/${Id}`);
+    router.push(`/modules/labor/${Id}`);
   };
   // Handle loading state
   if (!isLoaded) {

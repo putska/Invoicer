@@ -159,29 +159,19 @@ export const purchaseOrders = pgTable("purchase_orders", {
     .notNull()
     .references(() => vendors.id), // Foreign key to the vendors table
   poNumber: text("po_number").notNull(),
-  jobNumber: text("job_number").notNull(), // Job number or reference
+  jobId: integer("job_id")
+    .notNull()
+    .references(() => projects.id), // Foreign key to the projects table
   projectManager: text("project_manager").notNull(),
-  poDate: timestamp("po_date").defaultNow().notNull(),
-  dueDate: timestamp("due_date"), // Date requested for the PO
-  shipVia: text("ship_via"), // Shipping method
-  shipTo: text("ship_to"), // Shipping address
-  shipToAddress: text("ship_to_address"),
-  shipToCity: text("ship_to_city"),
-  shipToState: text("ship_to_state"),
-  shipToZip: text("ship_to_zip"),
+  poDate: timestamp("po_date").defaultNow().notNull(), // The date the PO was issued
+  dueDate: timestamp("due_date"), // Date requested for the PO (when is the material due?)
+  shipTo: text("ship_to"), // Shipping location (shop, job site, etc.)
   costCode: text("cost_code").notNull(), // Related cost code
-  freight: numeric("freight").notNull().default("0"), // Freight charges
-  boxingCharges: numeric("boxing_charges").notNull().default("0"), // Boxing charges
-  poAmount: numeric("po_amount").notNull(), // Total amount for the PO
-  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }) // Decimal with precision 5 and scale 2
-    .default("9.75") // Default value as a string
-    .notNull(),
-  taxable: boolean("taxable").notNull().default(true), // Whether this PO is taxable
-  warrantyYears: integer("warranty_years"), // Warranty years
   shortDescription: text("short_description").notNull(), // Brief summary for forms
   longDescription: text("long_description"), // Detailed description of the order
   notes: text("notes"), // For additional notes
-  deliveryDate: timestamp("delivery_date"), // Expected delivery date
+  received: text("received"), // Information on what was received
+  backorder: text("backorder"), // Information on what was backordered
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

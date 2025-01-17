@@ -1,8 +1,4 @@
-// app/components/ProjectsGrid.tsx
-
-"use client"; // Ensure this is a Client Component
-
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
@@ -17,15 +13,18 @@ interface ProjectsGridProps {
   projects: Project[];
   deleteProject: (id: number) => void;
   editProject: (project: Project) => void;
+  defaultFilter?: { field: string; filter: string; value: string }; // Default filter prop
 }
 
 const ProjectsGrid: React.FC<ProjectsGridProps> = ({
   projects,
   deleteProject,
   editProject,
+  defaultFilter,
 }) => {
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
   const router = useRouter();
+  const gridRef = useRef<any>(null); // Ref to access the grid API
 
   // Define column definitions with cell renderers for actions
   const columnDefs: ColDef<Project>[] = useMemo(
@@ -53,17 +52,15 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
       { headerName: "Status", field: "status", sortable: true, filter: true },
       {
         headerName: "Actions",
-        // Omit 'field' since it's not a part of Project
         cellRenderer: (params: ICellRendererParams<Project>) => {
           const project = params.data;
 
           if (!project) {
-            return null; // Or render a fallback UI for missing data
+            return null;
           }
 
           return (
             <div className="flex space-x-2 h-full">
-              {/* Edit Button */}
               <button
                 onClick={() => editProject(project)}
                 className={`text-blue-500 hover:text-blue-700 ${
@@ -81,7 +78,6 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               >
                 <FaEdit />
               </button>
-              {/* Delete Button */}
               <button
                 onClick={() =>
                   project.id !== undefined && deleteProject(project.id)
@@ -101,7 +97,6 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               >
                 <FaTrash />
               </button>
-              {/* Categories Button */}
               <button
                 onClick={() =>
                   router.push(`/modules/projects/${project.id}/activities`)
@@ -111,7 +106,6 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
               >
                 <FaList />
               </button>
-              {/* Equipment Button */}
               <button
                 onClick={() =>
                   router.push(`/modules/projects/${project.id}/equipment`)
@@ -147,14 +141,21 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
     };
   }, []);
 
-  // Handle grid ready event to set the initial page if necessary
+  // Handle grid ready event to set the initial page and apply default filter
   const onGridReady = (params: any) => {
     if (projects.length > 0) {
       params.api.paginationGoToPage(0); // Navigate to the first page
     }
+    if (defaultFilter) {
+      params.api.setFilterModel({
+        [defaultFilter.field]: {
+          type: defaultFilter.filter,
+          filter: defaultFilter.value,
+        },
+      });
+    }
   };
 
-  // Only render Ag-Grid when data is available
   if (!isLoaded) {
     return <p>Loading permissions...</p>;
   }
@@ -166,12 +167,13 @@ const ProjectsGrid: React.FC<ProjectsGridProps> = ({
   return (
     <div className="ag-theme-alpine" style={{ height: 600, width: "100%" }}>
       <AgGridReact<Project>
+        ref={gridRef} // Attach gridRef to the grid
         rowData={projects}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         paginationAutoPageSize={true}
         pagination={true}
-        onGridReady={onGridReady}
+        onGridReady={onGridReady} // Use onGridReady for initialization
       />
     </div>
   );

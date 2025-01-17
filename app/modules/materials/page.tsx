@@ -7,6 +7,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import AddEditMaterialModal from "./AddEditMaterialModal";
 import { Material, Project } from "../../types"; // Adjust the import based on your project structure
 import { ColDef } from "ag-grid-community"; // Ensure you import this from ag-grid
+import Link from "next/link";
 import { getUserId } from "../../api/admin/helpers";
 
 const MaterialsPage = () => {
@@ -43,7 +44,11 @@ const MaterialsPage = () => {
     try {
       const response = await fetch("/api/projects");
       const data = await response.json();
-      setProjects(data.projects);
+      // Filter for active projects
+      const activeProjects = data.projects.filter(
+        (project: { status: string }) => project.status === "active"
+      );
+      setProjects(activeProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
@@ -196,7 +201,7 @@ const MaterialsPage = () => {
   ];
 
   return (
-    <div className="ag-theme-alpine" style={{ height: "80vh", width: "100%" }}>
+    <div className="ag-theme-alpine" style={{ height: "60vh", width: "100%" }}>
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-bold">Materials</h1>
         <button
@@ -265,6 +270,14 @@ const MaterialsPage = () => {
           }}
         />
       )}
+      <div>
+        <Link
+          href="/modules/requisitions"
+          className="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block"
+        >
+          Requisitions
+        </Link>
+      </div>
     </div>
   );
 };

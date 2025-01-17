@@ -7,6 +7,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import AddEditRequisitionModal from "./AddEditRequisitionModal";
 import { Requisition } from "../../types"; // Adjust the import based on your project structure
 import { ColDef } from "ag-grid-community";
+import Link from "next/link";
 
 const RequisitionsPage = () => {
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
@@ -42,6 +43,18 @@ const RequisitionsPage = () => {
   };
 
   const columnDefs: ColDef<Requisition>[] = [
+    {
+      headerName: "Requisition ID",
+      field: "id",
+      sortable: true,
+      filter: true,
+    },
+    {
+      headerName: "Job Name",
+      field: "jobName",
+      sortable: true,
+      filter: true,
+    },
     {
       headerName: "Material",
       field: "materialName",

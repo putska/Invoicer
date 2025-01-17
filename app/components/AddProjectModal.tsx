@@ -19,6 +19,7 @@ export default function AddProjectModal({
   const [projectDescription, setProjectDescription] = useState("");
   const [projectStartDate, setProjectStartDate] = useState("");
   const [projectEndDate, setProjectEndDate] = useState("");
+  const [projectStatus, setProjectStatus] = useState("active"); // New state for project status
 
   useEffect(() => {
     if (isEditMode && project) {
@@ -28,6 +29,7 @@ export default function AddProjectModal({
       setProjectDescription(project.description || "");
       setProjectStartDate(project.startDate || "");
       setProjectEndDate(project.endDate || "");
+      setProjectStatus(project.status || "active"); // Set status
     } else {
       // Reset form fields for adding a new project
       setProjectName("");
@@ -35,6 +37,7 @@ export default function AddProjectModal({
       setProjectDescription("");
       setProjectStartDate("");
       setProjectEndDate("");
+      setProjectStatus("active"); // Default to active
     }
   }, [isEditMode, project]);
 
@@ -49,6 +52,7 @@ export default function AddProjectModal({
       description: projectDescription,
       startDate: projectStartDate,
       endDate: projectEndDate,
+      status: projectStatus, // Include status
     };
 
     // Optional: Perform validation here
@@ -133,6 +137,19 @@ export default function AddProjectModal({
                 onChange={(e) => setProjectEndDate(e.target.value)}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
               />
+            </div>
+            <div className="mb-6">
+              <label className="block text-gray-700 font-medium mb-2">
+                Status:
+              </label>
+              <select
+                value={projectStatus}
+                onChange={(e) => setProjectStatus(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+              >
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
             </div>
             <div className="flex justify-end space-x-2">
               <button

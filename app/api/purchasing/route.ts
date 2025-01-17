@@ -1,50 +1,45 @@
 // /app/api/purchasing/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAllPOs, addPurchaseOrder } from "../../db/actions";
+import {
+  getPurchaseOrdersWithDetails,
+  addPurchaseOrder,
+} from "../../db/actions";
 import { authenticate, authorize } from "../../../app/api/admin/helpers";
 import { z } from "zod";
 
-// Zod schema for validating purchase order data
 const purchaseOrderSchema = z.object({
   vendorId: z.number().int().positive(),
   poNumber: z.string().min(1, "PO number is required"),
-  jobNumber: z.string().min(1, "Job number is required"),
+  jobId: z.number().int().positive(), // Changed from jobNumber to jobId
   projectManager: z.string().min(1, "Project manager is required"),
-  poDate: z.date(),
-  dueDate: z.date().optional(),
-  shipVia: z.string().optional(),
-  shipTo: z.string().optional(),
-  shipToAddress: z.string().optional(),
-  shipToCity: z.string().optional(),
-  shipToState: z
+  poDate: z
     .string()
-    .length(2, "Ship to state must be a 2-letter code")
-    .optional(),
-  shipToZip: z
+    .refine((val) => !isNaN(Date.parse(val)), "Invalid PO date") // Ensure valid date
+    .transform((val) => new Date(val)), // Convert to Date object
+  dueDate: z
     .string()
-    .min(5)
-    .max(10, "Ship to ZIP code is invalid")
-    .optional(),
+    .optional()
+    .nullable()
+    .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid due date") // Ensure valid date
+    .transform((val) => (val ? new Date(val) : undefined)), // Convert to Date object or undefined
+  shipTo: z.string().optional(), // Shipping location
   costCode: z.string().min(1, "Cost code is required"),
-  freight: z.number().min(0).default(0),
-  boxingCharges: z.number().min(0).default(0),
-  poAmount: z.number().positive(),
-  taxRate: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid tax rate"),
-  taxable: z.boolean(),
-  warrantyYears: z.number().optional(),
   shortDescription: z
     .string()
     .max(50, "Short description must be under 50 characters"),
   longDescription: z.string().optional(),
   notes: z.string().optional(),
-  deliveryDate: z.date().optional(),
+  received: z.string().optional(), // Added field for received information
+  backorder: z.string().optional(), // Added field for backordered items
+  createdAt: z.date().optional(), // Optional, will be set programmatically
+  updatedAt: z.date().optional(), // Optional, will be set programmatically
 });
 
 // GET all purchase orders
 export async function GET() {
   try {
-    const purchaseOrders = await getAllPOs();
+    const purchaseOrders = await getPurchaseOrdersWithDetails();
     return NextResponse.json({
       message: "Purchase orders retrieved successfully!",
       purchaseOrders,
@@ -58,28 +53,36 @@ export async function GET() {
   }
 }
 
-// POST to add a new purchase order
 export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
     const user = await authenticate();
     if (!user) {
+      console.error("Authentication Failed");
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Authorize the user
     const isAuthorized = authorize(user, ["admin", "write"]);
     if (!isAuthorized) {
+      console.error("Authorization Failed for User:", user);
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    // Parse and validate request body using Zod schema
+    // Parse the request body
     const body = await req.json();
+    console.log("Incoming Request Body:", body); // Log the incoming request
+
+    // Validate the request body using Zod schema
     const result = purchaseOrderSchema.safeParse(body);
 
     if (!result.success) {
+      console.error("Validation Errors:", result.error.format()); // Log validation errors
       return NextResponse.json(
-        { message: "Validation error", errors: result.error.format() },
+        {
+          message: "Validation error",
+          errors: result.error.format(), // Return formatted validation errors
+        },
         { status: 400 }
       );
     }
@@ -99,9 +102,12 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("Error adding purchase order:", err);
+    console.error("Error adding purchase order:", err); // Log any other errors
     return NextResponse.json(
-      { message: "An error occurred while adding purchase order" },
+      {
+        message: "An error occurred while adding purchase order",
+        error: (err as Error).message,
+      },
       { status: 500 }
     );
   }

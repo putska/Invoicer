@@ -4,6 +4,7 @@ import {
   updateManpower,
   getAllManpower,
   deleteManpower,
+  findManpowerByActivityAndDate,
 } from "../../../app/db/actions";
 import { cookies } from "next/headers";
 import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
@@ -31,17 +32,30 @@ export async function GET() {
   }
 }
 
-// POST route to add manpower data
+// POST: Add or update manpower data
 export async function POST(req: NextRequest) {
   try {
     const { activityId, date, manpower } = await req.json();
 
-    const response = await addManpower(activityId, date, manpower);
-    return NextResponse.json({ message: response.message }, { status: 201 });
+    // Check if the record already exists
+    const existingRecord = await findManpowerByActivityAndDate(
+      activityId,
+      date
+    );
+
+    if (existingRecord) {
+      // Update the existing record
+      const response = await updateManpower(activityId, date, manpower);
+      return NextResponse.json({ message: response.message }, { status: 200 });
+    } else {
+      // Add a new record
+      const response = await addManpower(activityId, date, manpower);
+      return NextResponse.json({ message: response.message }, { status: 201 });
+    }
   } catch (error) {
-    console.error(error);
+    console.error("Error in POST handler:", error);
     return NextResponse.json(
-      { message: "Failed to add manpower data" },
+      { message: "Failed to add or update manpower data" },
       { status: 500 }
     );
   }

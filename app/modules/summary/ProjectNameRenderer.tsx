@@ -13,7 +13,7 @@ const ProjectNameRenderer: React.FC<ProjectNameRendererProps> = (props) => {
   const projectId = props.data.id;
   const projectName = props.value;
 
-  return <Link href={`/labor/${projectId}`}>{projectName}</Link>;
+  return <Link href={`/modules/labor/${projectId}`}>{projectName}</Link>;
 };
 
 export default ProjectNameRenderer;
