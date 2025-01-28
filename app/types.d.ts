@@ -195,7 +195,8 @@ export interface PurchaseOrder {
   poDate: Date;
   dueDate?: Date;
   shipTo?: string;
-  costCode: string;
+  amount?: string;
+  costCode?: string;
   shortDescription: string;
   longDescription?: string;
   notes?: string;

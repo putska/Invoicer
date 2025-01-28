@@ -165,6 +165,7 @@ export const purchaseOrders = pgTable("purchase_orders", {
   projectManager: text("project_manager").notNull(),
   poDate: timestamp("po_date").defaultNow().notNull(), // The date the PO was issued
   dueDate: timestamp("due_date"), // Date requested for the PO (when is the material due?)
+  amount: text("amount"), // Total amount of the PO
   shipTo: text("ship_to"), // Shipping location (shop, job site, etc.)
   costCode: text("cost_code").notNull(), // Related cost code
   shortDescription: text("short_description").notNull(), // Brief summary for forms

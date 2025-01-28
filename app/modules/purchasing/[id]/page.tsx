@@ -7,14 +7,26 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { generatePDF } from "../../../components/pdfUtils";
 
 const poSchema = z.object({
   vendorId: z.number().min(1, "Vendor is required"),
-  poNumber: z.string().min(1, "PO number is required"),
+  poNumber: z.string().optional(),
   jobId: z.number().min(1, "Job ID is required"), // Updated from jobNumber
   projectManager: z.string().min(1, "Project manager is required"),
   poDate: z.string().min(1, "PO Date is required"),
   dueDate: z.string().optional(),
+  amount: z
+    .string()
+    .optional() // Allow the field to be optional
+    .refine(
+      (val) => !val || !isNaN(parseFloat(val)), // Validate it's a number if not empty
+      "Amount must be a valid number"
+    )
+    .refine(
+      (val) => !val || parseFloat(val) >= 0, // Ensure non-negative
+      "Amount must be a non-negative number"
+    ),
   shipTo: z.string().optional(),
   shipToAddress: z.string().optional(),
   shipToCity: z.string().optional(),
@@ -30,13 +42,24 @@ const poSchema = z.object({
 
 type PurchaseOrder = z.infer<typeof poSchema>;
 
+type Vendor = {
+  id: number;
+  vendorName: string;
+};
+
+type Project = {
+  id: number;
+  name: string;
+  status: string; // Assuming status is a string
+};
+
 export default function PurchaseOrderFormPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string }; // Get the PO ID from the route
   const [loading, setLoading] = useState(true);
-  const [vendors, setVendors] = useState([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]); // Vendor array
   const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]); // Project array
   const { user } = useUser(); // Get the logged-in user's details
   const {
     register,
@@ -49,6 +72,7 @@ export default function PurchaseOrderFormPage() {
     defaultValues: {
       poDate: new Date().toISOString().split("T")[0], // Default to today's date
       projectManager: user?.fullName || "", // Default to user's name
+      amount: "0", // Default amount to 0
     },
   });
 
@@ -74,6 +98,7 @@ export default function PurchaseOrderFormPage() {
       setValue("poNumber", data.purchaseOrder.poNumber);
       setValue("jobId", data.purchaseOrder.jobId);
       setValue("projectManager", data.purchaseOrder.projectManager);
+      setValue("amount", data.purchaseOrder.amount);
       setValue("shipTo", data.purchaseOrder.shipTo);
       setValue("costCode", data.purchaseOrder.costCode);
       setValue("shortDescription", data.purchaseOrder.shortDescription);
@@ -90,7 +115,7 @@ export default function PurchaseOrderFormPage() {
   const loadVendors = async () => {
     try {
       const response = await fetch("/api/vendors");
-      const data = await response.json();
+      const data: { vendors: Vendor[] } = await response.json(); // Type the response
       setVendors(data.vendors);
     } catch (err) {
       console.error("Error fetching vendors:", err);
@@ -101,10 +126,11 @@ export default function PurchaseOrderFormPage() {
     try {
       const response = await fetch("/api/projects");
       if (!response.ok) throw new Error("Error fetching projects");
-      const data = await response.json();
+      const data: { projects: Project[] } = await response.json(); // Type the response
+
       // Filter for active projects
       const activeProjects = data.projects.filter(
-        (project: { status: string }) => project.status === "active"
+        (project) => project.status === "active"
       );
       setProjects(activeProjects);
     } catch (err) {
@@ -114,9 +140,8 @@ export default function PurchaseOrderFormPage() {
 
   // Submit form (either update or create PO)
   const onSubmit = async (formData: PurchaseOrder) => {
-    console.log("Validated data:", formData);
     try {
-      //ensure poDate and other dates are parsed to Date objects
+      // Ensure poDate and other dates are parsed to Date objects
       const updatedData = {
         ...formData,
         poDate: formData.poDate
@@ -125,25 +150,56 @@ export default function PurchaseOrderFormPage() {
         dueDate: formData.dueDate
           ? new Date(formData.dueDate).toISOString().split("T")[0]
           : null,
+        costCode: formData.costCode ?? "", // Convert null to empty string
         received: formData.received ?? "", // Include received
         backorder: formData.backorder ?? "", // Include backorder
         notes: formData.notes ?? "", // Convert null to empty string
         longDescription: formData.longDescription ?? "", // Convert null to empty string
       };
 
-      console.log("Updated data:", updatedData);
+      const isNewRecord = !id || id === "new"; // Determine if this is a new record
+      const method = isNewRecord ? "POST" : "PUT";
+      const url = isNewRecord ? `/api/purchasing` : `/api/purchasing/${id}`;
 
-      const method = id && id !== "new" ? "PUT" : "POST";
-      const url =
-        id && id !== "new" ? `/api/purchasing/${id}` : "/api/purchasing";
+      // Safely find the vendorName and projectName
+      const vendorName =
+        vendors.find((v) => v.id === formData.vendorId)?.vendorName || "";
+
+      const projectName =
+        projects.find((p) => p.id === formData.jobId)?.name || "";
+
+      // For new records, exclude poNumber (it will be generated by the server)
+      const payload = isNewRecord
+        ? { ...updatedData, poNumber: undefined }
+        : updatedData;
+
+      // Send the request
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedData),
+        body: JSON.stringify(payload),
       });
+
       if (!response.ok) throw new Error("Error saving purchase order");
-      router.push("/modules/purchasing"); // Redirect after saving
+
+      const result = await response.json();
+      console.log("Server Response:", result);
+
+      // If it's a new record, optionally display the PO in the browser (PDF)
+      if (isNewRecord) {
+        generatePDF({
+          ...formData,
+          poNumber: result.newPurchaseOrder.poNumber,
+          vendorName,
+          projectName,
+          amount: formData.amount || "0", // Default to 0 if empty
+        }); // Pass the newly created PO data to the PDF generator
+      }
+
+      // Redirect to the purchasing page after saving
+      router.push("/modules/purchasing");
     } catch (err) {
+      console.error("Error submitting form:", err);
       setError((err as Error).message);
     }
   };
@@ -207,6 +263,8 @@ export default function PurchaseOrderFormPage() {
             <input
               {...register("poNumber")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+              disabled={id === "new"} // disable for new records
+              readOnly={id !== "new"} // read-only for existing records
             />
             {errors.poNumber && (
               <span className="text-red-500">{errors.poNumber.message}</span>
@@ -230,27 +288,48 @@ export default function PurchaseOrderFormPage() {
               <span className="text-red-500">{errors.jobId.message}</span>
             )}
           </div>
-          <div>
-            <label className="block text-gray-700">Cost Code</label>
-            <input
-              {...register("costCode")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-            />
-            {errors.costCode && (
-              <span className="text-red-500">{errors.costCode.message}</span>
-            )}
-          </div>
-          <div>
-            <label className="block text-gray-700">Project Manager</label>
-            <input
-              {...register("projectManager")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-            />
-            {errors.projectManager && (
-              <span className="text-red-500">
-                {errors.projectManager.message}
-              </span>
-            )}
+          <div className="col-span-2 flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-gray-700">Cost Code</label>
+              <input
+                {...register("costCode")}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+              />
+              {errors.costCode && (
+                <span className="text-red-500">{errors.costCode.message}</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="block text-gray-700">Amount</label>
+              <input
+                {...register("amount")}
+                className={`w-full px-4 py-2 border ${
+                  errors.amount ? "border-red-500" : "border-gray-300"
+                } rounded-md focus:outline-none focus:ring focus:ring-indigo-100`}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  if (value) {
+                    const formatted = parseFloat(value).toFixed(2); // Format as two decimal places
+                    setValue("amount", formatted); // Update the form value
+                  }
+                }}
+              />
+              {errors.amount && (
+                <span className="text-red-500">{errors.amount.message}</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="block text-gray-700">Project Manager</label>
+              <input
+                {...register("projectManager")}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+              />
+              {errors.projectManager && (
+                <span className="text-red-500">
+                  {errors.projectManager.message}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

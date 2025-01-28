@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getPurchaseOrdersWithDetails,
   addPurchaseOrder,
+  getNextPO,
 } from "../../db/actions";
 import { authenticate, authorize } from "../../../app/api/admin/helpers";
 import { z } from "zod";
@@ -23,6 +24,7 @@ const purchaseOrderSchema = z.object({
     .nullable()
     .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid due date") // Ensure valid date
     .transform((val) => (val ? new Date(val) : undefined)), // Convert to Date object or undefined
+  amount: z.string().optional(), // Total amount
   shipTo: z.string().optional(), // Shipping location
   costCode: z.string().min(1, "Cost code is required"),
   shortDescription: z
@@ -71,25 +73,30 @@ export async function POST(req: NextRequest) {
 
     // Parse the request body
     const body = await req.json();
-    console.log("Incoming Request Body:", body); // Log the incoming request
+    console.log("Incoming Request Body:", body);
 
     // Validate the request body using Zod schema
-    const result = purchaseOrderSchema.safeParse(body);
+    const result = purchaseOrderSchema.omit({ poNumber: true }).safeParse(body);
 
     if (!result.success) {
-      console.error("Validation Errors:", result.error.format()); // Log validation errors
+      console.error("Validation Errors:", result.error.format());
       return NextResponse.json(
         {
           message: "Validation error",
-          errors: result.error.format(), // Return formatted validation errors
+          errors: result.error.format(),
         },
         { status: 400 }
       );
     }
 
-    // Add the new purchase order to the database
+    // Step 1: Get the next PO number
+    const nextPoNumber = await getNextPO();
+    console.log("Next PO Number:", nextPoNumber);
+
+    // Step 2: Add the new purchase order to the database
     const newPurchaseOrder = await addPurchaseOrder({
       ...result.data,
+      poNumber: nextPoNumber, // Use the next available PO number
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -102,7 +109,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("Error adding purchase order:", err); // Log any other errors
+    console.error("Error adding purchase order:", err);
     return NextResponse.json(
       {
         message: "An error occurred while adding purchase order",

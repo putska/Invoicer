@@ -1155,6 +1155,28 @@ export const getAllPOs = async () => {
   }
 };
 
+// Example of "get all POs" function
+export const getNextPO = async (): Promise<string> => {
+  try {
+    const result = await db
+      .select({ poNumber: purchaseOrders.poNumber }) // Only fetch the poNumber field
+      .from(purchaseOrders)
+      .orderBy(desc(purchaseOrders.poNumber)) // Sort by poNumber descending
+      .limit(1); // Get the highest poNumber
+
+    // Get the last poNumber or default to "0"
+    const lastPoNumber = result[0]?.poNumber || "0";
+
+    // Convert to a number, increment, and convert back to a string
+    const nextPoNumber = (parseInt(lastPoNumber, 10) + 1).toString();
+
+    return nextPoNumber; // Return the incremented PO number as a string
+  } catch (error) {
+    console.error("Error fetching the next PO number:", error);
+    throw new Error("Could not generate the next PO number");
+  }
+};
+
 // used by the PO module to show the project name and the vendor name
 export const getPurchaseOrdersWithDetails = async () => {
   try {
@@ -1169,6 +1191,7 @@ export const getPurchaseOrdersWithDetails = async () => {
         projectManager: purchaseOrders.projectManager,
         poDate: purchaseOrders.poDate,
         dueDate: purchaseOrders.dueDate,
+        amount: purchaseOrders.amount,
         shipTo: purchaseOrders.shipTo,
         costCode: purchaseOrders.costCode,
         shortDescription: purchaseOrders.shortDescription,
@@ -1181,7 +1204,8 @@ export const getPurchaseOrdersWithDetails = async () => {
       })
       .from(purchaseOrders)
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id)) // Join with vendors
-      .leftJoin(projects, eq(purchaseOrders.jobId, projects.id)); // Join with projects
+      .leftJoin(projects, eq(purchaseOrders.jobId, projects.id)) // Join with projects
+      .orderBy(desc(purchaseOrders.poNumber)); // Order by PO number
 
     return result; // Return the combined data
   } catch (error) {
@@ -1244,6 +1268,7 @@ export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
       .insert(purchaseOrders)
       .values({
         ...poData,
+        costCode: poData.costCode || "", // Ensure costCode is always a string
       })
       .returning();
     return newPO;

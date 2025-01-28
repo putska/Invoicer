@@ -9,6 +9,7 @@ import AttachmentModal from "../../components/AttachmentModal";
 import { PaperClipIcon } from "@heroicons/react/24/outline";
 import { refreshAccessToken } from "../../modules/dropbox/dropboxClient";
 import { format } from "date-fns"; // A lightweight library for date formatting
+import { generatePDF } from "../../components/pdfUtils";
 
 type PurchaseOrder = {
   id: number;
@@ -17,6 +18,10 @@ type PurchaseOrder = {
   jobId: number; // Updated from jobNumber
   projectName: string; // Added field
   shortDescription: string;
+  projectManager: string;
+  shipTo: string;
+  amount: string;
+  dueDate: string;
   vendorName: string;
   notes?: string;
   received?: string; // Added field
@@ -78,6 +83,7 @@ export default function PurchaseOrderListPage() {
       flex: 1,
       minWidth: 150,
     },
+    { headerName: "Amount", field: "amount", flex: 1, minWidth: 150 },
     {
       headerName: "Notes",
       field: "notes",
@@ -110,6 +116,21 @@ export default function PurchaseOrderListPage() {
           openAttachmentModal(poId);
         };
 
+        const handlePrint = (po: PurchaseOrder) => {
+          // Call the `generatePDF` function with the correct PO data
+          generatePDF({
+            poNumber: po.poNumber,
+            poDate: po.poDate,
+            projectName: po.projectName,
+            shortDescription: po.shortDescription,
+            amount: po.amount,
+            projectManager: po.projectManager,
+            vendorName: po.vendorName,
+            dueDate: po.dueDate,
+            shipTo: po.shipTo,
+          });
+        };
+
         return (
           <div className="flex items-center justify-between mb-3">
             <button
@@ -138,6 +159,13 @@ export default function PurchaseOrderListPage() {
                 {params.data.attachmentCount}
               </span>
             )}
+            {/* Add the Print button */}
+            <button
+              onClick={() => handlePrint(params.data)} // Pass the current PO data
+              className="bg-blue-600 p-2 rounded-full hover:bg-blue-700 mb-3"
+            >
+              🖨️
+            </button>
           </div>
         );
       },
@@ -162,6 +190,7 @@ export default function PurchaseOrderListPage() {
       const response = await fetch("/api/purchasing");
       if (!response.ok) throw new Error("Error fetching purchase orders");
       const data = await response.json();
+      console.log("purchase orders", data.purchaseOrders);
       setRowData(data.purchaseOrders); // Assume API returns { purchaseOrders: [...] }
     } catch (err) {
       setError((err as Error).message);
