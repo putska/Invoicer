@@ -1,30 +1,31 @@
-// /app/purchasing/[id]/page.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { generatePDF } from "../../../components/pdfUtils";
 
+// ---------------- Schema & Types ----------------
+
 const poSchema = z.object({
   vendorId: z.number().min(1, "Vendor is required"),
   poNumber: z.string().optional(),
-  jobId: z.number().min(1, "Job ID is required"), // Updated from jobNumber
+  jobId: z.number().min(1, "Job ID is required"),
   projectManager: z.string().min(1, "Project manager is required"),
   poDate: z.string().min(1, "PO Date is required"),
   dueDate: z.string().optional(),
   amount: z
     .string()
-    .optional() // Allow the field to be optional
+    .optional()
     .refine(
-      (val) => !val || !isNaN(parseFloat(val)), // Validate it's a number if not empty
+      (val) => !val || !isNaN(parseFloat(val)),
       "Amount must be a valid number"
     )
     .refine(
-      (val) => !val || parseFloat(val) >= 0, // Ensure non-negative
+      (val) => !val || parseFloat(val) >= 0,
       "Amount must be a non-negative number"
     ),
   shipTo: z.string().optional(),
@@ -32,12 +33,12 @@ const poSchema = z.object({
   shipToCity: z.string().optional(),
   shipToState: z.string().optional(),
   shipToZip: z.string().optional(),
-  costCode: z.string().min(1, "Cost code is required"),
+  costCode: z.string().optional(),
   shortDescription: z.string().min(1, "Short description is required"),
   longDescription: z.string().optional(),
   notes: z.string().optional(),
-  received: z.string().optional(), // New field
-  backorder: z.string().optional(), // New field
+  received: z.string().optional(),
+  backorder: z.string().optional(),
 });
 
 type PurchaseOrder = z.infer<typeof poSchema>;
@@ -50,98 +51,199 @@ type Vendor = {
 type Project = {
   id: number;
   name: string;
-  status: string; // Assuming status is a string
+  status: string;
 };
+
+type ApiResponse<T> = {
+  data?: T;
+  error?: string;
+};
+
+type VendorsApiResponse = {
+  message: string;
+  vendors: Vendor[];
+};
+
+type ProjectsApiResponse = {
+  message: string;
+  projects: Project[];
+};
+
+// ---------------- Reusable Form Field Component ----------------
+
+interface FormFieldProps {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}
+
+const FormField = ({ label, error, children }: FormFieldProps) => (
+  <div className="mb-4">
+    <label className="block text-gray-700 mb-1">{label}</label>
+    {children}
+    {error && <span className="text-red-500 text-sm">{error}</span>}
+  </div>
+);
+
+// ---------------- Main Component ----------------
 
 export default function PurchaseOrderFormPage() {
   const router = useRouter();
-  const { id } = useParams() as { id: string }; // Get the PO ID from the route
-  const [loading, setLoading] = useState(true);
-  const [vendors, setVendors] = useState<Vendor[]>([]); // Vendor array
+  const { id } = useParams() as { id: string };
+  const { user } = useUser();
+
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]); // Project array
-  const { user } = useUser(); // Get the logged-in user's details
+  const [status, setStatus] = useState<"loading" | "error" | "success">(
+    "loading"
+  );
+
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     control,
-    formState: { errors },
+    formState: { errors, dirtyFields },
+    setValue,
   } = useForm<PurchaseOrder>({
     resolver: zodResolver(poSchema),
     defaultValues: {
-      poDate: new Date().toISOString().split("T")[0], // Default to today's date
-      projectManager: user?.fullName || "", // Default to user's name
-      amount: "0", // Default amount to 0
+      poDate: new Date().toISOString().split("T")[0],
+      projectManager: user?.fullName || "",
+      amount: "0",
     },
   });
 
-  // Fetch PO by ID or default to a new PO
-  const loadPurchaseOrder = async (poId: string) => {
-    try {
-      const response = await fetch(`/api/purchasing/${poId}`);
-      if (!response.ok) throw new Error("Error fetching purchase order");
-      const data = await response.json();
+  // ---------------- Debounced Auto-Save ----------------
 
-      // Format the date fields to YYYY-MM-DD before setting them
-      setValue(
-        "poDate",
-        format(new Date(data.purchaseOrder.poDate), "yyyy-MM-dd")
-      );
-      setValue(
-        "dueDate",
-        data.purchaseOrder.dueDate
-          ? format(new Date(data.purchaseOrder.dueDate), "yyyy-MM-dd")
-          : ""
-      ); // Handle optional dueDate
-      setValue("vendorId", data.purchaseOrder.vendorId);
-      setValue("poNumber", data.purchaseOrder.poNumber);
-      setValue("jobId", data.purchaseOrder.jobId);
-      setValue("projectManager", data.purchaseOrder.projectManager);
-      setValue("amount", data.purchaseOrder.amount);
-      setValue("shipTo", data.purchaseOrder.shipTo);
-      setValue("costCode", data.purchaseOrder.costCode);
-      setValue("shortDescription", data.purchaseOrder.shortDescription);
-      setValue("longDescription", data.purchaseOrder.longDescription);
-      setValue("notes", data.purchaseOrder.notes);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+  // Watch form values so we can auto-save drafts for existing records
+  const watchedValues = useWatch({ control });
+
+  const saveDraft = useCallback(
+    async (data: PurchaseOrder) => {
+      try {
+        const response = await fetch(`/api/purchasing/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok)
+          throw new Error(`Auto-save HTTP error: ${response.status}`);
+        console.log("Draft saved successfully");
+      } catch (err) {
+        console.error("Auto-save failed:", err);
+      }
+    },
+    [id]
+  );
+
+  useEffect(() => {
+    if (id && id !== "new" && Object.keys(dirtyFields).length > 0) {
+      const handler = setTimeout(() => {
+        handleSubmit(async (data) => {
+          await saveDraft(data);
+        })();
+      }, 2000);
+      return () => clearTimeout(handler);
     }
-  };
+  }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
-  // Fetch Vendors for the drop-down
-  const loadVendors = async () => {
+  // ---------------- API Loaders ----------------
+
+  const loadPurchaseOrder = useCallback(
+    async (poId: string) => {
+      try {
+        const response = await fetch(`/api/purchasing/${poId}`);
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+        // Log the entire response to see the structure
+        const result = await response.json();
+        console.log("Purchase Order API response:", result);
+
+        // Adjust this check to match the actual structure:
+        if (!result.purchaseOrder) {
+          throw new Error(result.error || "Invalid response structure");
+        }
+
+        const po = result.purchaseOrder;
+        // Format dates and reset form values
+        reset({
+          ...po,
+          poDate: format(new Date(po.poDate), "yyyy-MM-dd"),
+          dueDate: po.dueDate
+            ? format(new Date(po.dueDate), "yyyy-MM-dd")
+            : undefined,
+        });
+        setStatus("success");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error occurred");
+        setStatus("error");
+      }
+    },
+    [reset]
+  );
+
+  const loadVendors = useCallback(async () => {
     try {
       const response = await fetch("/api/vendors");
-      const data: { vendors: Vendor[] } = await response.json(); // Type the response
-      setVendors(data.vendors);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      // Parse the response using the expected structure
+      const result: VendorsApiResponse = await response.json();
+      console.log("Vendors API response:", result);
+      if (!result.vendors) throw new Error("Failed to load vendors");
+      setVendors(result.vendors);
     } catch (err) {
       console.error("Error fetching vendors:", err);
     }
-  };
+  }, []);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       const response = await fetch("/api/projects");
-      if (!response.ok) throw new Error("Error fetching projects");
-      const data: { projects: Project[] } = await response.json(); // Type the response
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result: { message: string; projects: Project[] } =
+        await response.json();
+      if (!result.projects) throw new Error("Failed to load projects");
 
-      // Filter for active projects
-      const activeProjects = data.projects.filter(
-        (project) => project.status === "active"
-      );
-      setProjects(activeProjects);
+      // If we're editing (id exists and isn't "new"), show all projects.
+      // Otherwise, for a new PO, show only active projects.
+      const projectsToSet =
+        id && id !== "new"
+          ? result.projects
+          : result.projects.filter((project) => project.status === "active");
+
+      setProjects(projectsToSet);
     } catch (err) {
       console.error("Error fetching projects:", err);
     }
-  };
+  }, [id]);
 
-  // Submit form (either update or create PO)
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Wait for dropdown data to load
+        await Promise.all([loadVendors(), loadProjects()]);
+
+        // Now load the purchase order if we're editing
+        if (id && id !== "new") {
+          await loadPurchaseOrder(id);
+        } else {
+          setStatus("success");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchData();
+  }, [id, loadPurchaseOrder, loadVendors, loadProjects]);
+
+  // ---------------- Form Submission ----------------
+
   const onSubmit = async (formData: PurchaseOrder) => {
     try {
-      // Ensure poDate and other dates are parsed to Date objects
       const updatedData = {
         ...formData,
         poDate: formData.poDate
@@ -150,72 +252,58 @@ export default function PurchaseOrderFormPage() {
         dueDate: formData.dueDate
           ? new Date(formData.dueDate).toISOString().split("T")[0]
           : null,
-        costCode: formData.costCode ?? "", // Convert null to empty string
-        received: formData.received ?? "", // Include received
-        backorder: formData.backorder ?? "", // Include backorder
-        notes: formData.notes ?? "", // Convert null to empty string
-        longDescription: formData.longDescription ?? "", // Convert null to empty string
+        costCode: formData.costCode ?? "",
+        received: formData.received ?? "",
+        backorder: formData.backorder ?? "",
+        notes: formData.notes ?? "",
+        longDescription: formData.longDescription ?? "",
       };
 
-      const isNewRecord = !id || id === "new"; // Determine if this is a new record
+      const isNewRecord = !id || id === "new";
       const method = isNewRecord ? "POST" : "PUT";
       const url = isNewRecord ? `/api/purchasing` : `/api/purchasing/${id}`;
 
-      // Safely find the vendorName and projectName
+      // Retrieve vendor and project names from state for PDF generation
       const vendorName =
         vendors.find((v) => v.id === formData.vendorId)?.vendorName || "";
-
       const projectName =
         projects.find((p) => p.id === formData.jobId)?.name || "";
 
-      // For new records, exclude poNumber (it will be generated by the server)
       const payload = isNewRecord
         ? { ...updatedData, poNumber: undefined }
         : updatedData;
 
-      // Send the request
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      if (!response.ok) throw new Error("Error saving purchase order");
-
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
       const result = await response.json();
       console.log("Server Response:", result);
 
-      // If it's a new record, optionally display the PO in the browser (PDF)
       if (isNewRecord) {
         generatePDF({
           ...formData,
           poNumber: result.newPurchaseOrder.poNumber,
           vendorName,
           projectName,
-          amount: formData.amount || "0", // Default to 0 if empty
-        }); // Pass the newly created PO data to the PDF generator
+          amount: formData.amount || "0",
+        });
       }
-
-      // Redirect to the purchasing page after saving
       router.push("/modules/purchasing");
     } catch (err) {
       console.error("Error submitting form:", err);
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
     }
   };
 
-  useEffect(() => {
-    if (id && id !== "new") {
-      loadPurchaseOrder(id); // Load PO if editing
-    } else {
-      setLoading(false); // Skip loading for new PO
-    }
-    loadVendors(); // Load vendors for dropdown
-    loadProjects(); // Load projects for dropdown
-  }, [id]);
+  // ---------------- Render ----------------
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
+  if (status === "loading") return <div>Loading...</div>;
+  if (status === "error" && error)
+    return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
@@ -225,82 +313,59 @@ export default function PurchaseOrderFormPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Top Section */}
         <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-gray-700">PO Date</label>
+          <FormField label="PO Date" error={errors.poDate?.message}>
             <input
               type="date"
               {...register("poDate")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
             />
-            {errors.poDate && (
-              <span className="text-red-500">{errors.poDate.message}</span>
-            )}
-          </div>
-          <div>
-            <label className="block text-gray-700">Vendor</label>
+          </FormField>
+          <FormField label="Vendor" error={errors.vendorId?.message}>
             <select
-              {...register("vendorId", { valueAsNumber: true })} // Convert value to number
+              {...register("vendorId", { valueAsNumber: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
             >
-              <option value="">Select a Vendor</option>{" "}
-              {/* Default empty option */}
-              {vendors.map((vendor: { id: number; vendorName: string }) => (
+              <option value="">Select a Vendor</option>
+              {vendors.map((vendor) => (
                 <option key={vendor.id} value={vendor.id}>
                   {vendor.vendorName}
                 </option>
               ))}
             </select>
-            {errors.vendorId && (
-              <span className="text-red-500">{errors.vendorId.message}</span>
-            )}
-          </div>
+          </FormField>
         </div>
 
-        {/* PO Number, Job Number, Cost Code, Project Manager */}
+        {/* PO Number, Job, Cost Code, Project Manager */}
         <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-gray-700">PO Number</label>
+          <FormField label="PO Number" error={errors.poNumber?.message}>
             <input
               {...register("poNumber")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              disabled={id === "new"} // disable for new records
-              readOnly={id !== "new"} // read-only for existing records
+              disabled={id === "new"}
+              readOnly={id !== "new"}
             />
-            {errors.poNumber && (
-              <span className="text-red-500">{errors.poNumber.message}</span>
-            )}
-          </div>
-          <div>
-            <label className="block text-gray-700">Job</label>
+          </FormField>
+          <FormField label="Job" error={errors.jobId?.message}>
             <select
               {...register("jobId", { valueAsNumber: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
             >
-              <option value="">Select a Job</option>{" "}
-              {/* Default empty option */}
-              {projects.map((project: { id: number; name: string }) => (
+              <option value="">Select a Job</option>
+              {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
               ))}
             </select>
-            {errors.jobId && (
-              <span className="text-red-500">{errors.jobId.message}</span>
-            )}
-          </div>
-          <div className="col-span-2 flex space-x-4">
-            <div className="flex-1">
-              <label className="block text-gray-700">Cost Code</label>
+          </FormField>
+          <div className="col-span-2 grid grid-cols-3 gap-6">
+            <FormField label="Cost Code" error={errors.costCode?.message}>
               <input
                 {...register("costCode")}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
               />
-              {errors.costCode && (
-                <span className="text-red-500">{errors.costCode.message}</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <label className="block text-gray-700">Amount</label>
+            </FormField>
+            <FormField label="Amount" error={errors.amount?.message}>
               <input
                 {...register("amount")}
                 className={`w-full px-4 py-2 border ${
@@ -309,121 +374,88 @@ export default function PurchaseOrderFormPage() {
                 onBlur={(e) => {
                   const value = e.target.value;
                   if (value) {
-                    const formatted = parseFloat(value).toFixed(2); // Format as two decimal places
-                    setValue("amount", formatted); // Update the form value
+                    const formatted = parseFloat(value).toFixed(2);
+                    setValue("amount", formatted);
                   }
                 }}
               />
-              {errors.amount && (
-                <span className="text-red-500">{errors.amount.message}</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <label className="block text-gray-700">Project Manager</label>
+            </FormField>
+            <FormField
+              label="Project Manager"
+              error={errors.projectManager?.message}
+            >
               <input
                 {...register("projectManager")}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
               />
-              {errors.projectManager && (
-                <span className="text-red-500">
-                  {errors.projectManager.message}
-                </span>
-              )}
-            </div>
+            </FormField>
           </div>
         </div>
 
         {/* Shipping Info */}
         <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-gray-700">Due Date</label>
+          <FormField label="Due Date" error={errors.dueDate?.message}>
             <input
               type="date"
               {...register("dueDate")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
             />
-            {errors.dueDate && (
-              <span className="text-red-500">{errors.dueDate.message}</span>
-            )}
-          </div>
-          <div>
-            <label className="block text-gray-700">Ship To</label>
+          </FormField>
+          <FormField label="Ship To" error={errors.shipTo?.message}>
             <input
               {...register("shipTo")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
             />
-            {errors.shipTo && (
-              <span className="text-red-500">{errors.shipTo.message}</span>
-            )}
-          </div>
+          </FormField>
         </div>
 
         {/* Received */}
-        <div>
-          <label className="block text-gray-700">Received</label>
+        <FormField label="Received" error={errors.received?.message}>
           <textarea
             {...register("received")}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
-          {errors.received && (
-            <span className="text-red-500">{errors.received.message}</span>
-          )}
-        </div>
+        </FormField>
 
         {/* Backorder */}
-        <div>
-          <label className="block text-gray-700">Backorder</label>
+        <FormField label="Backorder" error={errors.backorder?.message}>
           <textarea
             {...register("backorder")}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
-          {errors.backorder && (
-            <span className="text-red-500">{errors.backorder.message}</span>
-          )}
-        </div>
+        </FormField>
 
         {/* Descriptions */}
-        <div>
-          <label className="block text-gray-700">Short Description</label>
+        <FormField
+          label="Short Description"
+          error={errors.shortDescription?.message}
+        >
           <input
             {...register("shortDescription")}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
-          {errors.shortDescription && (
-            <span className="text-red-500">
-              {errors.shortDescription.message}
-            </span>
-          )}
-        </div>
-        <div>
-          <label className="block text-gray-700">Long Description</label>
+        </FormField>
+        <FormField
+          label="Long Description"
+          error={errors.longDescription?.message}
+        >
           <textarea
             {...register("longDescription")}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
-          {errors.longDescription && (
-            <span className="text-red-500">
-              {errors.longDescription.message}
-            </span>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-gray-700">Notes</label>
+        </FormField>
+        <FormField label="Notes" error={errors.notes?.message}>
           <textarea
             {...register("notes")}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
-          {errors.notes && (
-            <span className="text-red-500">{errors.notes.message}</span>
-          )}
-        </div>
+        </FormField>
 
         {/* Buttons */}
         <div className="flex justify-end space-x-4">
           <button
             type="button"
-            onClick={() => router.push("/modules/purchasing")} // Redirect to purchasing page
+            onClick={() => router.push("/modules/purchasing")}
             className="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-100"
           >
             Cancel

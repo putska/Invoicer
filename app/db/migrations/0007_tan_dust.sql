@@ -1,0 +1,1 @@
+ALTER TABLE "purchase_orders" ALTER COLUMN "cost_code" DROP NOT NULL;

@@ -10,6 +10,12 @@ interface AttachmentModalProps {
   tableName: string;
 }
 
+interface Attachment {
+  id: number;
+  fileName: string;
+  fileUrl: string; // Dropbox file path or URL
+}
+
 const AttachmentModal = ({
   isOpen,
   onClose,
@@ -21,6 +27,7 @@ const AttachmentModal = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const { register, handleSubmit, reset } = useForm<{ notes: string }>();
+  const [sharedLinks, setSharedLinks] = useState<{ [key: number]: string }>({});
 
   // Fetch attachments when the modal is opened
   useEffect(() => {
@@ -28,6 +35,37 @@ const AttachmentModal = ({
       fetchAttachments();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    async function generateLinks() {
+      const links: { [key: number]: string } = {};
+      for (const attachment of attachments) {
+        try {
+          const link = await fetchSharedLink(attachment.fileName);
+          links[attachment.id] = link;
+        } catch (error) {
+          console.error(
+            "Failed to generate shared link for",
+            attachment.fileName,
+            error
+          );
+        }
+      }
+      setSharedLinks(links);
+    }
+    generateLinks();
+  }, [attachments]);
+
+  const fetchSharedLink = async (filePath: string) => {
+    const response = await fetch(
+      `/api/shared-link/${encodeURIComponent(filePath)}`
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to generate shared link");
+    }
+    return data.sharedLink;
+  };
 
   const fetchAttachments = async () => {
     console.log("Fetching attachments for recordId:", recordId);
@@ -80,11 +118,19 @@ const AttachmentModal = ({
     }
   };
 
-  const handleDeleteAttachment = async (attachmentId: number) => {
+  const handleDeleteAttachment = async (
+    attachmentId: number,
+    tableName: string
+  ) => {
     try {
-      const response = await fetch(`/api/attachments/${attachmentId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/attachments/${attachmentId}?tableName=${encodeURIComponent(
+          tableName
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Error deleting attachment");
@@ -135,7 +181,7 @@ const AttachmentModal = ({
               onClick={onClose}
               className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
             >
-              Cancel
+              Close
             </button>
             <button
               type="submit"
@@ -190,16 +236,29 @@ const AttachmentModal = ({
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-gray-800 font-medium">
-                        {attachment.fileName}
-                      </p>
+                      {sharedLinks[attachment.id] ? (
+                        <a
+                          href={sharedLinks[attachment.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 font-medium underline"
+                        >
+                          {attachment.fileName}
+                        </a>
+                      ) : (
+                        <span className="text-gray-800 font-medium">
+                          {attachment.fileName}
+                        </span>
+                      )}
                       <p className="text-gray-600 text-sm">
                         {attachment.fileSize} bytes • {attachment.notes} •{" "}
                         {new Date(attachment.uploadedAt).toLocaleDateString()}
                       </p>
                     </div>
                     <button
-                      onClick={() => handleDeleteAttachment(attachment.id)}
+                      onClick={() =>
+                        handleDeleteAttachment(attachment.id, tableName)
+                      }
                       className="text-red-600 hover:underline text-sm"
                     >
                       Delete

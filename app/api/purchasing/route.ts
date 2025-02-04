@@ -26,7 +26,7 @@ const purchaseOrderSchema = z.object({
     .transform((val) => (val ? new Date(val) : undefined)), // Convert to Date object or undefined
   amount: z.string().optional(), // Total amount
   shipTo: z.string().optional(), // Shipping location
-  costCode: z.string().min(1, "Cost code is required"),
+  costCode: z.string().optional(),
   shortDescription: z
     .string()
     .max(50, "Short description must be under 50 characters"),

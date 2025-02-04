@@ -50,6 +50,13 @@
       "when": 1738021390616,
       "tag": "0006_fast_machine_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1738096768449,
+      "tag": "0007_tan_dust",
+      "breakpoints": true
     }
   ]
 }

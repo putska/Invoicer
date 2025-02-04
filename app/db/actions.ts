@@ -1201,6 +1201,12 @@ export const getPurchaseOrdersWithDetails = async () => {
         backorder: purchaseOrders.backorder,
         createdAt: purchaseOrders.createdAt,
         updatedAt: purchaseOrders.updatedAt,
+        // Add a subquery to count the number of attachments for each PO.
+        attachmentCount: sql<number>`(
+          SELECT COUNT(*) FROM ${attachments}
+          WHERE ${attachments.recordId} = ${purchaseOrders.id}
+            AND ${attachments.tableName} = 'purchase_orders'
+        )`,
       })
       .from(purchaseOrders)
       .leftJoin(vendors, eq(purchaseOrders.vendorId, vendors.id)) // Join with vendors
@@ -1386,10 +1392,6 @@ export const getAttachments = async (tableName: string, recordId: number) => {
 // Delete attachment from Dropbox and database
 export const deleteAttachment = async (attachmentId: number) => {
   try {
-    if (!process.env.DROPBOX_ACCESS_TOKEN) {
-      throw new Error("Can't find Access Token for Dropbox");
-    }
-
     // Get the attachment record from the database
     const [attachment] = await db
       .select()
@@ -1399,8 +1401,8 @@ export const deleteAttachment = async (attachmentId: number) => {
 
     if (!attachment) throw new Error("Attachment not found.");
 
-    // Initialize Dropbox
-    const dbx = new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN });
+    // Use the same getDropboxClient() function as your upload flow
+    const dbx = await getDropboxClient();
 
     // Delete the file from Dropbox
     await dbx.filesDeleteV2({ path: attachment.fileUrl }); // Make sure you're accessing the fileUrl from the object

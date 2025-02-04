@@ -1,22 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef } from "ag-grid-community";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
 import AttachmentModal from "../../components/AttachmentModal";
-import { PaperClipIcon } from "@heroicons/react/24/outline";
-import { refreshAccessToken } from "../../modules/dropbox/dropboxClient";
-import { format } from "date-fns"; // A lightweight library for date formatting
+import {
+  PaperClipIcon,
+  PrinterIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import { format } from "date-fns";
 import { generatePDF } from "../../components/pdfUtils";
+import { useRouter } from "next/navigation";
 
 type PurchaseOrder = {
   id: number;
   poNumber: string;
   poDate: string;
-  jobId: number; // Updated from jobNumber
-  projectName: string; // Added field
+  jobId: number;
+  projectName: string;
   shortDescription: string;
   projectManager: string;
   shipTo: string;
@@ -24,182 +29,147 @@ type PurchaseOrder = {
   dueDate: string;
   vendorName: string;
   notes?: string;
-  received?: string; // Added field
-  backorder?: string; // Added field
+  received?: string;
+  backorder?: string;
+  attachmentCount?: number; // Added missing type
 };
 
 export default function PurchaseOrderListPage() {
+  const router = useRouter();
   const [rowData, setRowData] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState(50); // Pagination size
+  const [pageSize] = useState(50);
   const [selectedPO, setSelectedPO] = useState<number | null>(null);
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
-  const [currentAttachments, setCurrentAttachments] = useState<any[]>([]); // State to store attachments
 
-  const defaultColDef: ColDef = {
-    resizable: true, // Allow resizing
-    sortable: true, // Enable sorting
-    filter: true, // Enable filtering
-  };
+  // Memoized handlers
+  const handlePrint = useCallback((po: PurchaseOrder) => {
+    generatePDF({
+      poNumber: po.poNumber,
+      poDate: po.poDate,
+      projectName: po.projectName,
+      shortDescription: po.shortDescription,
+      amount: po.amount,
+      projectManager: po.projectManager,
+      vendorName: po.vendorName,
+      dueDate: po.dueDate,
+      shipTo: po.shipTo,
+    });
+  }, []);
 
-  const columnDefs: ColDef<PurchaseOrder>[] = [
-    {
-      headerName: "PO Number",
-      field: "poNumber",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 100,
-    },
-    {
-      headerName: "PO Date",
-      field: "poDate",
-      filter: "agTextColumnFilter",
-      valueFormatter: ({ value }) => {
-        if (!value) return ""; // Handle null or undefined dates
-        return format(new Date(value), "MM/dd/yyyy"); // Format date as MM/DD/YYYY
+  const handleOpenAttachments = useCallback((poId: number) => {
+    setSelectedPO(poId);
+    setIsAttachmentModalOpen(true);
+  }, []);
+
+  const handleCloseAttachments = useCallback(() => {
+    setIsAttachmentModalOpen(false);
+    setSelectedPO(null);
+  }, []);
+
+  // Memoized column definitions
+  const columnDefs = useMemo<ColDef<PurchaseOrder>[]>(
+    () => [
+      {
+        headerName: "PO Number",
+        field: "poNumber",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 100,
       },
-      flex: 1,
-      minWidth: 100,
-    },
-    {
-      headerName: "Project",
-      field: "projectName",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 150,
-    }, // Updated
-    {
-      headerName: "Description",
-      field: "shortDescription",
-      filter: "agTextColumnFilter",
-      flex: 2,
-      minWidth: 200,
-    },
-    {
-      headerName: "Vendor",
-      field: "vendorName",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 150,
-    },
-    { headerName: "Amount", field: "amount", flex: 1, minWidth: 150 },
-    {
-      headerName: "Notes",
-      field: "notes",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 150,
-    },
-    {
-      headerName: "Received",
-      field: "received",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 150,
-    }, // New column
-    {
-      headerName: "Backorder",
-      field: "backorder",
-      filter: "agTextColumnFilter",
-      flex: 1,
-      minWidth: 150,
-    }, // New column
-    {
-      headerName: "Actions",
-      field: "id",
-      flex: 1,
-      minWidth: 150,
-      cellRenderer: (params: any) => {
-        const handleOpenAttachments = (poId: number) => {
-          setSelectedPO(poId);
-          openAttachmentModal(poId);
-        };
-
-        const handlePrint = (po: PurchaseOrder) => {
-          // Call the `generatePDF` function with the correct PO data
-          generatePDF({
-            poNumber: po.poNumber,
-            poDate: po.poDate,
-            projectName: po.projectName,
-            shortDescription: po.shortDescription,
-            amount: po.amount,
-            projectManager: po.projectManager,
-            vendorName: po.vendorName,
-            dueDate: po.dueDate,
-            shipTo: po.shipTo,
-          });
-        };
-
-        return (
-          <div className="flex items-center justify-between mb-3">
+      {
+        headerName: "PO Date",
+        field: "poDate",
+        filter: "agDateColumnFilter",
+        valueFormatter: ({ value }) =>
+          value ? format(new Date(value), "MM/dd/yyyy") : "",
+        comparator: (dateA, dateB) =>
+          new Date(dateA).getTime() - new Date(dateB).getTime(),
+      },
+      {
+        headerName: "Project",
+        field: "projectName",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+      {
+        headerName: "Description",
+        field: "shortDescription",
+        filter: "agTextColumnFilter",
+        flex: 2,
+        minWidth: 200,
+      },
+      {
+        headerName: "Vendor",
+        field: "vendorName",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+      {
+        headerName: "Amount",
+        field: "amount",
+        type: "numericColumn",
+        valueFormatter: ({ value }) => `$${Number(value).toFixed(2)}`,
+        filter: "agNumberColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+      {
+        headerName: "Actions",
+        field: "id",
+        flex: 1,
+        minWidth: 200,
+        cellRenderer: (params: ICellRendererParams<PurchaseOrder>) => (
+          <div className="flex items-center gap-2 py-1">
             <button
-              className="bg-indigo-600 px-2 py-0.75 text-white rounded-md mr-2 mb-3"
-              onClick={() =>
-                (window.location.href = `/modules/purchasing/${params.value}`)
-              }
+              onClick={() => router.push(`/modules/purchasing/${params.value}`)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors"
             >
+              <PencilSquareIcon className="w-4 h-4" />
               Edit
             </button>
+
             <button
-              className="bg-red-600 px-2 py-0.75 text-white rounded-md mr-2 mb-3"
-              onClick={() => handleDelete(params.value)}
+              onClick={() => handleDelete(params.value!)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
             >
+              <TrashIcon className="w-4 h-4" />
               Delete
             </button>
 
             <button
-              onClick={() => handleOpenAttachments(params.value)}
-              className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 mb-3"
+              onClick={() => handleOpenAttachments(params.value!)}
+              className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              title="Attachments"
             >
-              <PaperClipIcon className="h-7 w-7 text-gray-600" />
+              <PaperClipIcon className="w-5 h-5" />
+              {params.data?.attachmentCount &&
+              params.data?.attachmentCount > 0 ? (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-red-500 rounded-full">
+                  {params.data.attachmentCount}
+                </span>
+              ) : null}
             </button>
-            {params.data.attachmentCount > 0 && (
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
-                {params.data.attachmentCount}
-              </span>
-            )}
-            {/* Add the Print button */}
+
             <button
-              onClick={() => handlePrint(params.data)} // Pass the current PO data
-              className="bg-blue-600 p-2 rounded-full hover:bg-blue-700 mb-3"
+              onClick={() => handlePrint(params.data!)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              title="Print PO"
             >
-              🖨️
+              <PrinterIcon className="w-5 h-5" />
             </button>
           </div>
-        );
+        ),
       },
-    },
-  ];
+    ],
+    [router, handleOpenAttachments, handlePrint]
+  );
 
-  //open modal for attachments
-  const openAttachmentModal = (poId: number) => {
-    setSelectedPO(poId); // Set the selected purchase order ID
-    setIsAttachmentModalOpen(true); // Open the attachment modal
-  };
-
-  const closeAttachmentModal = () => {
-    setIsAttachmentModalOpen(false);
-    setSelectedPO(null);
-    setCurrentAttachments([]); // Clear attachments on close
-  };
-
-  const loadPurchaseOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/purchasing");
-      if (!response.ok) throw new Error("Error fetching purchase orders");
-      const data = await response.json();
-      console.log("purchase orders", data.purchaseOrders);
-      setRowData(data.purchaseOrders); // Assume API returns { purchaseOrders: [...] }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (poId: number) => {
+  // Delete handler
+  const handleDelete = useCallback(async (poId: number) => {
     if (
       window.confirm("Are you sure you want to delete this purchase order?")
     ) {
@@ -208,29 +178,44 @@ export default function PurchaseOrderListPage() {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Error deleting purchase order");
-        loadPurchaseOrders(); // Reload the data after deletion
+        setRowData((prev) => prev.filter((po) => po.id !== poId));
       } catch (err) {
-        setError((err as Error).message);
+        setError(err instanceof Error ? err.message : "Deletion failed");
       }
     }
-  };
+  }, []);
+
+  // Data loading
+  const loadPurchaseOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/purchasing");
+      if (!response.ok) throw new Error("Error fetching purchase orders");
+      const data = await response.json();
+      setRowData(data.purchaseOrders || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Loading failed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadPurchaseOrders();
-  }, []);
+  }, [loadPurchaseOrders]);
 
-  if (loading) return <div>Loading purchase orders...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) return <div className="p-6">Loading purchase orders...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="w-full  p-6 bg-white rounded-md shadow-md">
+    <div className="w-full p-6 bg-white rounded-md shadow-md">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-700">
           Purchase Orders
         </h1>
         <button
-          onClick={() => (window.location.href = "/modules/purchasing/new")}
-          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
+          onClick={() => router.push("/modules/purchasing/new")}
+          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
         >
           Add Purchase Order
         </button>
@@ -238,10 +223,7 @@ export default function PurchaseOrderListPage() {
 
       <div
         className="ag-theme-alpine"
-        style={{
-          height: "calc(100vh - 250px)", // Adjust height dynamically (full height minus header/footer)
-          width: "100%", // Take the full width of the container
-        }}
+        style={{ height: "calc(100vh - 250px)", width: "100%" }}
       >
         <AgGridReact
           rowData={rowData}
@@ -251,15 +233,12 @@ export default function PurchaseOrderListPage() {
         />
       </div>
 
-      {/* Attachment Modal */}
-      {isAttachmentModalOpen && selectedPO && (
-        <AttachmentModal
-          isOpen={isAttachmentModalOpen}
-          onClose={closeAttachmentModal}
-          recordId={selectedPO ?? 0}
-          tableName={"purchase_orders"}
-        />
-      )}
+      <AttachmentModal
+        isOpen={isAttachmentModalOpen}
+        onClose={handleCloseAttachments}
+        recordId={selectedPO ?? 0}
+        tableName="purchase_orders"
+      />
     </div>
   );
 }
