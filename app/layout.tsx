@@ -1,7 +1,6 @@
 // src/app/layout.tsx
 
 import { PT_Sans } from "next/font/google";
-import { forwardRef } from "react";
 import {
   ClerkProvider,
   SignInButton,
@@ -15,24 +14,35 @@ import "./globals.css";
 import { PermissionProvider } from "./context/PermissionContext";
 import { SocketProvider } from "./context/SocketContext";
 import AuthHandler from "./components/AuthHandler"; // Move AuthHandler to a separate file
+import { getToken } from "./db/actions";
+import { refreshAccessToken } from "./modules/dropbox/dropboxClient"; // Make sure this function is defined and exported
 
 const ptSans = PT_Sans({
   subsets: ["latin"], // Specify the font subset
   weight: ["400", "700"], // Add specific weights if needed
 });
 
-import { ForwardedRef } from "react";
-
 export const metadata = {
   title: "CSE",
   description: "C/S Erectors Portal",
 };
 
-export default function RootLayout({
+async function initializeDropboxToken() {
+  const token = await getToken("dropbox");
+  if (!token) {
+    console.log("Initial Dropbox token setup...");
+    await refreshAccessToken();
+  }
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Ensure that a valid Dropbox token is set up before rendering the layout
+  // await initializeDropboxToken();
+
   return (
     <html lang="en">
       <body className={ptSans.className}>

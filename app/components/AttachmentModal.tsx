@@ -41,12 +41,13 @@ const AttachmentModal = ({
       const links: { [key: number]: string } = {};
       for (const attachment of attachments) {
         try {
-          const link = await fetchSharedLink(attachment.fileName);
+          // Use fileUrl instead of fileName
+          const link = await fetchSharedLink(attachment.fileUrl);
           links[attachment.id] = link;
         } catch (error) {
           console.error(
             "Failed to generate shared link for",
-            attachment.fileName,
+            attachment.fileUrl,
             error
           );
         }
@@ -56,9 +57,13 @@ const AttachmentModal = ({
     generateLinks();
   }, [attachments]);
 
+  // Update the fetchSharedLink function to handle full paths
   const fetchSharedLink = async (filePath: string) => {
+    // Remove leading slash if present
+    const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+    console.log("Fetching shared link for:", cleanPath);
     const response = await fetch(
-      `/api/shared-link/${encodeURIComponent(filePath)}`
+      `/api/shared-link/${encodeURIComponent(cleanPath)}`
     );
     const data = await response.json();
     if (!response.ok) {
@@ -243,11 +248,13 @@ const AttachmentModal = ({
                           rel="noopener noreferrer"
                           className="text-blue-600 font-medium underline"
                         >
-                          {attachment.fileName}
+                          {attachment.fileName ||
+                            attachment.fileUrl.split("/").pop()}{" "}
                         </a>
                       ) : (
                         <span className="text-gray-800 font-medium">
-                          {attachment.fileName}
+                          {attachment.fileName ||
+                            attachment.fileUrl.split("/").pop()}{" "}
                         </span>
                       )}
                       <p className="text-gray-600 text-sm">

@@ -11,6 +11,8 @@ import {
   decimal,
   doublePrecision,
   PgJsonBuilder,
+  varchar,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -243,4 +245,12 @@ export const requests = pgTable("requests", {
   comments: text("comments").default(""), // Notes or specifics about the request
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const tokens = pgTable("tokens", {
+  id: serial("id").primaryKey(),
+  service: varchar("service", { length: 50 }).notNull().unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"), // Optional but recommended
+  expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
 });

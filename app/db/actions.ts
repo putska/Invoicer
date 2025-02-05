@@ -16,6 +16,7 @@ import {
   laborData,
   materials,
   requests,
+  tokens,
 } from "./schema";
 import {
   Customer,
@@ -1267,6 +1268,17 @@ export const getPOById = async (poId: number) => {
   }
 };
 
+// get ID by PO number
+export async function getPOByNumber(poNumber: string) {
+  const result = await db
+    .select({ id: purchaseOrders.id })
+    .from(purchaseOrders)
+    .where(eq(purchaseOrders.poNumber, poNumber))
+    .limit(1);
+
+  return result[0]?.id;
+}
+
 // Add a new PO
 export const addPurchaseOrder = async (poData: Omit<PurchaseOrder, "id">) => {
   try {
@@ -1335,11 +1347,18 @@ export async function uploadAttachment({
   fileData: Buffer; // Buffer type
 }) {
   try {
+    // Add SMS-specific path formatting
+    const finalFileName =
+      tableName === "purchase_orders"
+        ? `/PO-${recordId}/${fileName}`
+        : `/${fileName}`;
+
     const dbx = await getDropboxClient(); // Initialize Dropbox client
 
     // Upload the file to Dropbox
     const uploadResponse = await dbx.filesUpload({
-      path: `/${fileName}`,
+      //path: `/${fileName}`,
+      path: finalFileName, // Use the formatted file name
       contents: fileData, // Buffer
     });
 
@@ -1726,3 +1745,38 @@ export const updateRequest = async (id: number, request: Partial<Request>) => {
 export const deleteRequest = async (id: number) => {
   await db.delete(requests).where(eq(requests.id, id));
 };
+
+export async function getToken(service: string) {
+  return db
+    .select()
+    .from(tokens)
+    .where(eq(tokens.service, service))
+    .limit(1)
+    .then((res) => res[0]);
+}
+
+export async function upsertToken(
+  service: string,
+  values: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt: number;
+  }
+) {
+  return db
+    .insert(tokens)
+    .values({
+      service,
+      accessToken: values.accessToken,
+      refreshToken: values.refreshToken,
+      expiresAt: values.expiresAt,
+    })
+    .onConflictDoUpdate({
+      target: tokens.service,
+      set: {
+        accessToken: values.accessToken,
+        refreshToken: values.refreshToken,
+        expiresAt: values.expiresAt,
+      },
+    });
+}
