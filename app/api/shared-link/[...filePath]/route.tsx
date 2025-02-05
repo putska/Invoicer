@@ -34,7 +34,7 @@ export async function GET(
         });
       }
     } catch {} // Ignore if no links exist
-
+    // Refresh access token if needed
     // Create new link if none found
     const response = await dbx.sharingCreateSharedLinkWithSettings({
       path: filePath,
