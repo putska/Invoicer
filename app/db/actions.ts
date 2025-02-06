@@ -1353,7 +1353,7 @@ export async function uploadAttachment({
         ? `/PO-${recordId}/${fileName}`
         : `/${fileName}`;
 
-    const dbx = await getDropboxClient(); // Initialize Dropbox client
+    const dbx = await getDropboxClient();
 
     // Upload the file to Dropbox
     const uploadResponse = await dbx.filesUpload({
@@ -1747,12 +1747,7 @@ export const deleteRequest = async (id: number) => {
 };
 
 export async function getToken(service: string) {
-  return db
-    .select()
-    .from(tokens)
-    .where(eq(tokens.service, service))
-    .limit(1)
-    .then((res) => res[0]);
+  return await db.select().from(tokens).where(eq(tokens.service, service));
 }
 
 export async function upsertToken(
@@ -1763,7 +1758,7 @@ export async function upsertToken(
     expiresAt: number;
   }
 ) {
-  return db
+  return await db
     .insert(tokens)
     .values({
       service,

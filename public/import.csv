@@ -1,79 +1,59 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-Altringer,Garth,783,Monday,02/03/25,Stanford GSE,20-592,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Amos,David,1196,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Amos,David,1196,Monday,02/03/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Arias,Ozzie,683,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,7 hours high pay
-Becerra,Alvaro,1007,Monday,02/03/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Alvaro Becerra,
-Bracamonte,Julian,1133,Monday,02/03/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Bumgarner,Thomas,1048,Monday,02/03/25,SFSU Student Housing - Building 2,23-648,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,Composite Clean up of our own materials set for job clean off
-Bumgarner,Thomas,1048,Monday,02/03/25,SFSU Student Housing - Building 2,23-648,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,Composite Clean up of our own materials set for job clean off
-Calderon,Lucio,1177,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Lucio Calderon,
-Calderon,Lucio,1177,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-11 - Welding (A / B),11-11,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,Lucio Calderon,
-Cannova,Justin,1209,Monday,02/03/25,Bechtel,23-641,,,,Apprentice,,,0,,,0,0,0:00,Crew,"No call no showed since Friday, January 24th. (Fired as of today)"
-Carroll,Andrew,917,Monday,02/03/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Carroll,Andrew,917,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Carroll,Andrew,917,Monday,02/03/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Castaneda,Miguel,606,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Miguel Castaneda,
-Castaneda,Miguel,606,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Miguel Castaneda,
-Castaneda,Miguel,606,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Miguel Castaneda,
-Castaneda,Miguel,606,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-31 - Install Interior Panels (A / B),11-31,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Miguel Castaneda,
-Centeno,Paul,1158,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-De La Torre,Miguel,1198,Monday,02/03/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Duran,Jose,1144,Monday,02/03/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Jose Duran,
-Duran,Jose,1144,Monday,02/03/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,At a different job today
-England,Chris,787,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-35 - Punch list (A / B),11-35,Adjust doors,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Esparza,Vincent,1057,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-35 - Punch list (A / B),11-35,Adjust doors,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Espinosa,Luis,1191,Monday,02/03/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Estrada,Adan,920,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,6 hours high pay
-Estrada,Nick,1193,Monday,02/03/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Frostick,George,999,Monday,02/03/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Galindo,Ray,712,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Tom,559,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Gomez,Eddie,533,Monday,02/03/25,CCSF SSC,21-615,11-37 - Supervision A/B,11-37,,,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Eddie Gomez,
-Gutierrez,Rogelio,837,Monday,02/03/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hart,David,839,Monday,02/03/25,San Mateo Medical Center - Link,21-607L,11-12 - Install Membrane (A / B),11-12,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Hart,David,839,Monday,02/03/25,San Mateo Medical Center - Link,21-607L,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,1,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Hart,David,839,Monday,02/03/25,San Mateo Medical Center - Link,21-607L,11-18 - Install sunshades / Screens (A / B),11-18,,Journeyman,,RT,3,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Helton,Toby,1155,Monday,02/03/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hendricks,Jon,689,Monday,02/03/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Leadman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,4 HRs High Pay
-Hendricks,Kevin,1010,Monday,02/03/25,SFSU Student Housing - Building 2,23-648,11-36 - Clean-up / Composite Crew (A / B),11-36,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Kevin Hendricks,Composite for our own materials set for clean off
-Hendricks,Kevin,1010,Monday,02/03/25,SFSU Student Housing - Building 2,23-648,11-26 - Caulking (A / B),11-26,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Kevin Hendricks,Composite for our own materials set for clean off
-Hernandez (Garcia),Eleazar,1176,Monday,02/03/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-James,Michael,754,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Johnson,Paul,983,Monday,02/03/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Paul Johnson,
-Mason,Brandon,1164,Monday,02/03/25,San Mateo Medical Center - Link,21-607L,11-18 - Install sunshades / Screens (A / B),11-18,,Apprentice,,RT,4,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Mason,Brandon,1164,Monday,02/03/25,San Mateo Medical Center - Link,21-607L,11-30 - Install Material Protection (A /B),11-30,,Apprentice,,RT,4,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Medina,Gilbert,812,Monday,02/03/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,4 HRs High Pay
-Mendoza,Sebastian,1140,Monday,02/03/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Sebastian Mendoza,
-Morales,Jaime,831,Monday,02/03/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,At a different job today
-Morales,Jaime,831,Monday,02/03/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Jaime Morales,
-Nakagawa,Elijah,1171,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,5 hours high pay
-Noguera,Jovany,813,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Noguera,Jovany,813,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Noguera,Jovany,813,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Noguera,Jovany,813,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-31 - Install Interior Panels (A / B),11-31,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Olague,Juan,514,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Juan Olague,
-Olague,Juan,514,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Juan Olague,
-Olague,Juan,514,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Juan Olague,
-Olague,Juan,514,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-31 - Install Interior Panels (A / B),11-31,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Juan Olague,
-Pelletier,Teejay,1181,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,6 hours high pay
-Quintana,Alejandro,1192,Monday,02/03/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Ramirez,Hector,1206,Monday,02/03/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Ramos,John,1190,Monday,02/03/25,Bechtel,23-641,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Robledo,Antonio,879,Monday,02/03/25,Bechtel,23-641,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Rodriguez,D'wone,1030,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,D'wone Rodriguez,
-Rodriguez,D'wone,1030,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,D'wone Rodriguez,
-Rodriguez,Israel,840,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Stanford,6 hours high pay
-Rodriguez,Luis,874,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Rolon,David,1162,Monday,02/03/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Rolon,David,1162,Monday,02/03/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Stanford,
-Samuel,Emil,985,Monday,02/03/25,CCSF SSC,21-615,,,,Journeyman,,,0,,,0,0,0:00,Emil Samuel,Rain day
-Sanchez,Jaime,710,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sepulveda,Jonathan,898,Monday,02/03/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Sousa,Mike,257,Monday,02/03/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sousa,Wagner,1188,Monday,02/03/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Stonum,Colton,1210,Monday,02/03/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Stribling,Jacque,1189,Monday,02/03/25,Congregation Emanu-El-Construction,23-646,11-37 - Supervision A/B,11-37,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jacque Stribling,
-Vierra,Rye,735,Monday,02/03/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Villanueva,Ray,1122,Monday,02/03/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
-Wiens,Matthew,695,Monday,02/03/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
+Altringer,Garth,783,Tuesday,02/04/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,Rain day
+Amos,David,1196,Tuesday,02/04/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Stanford,3 hours high pay
+Arias,Ozzie,683,Tuesday,02/04/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Stanford,3 hours high pay
+Becerra,Alvaro,1007,Tuesday,02/04/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Alvaro Becerra,
+Bracamonte,Julian,1133,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Bumgarner,Thomas,1048,Tuesday,02/04/25,CCSF SSC,21-615,11-18 - Install sunshades / Screens (A / B),11-18,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,
+Calderon,Lucio,1177,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,0,12:00 AM,12:00 AM,0,0,0:00,Lucio Calderon,Rain Day
+Carroll,Andrew,917,Tuesday,02/04/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Stanford,3 hours high pay
+Castaneda,Miguel,606,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,8,06:30 AM,02:30 PM,0,0,0:00,Miguel Castaneda,Laid Off
+Centeno,Paul,1158,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-rained out
+De La Torre,Miguel,1198,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Duran,Jose,1144,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+England,Chris,787,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Esparza,Vincent,1057,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Espinosa,Luis,1191,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Estrada,Adan,920,Tuesday,02/04/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,Rain day
+Estrada,Nick,1193,Tuesday,02/04/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Frostick,George,999,Tuesday,02/04/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Galindo,Ray,712,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Gomez,Eddie,533,Tuesday,02/04/25,CCSF SSC,21-615,11-37 - Supervision A/B,11-37,,,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Eddie Gomez,
+Gutierrez,Rogelio,837,Tuesday,02/04/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Hart,David,839,Tuesday,02/04/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:30 AM,06:30 AM,0,0,0:00,SMMC-LINK,Rain day
+Helton,Toby,1155,Tuesday,02/04/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Hendricks,Jon,689,Tuesday,02/04/25,Milvia,22-624,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Leadman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
+Hendricks,Jon,689,Tuesday,02/04/25,Milvia,22-624,11-10 - Unload & Distribute (A / B),11-10,,Leadman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
+Hendricks,Kevin,1010,Tuesday,02/04/25,CCSF SSC,21-615,11-18 - Install sunshades / Screens (A / B),11-18,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Kevin Hendricks,
+Hernandez (Garcia),Eleazar,1176,Tuesday,02/04/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,Rain day
+James,Michael,754,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-rained out
+Johnson,Paul,983,Tuesday,02/04/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Paul Johnson,
+Mason,Brandon,1164,Tuesday,02/04/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,06:30 AM,06:30 AM,0,0,0:00,SMMC-LINK,Rain day
+Medina,Gilbert,812,Tuesday,02/04/25,Milvia,22-624,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Gilbert Medina,Sent home due to rain
+Mendoza,Sebastian,1140,Tuesday,02/04/25,CCSF SSC,21-615,,,,Apprentice,,RT,4,06:00 AM,10:00 AM,0,0,0:00,Sebastian Mendoza,Laid off
+Morales,Jaime,831,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Nakagawa,Elijah,1171,Tuesday,02/04/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,Rain day
+Noguera,Jovany,813,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,10:30 AM,0,0,0:00,Jovany Noguera,Rained Out. Only Worked Half Day.
+Noguera,Jovany,813,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,2,06:30 AM,10:30 AM,0,0,0:00,Jovany Noguera,Rained Out. Only Worked Half Day.
+Olague,Juan,514,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,8,06:30 AM,02:30 PM,0,0,0:00,Juan Olague,Laid off
+Pelletier,Teejay,1181,Tuesday,02/04/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,Rain day
+Quintana,Alejandro,1192,Tuesday,02/04/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Ramirez,Hector,1206,Tuesday,02/04/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
+Ramos,John,1190,Tuesday,02/04/25,Bechtel,23-641,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Robledo,Antonio,879,Tuesday,02/04/25,Bechtel,23-641,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Rodriguez,D'wone,1030,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:30 AM,10:30 AM,0,0,0:00,D'wone Rodriguez,Rained out. Only worked half day.
+Rodriguez,D'wone,1030,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,2,06:30 AM,10:30 AM,0,0,0:00,D'wone Rodriguez,Rained out. Only worked half day.
+Rodriguez,Israel,840,Tuesday,02/04/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,Rain day
+Rodriguez,Luis,874,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-rained out
+Rolon,David,1162,Tuesday,02/04/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Stanford,3 hours high pay
+Samuel,Emil,985,Tuesday,02/04/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,10:00 AM,0,0,0:00,Emil Samuel,Laid off
+Sanchez,Jaime,710,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-rained out
+Sepulveda,Jonathan,898,Tuesday,02/04/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Sousa,Mike,257,Tuesday,02/04/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-rained out
+Sousa,Wagner,1188,Tuesday,02/04/25,Bechtel,23-641,,,,Journeyman,,,0,,,0,0,0:00,Crew,"Stayed home, RAIN."
+Stonum,Colton,1210,Tuesday,02/04/25,Bechtel,23-641,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Stayed home, RAIN."
+Stribling,Jacque,1189,Tuesday,02/04/25,Congregation Emanu-El-Construction,23-646,11-37 - Supervision A/B,11-37,,Journeyman,,RT,4,06:30 AM,10:30 AM,0,0,0:00,Jacque Stribling,Rained Out. Only Worked Half Day.
+Vierra,Rye,735,Tuesday,02/04/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Villanueva,Ray,1122,Tuesday,02/04/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,4,06:00 AM,10:00 AM,0,0,0:00,Lay off,Laid off today.
+Wiens,Matthew,695,Tuesday,02/04/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,4,06:00 AM,10:00 AM,0,0,0:00,Lay off,Laid off today.

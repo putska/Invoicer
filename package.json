@@ -38,6 +38,8 @@
     "drizzle-orm": "^0.33.0",
     "dropbox": "^10.34.0",
     "formidable": "^3.5.2",
+    "ioredis": "^5.4.2",
+    "level": "^9.0.0",
     "next": "^14.2.12",
     "node-fetch": "^2.7.0",
     "papaparse": "^5.5.1",

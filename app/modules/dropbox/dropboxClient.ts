@@ -1,27 +1,26 @@
-import { Dropbox, DropboxAuth } from "dropbox";
+// dropboxClient.ts
+import { Dropbox } from "dropbox";
+import { DropboxAuth } from "dropbox";
 
-let cachedAccessToken: string | null = null;
-let accessTokenExpiresAt = 0;
+let accessToken: string | null = null; // Store access token in memory
+let accessTokenExpiry: number | null = null; // Store expiry timestamp
 
-interface TokenData {
-  access_token: string;
-  expires_in: number;
-}
+export async function getDropboxAccessToken(): Promise<string> {
+  // Return type added
+  if (accessToken && accessTokenExpiry && Date.now() < accessTokenExpiry) {
+    return accessToken; // Return cached access token if valid
+  }
 
-export async function refreshAccessToken() {
   const clientId = process.env.DROPBOX_APP_KEY;
   const clientSecret = process.env.DROPBOX_APP_SECRET;
   const refreshToken = process.env.DROPBOX_REFRESH_TOKEN;
 
-  // Check for missing credentials
   if (!clientId || !clientSecret || !refreshToken) {
-    console.error("Missing Dropbox environment variables.");
-    throw new Error(
-      "Dropbox credentials are not fully set in environment variables."
-    );
+    throw new Error("Missing Dropbox environment variables");
   }
 
   const dbxAuth = new DropboxAuth({
+    // Use DropboxAuth for refresh
     clientId,
     clientSecret,
     refreshToken,
@@ -29,33 +28,25 @@ export async function refreshAccessToken() {
   });
 
   try {
-    // Refresh the access token
-    await dbxAuth.refreshAccessToken();
-    console.log("Token data: ", dbxAuth); // Remove in production
-    // Access the updated access token and expiration time from dbxAuth
-    cachedAccessToken = dbxAuth.getAccessToken();
-    const expiresAtDate = dbxAuth.getAccessTokenExpiresAt();
-    accessTokenExpiresAt = expiresAtDate ? expiresAtDate.getTime() : 0;
-    if (!cachedAccessToken) {
-      throw new Error("Failed to obtain access token.");
-    }
+    await dbxAuth.refreshAccessToken(); // Use refreshAccessToken
+    accessToken = dbxAuth.getAccessToken();
+    const expiresAt = dbxAuth.getAccessTokenExpiresAt();
+    accessTokenExpiry = expiresAt ? expiresAt.getTime() : null; // Store expiry
+
+    console.log("New Dropbox access token obtained:", accessToken); // Log for debugging (remove in production)
+    console.log("Token expires at:", accessTokenExpiry); // Log for debugging (remove in production)
+
+    return accessToken; // Return new access token
   } catch (error) {
-    console.error("Failed to refresh access token:", error);
-    throw error;
+    console.error("Error refreshing Dropbox token:", error);
+    throw error; // Re-throw the error for handling in the calling function
   }
 }
 
 export async function getDropboxClient() {
-  if (!cachedAccessToken || Date.now() >= accessTokenExpiresAt) {
-    await refreshAccessToken();
-  }
-
-  if (!cachedAccessToken) {
-    throw new Error("Access token is not available.");
-  }
-
   const dbx = new Dropbox({
-    accessToken: cachedAccessToken,
+    //accessToken: process.env.DROPBOX_ACCESS_TOKEN,
+    accessToken: await getDropboxAccessToken(),
     fetch,
   });
 

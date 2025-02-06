@@ -1,17 +1,14 @@
-// app/api/shared-link/[...filePath]/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import {
-  getDropboxClient,
-  refreshAccessToken,
-} from "../../../modules/dropbox/dropboxClient"; // Adjust the import path as needed
+import { NextResponse } from "next/server";
+import { Dropbox } from "dropbox";
+import { getDropboxClient } from "../../../modules/dropbox/dropboxClient";
 
-// In your shared link endpoint
 export async function GET(
   request: Request,
   { params }: { params: { filePath: string[] } }
 ) {
   try {
     const dbx = await getDropboxClient();
+
     const cleanPath = params.filePath
       .join("/")
       .replace(/^\/+/, "") // Remove leading slashes
@@ -22,31 +19,40 @@ export async function GET(
 
     // Handle existing shared links
     try {
-      const existingLinks = await dbx.sharingListSharedLinks({
-        path: filePath,
-      });
-      if (existingLinks.result.links.length > 0) {
-        return Response.json({
-          sharedLink: existingLinks.result.links[0].url.replace(
+      const listResponse = await dbx.sharingListSharedLinks({ path: filePath });
+      if (listResponse.result.links.length > 0) {
+        return NextResponse.json({
+          sharedLink: listResponse.result.links[0].url.replace(
             "?dl=0",
             "?raw=1"
           ),
         });
       }
-    } catch {} // Ignore if no links exist
-    // Refresh access token if needed
-    // Create new link if none found
-    const response = await dbx.sharingCreateSharedLinkWithSettings({
+    } catch (error: any) {
+      // Type the error for better handling
+      console.error("Error checking existing shared links:", error);
+
+      // Check if the error is due to an expired token.
+      if (error.error && error.error[".tag"] === "expired_access_token") {
+        // If the token is expired, re-throw the error or return an appropriate error response
+        throw new Error("Dropbox access token expired. Please try again."); // Or return a 401
+        // Or: return NextResponse.json({ error: "Token expired" }, { status: 401 });
+      }
+      // If it's some other error (e.g., file not found), *then* it's okay to proceed to creating a new link.
+      // But you might want to handle other errors differently (e.g. 404 if the file doesn't exist).
+    }
+
+    // Create a new shared link if none exists
+    const createResponse = await dbx.sharingCreateSharedLinkWithSettings({
       path: filePath,
-      // settings: { requested_visibility: 'public' }
     });
 
-    return Response.json({
-      sharedLink: response.result.url.replace("?dl=0", "?raw=1"),
+    return NextResponse.json({
+      sharedLink: createResponse.result.url.replace("?dl=0", "?raw=1"),
     });
   } catch (error) {
-    console.error("Dropbox API error:", JSON.stringify(error, null, 2));
-    return Response.json(
+    console.error("Dropbox API error:", error);
+    return NextResponse.json(
       { error: "Failed to generate shared link" },
       { status: 500 }
     );
