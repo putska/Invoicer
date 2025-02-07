@@ -1453,7 +1453,7 @@ export const verifyFileSize = async (attachmentId: number) => {
     if (!attachment) throw new Error("Attachment not found.");
 
     // Initialize Dropbox
-    const dbx = new Dropbox({ accessToken: process.env.DROPBOX_ACCESS_TOKEN });
+    const dbx = await getDropboxClient();
 
     // Get file metadata from Dropbox
     const metadata = await dbx.filesGetMetadata({ path: attachment.fileUrl });
