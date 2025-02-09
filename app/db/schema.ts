@@ -188,6 +188,7 @@ export const attachments = pgTable("attachments", {
   fileUrl: text("file_url").notNull(), // Dropbox URL where the file is stored
   fileSize: integer("file_size").notNull(), // Size of the file in bytes
   notes: text("notes").default(""), // Optional notes describing the attachment
+  sharedLink: text("shared_link"), // Optional field for shared links
   uploadedAt: timestamp("uploaded_at").defaultNow(), // Timestamp when the file was uploaded
 });
 

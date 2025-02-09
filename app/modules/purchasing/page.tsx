@@ -65,8 +65,9 @@ export default function PurchaseOrderListPage() {
 
   const handleCloseAttachments = useCallback(() => {
     setIsAttachmentModalOpen(false);
+    //loadPurchaseOrders(); //use this if you want to refresh the page when the dialog closes
     setSelectedPO(null);
-  }, []);
+  }, [selectedPO]);
 
   // Memoized column definitions
   const columnDefs = useMemo<ColDef<PurchaseOrder>[]>(

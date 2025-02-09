@@ -242,6 +242,7 @@ export interface Attachment {
   fileUrl: string;
   fileSize: number;
   notes?: string;
+  sharedLink?: string;
   uploadedAt: Date;
 }
 

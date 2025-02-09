@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../../../modules/dropbox/dropboxClient";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: Request,
   { params }: { params: { filePath: string[] } }

@@ -36,44 +36,7 @@ const AttachmentModal = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    async function generateLinks() {
-      const links: { [key: number]: string } = {};
-      for (const attachment of attachments) {
-        try {
-          // Use fileUrl instead of fileName
-          const link = await fetchSharedLink(attachment.fileUrl);
-          links[attachment.id] = link;
-        } catch (error) {
-          console.error(
-            "Failed to generate shared link for",
-            attachment.fileUrl,
-            error
-          );
-        }
-      }
-      setSharedLinks(links);
-    }
-    generateLinks();
-  }, [attachments]);
-
-  // Update the fetchSharedLink function to handle full paths
-  const fetchSharedLink = async (filePath: string) => {
-    // Remove leading slash if present
-    const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-    console.log("Fetching shared link for:", cleanPath);
-    const response = await fetch(
-      `/api/shared-link/${encodeURIComponent(cleanPath)}`
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to generate shared link");
-    }
-    return data.sharedLink;
-  };
-
   const fetchAttachments = async () => {
-    console.log("Fetching attachments for recordId:", recordId);
     try {
       setLoading(true);
       const response = await fetch(
@@ -82,6 +45,7 @@ const AttachmentModal = ({
       if (!response.ok) throw new Error("Error fetching attachments");
       const data = await response.json();
       setAttachments(data.attachments);
+      console.log("Attachments fetched:", data.attachments);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -100,25 +64,45 @@ const AttachmentModal = ({
         formData.append("recordId", recordId.toString());
         formData.append("tableName", tableName);
         formData.append("notes", data.notes);
-        Array.from(selectedFiles).forEach((file) =>
-          formData.append("files", file)
-        );
 
-        const response = await fetch("/api/attachments/", {
-          method: "POST",
-          body: formData,
-        });
+        for (const file of selectedFiles) {
+          const fileFormData = new FormData();
+          fileFormData.append("recordId", recordId.toString());
+          fileFormData.append("tableName", tableName);
+          fileFormData.append("notes", data.notes);
+          fileFormData.append("file", file);
 
-        if (!response.ok) {
-          throw new Error("File upload failed");
+          const response = await fetch("/api/attachments/", {
+            method: "POST",
+            body: fileFormData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "File upload failed");
+          }
+
+          const fileData = await response.json(); // Renamed to fileData to avoid conflict
+          console.log(
+            "Upload successful for:",
+            file.name,
+            fileData.uploadResult
+          );
+
+          fetchAttachments(); // Refresh after each upload
+
+          // Update the attachments state.  Use the correct data.uploadResult
+          setAttachments((prevAttachments) => [
+            ...prevAttachments,
+            fileData.uploadResult,
+          ]);
         }
 
-        // Refresh the list of attachments after uploading
-        fetchAttachments();
         reset();
         setSelectedFiles(null);
       } catch (err) {
         console.error("Error uploading files:", err);
+        setError((err as Error).message); // Set the error message
       }
     }
   };
@@ -241,9 +225,10 @@ const AttachmentModal = ({
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      {sharedLinks[attachment.id] ? (
+                      {/* Use attachment.sharedLink directly */}
+                      {attachment.sharedLink ? (
                         <a
-                          href={sharedLinks[attachment.id]}
+                          href={attachment.sharedLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 font-medium underline"

@@ -41,6 +41,7 @@ import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 //import { v4 as uuidv4 } from "uuid";
 
 import { act } from "react";
+import { access } from "fs";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
@@ -1355,7 +1356,6 @@ export async function uploadAttachment({
 
     const dbx = await getDropboxClient();
 
-    // Upload the file to Dropbox
     const uploadResponse = await dbx.filesUpload({
       //path: `/${fileName}`,
       path: finalFileName, // Use the formatted file name
@@ -1363,9 +1363,16 @@ export async function uploadAttachment({
     });
 
     const dropboxFileUrl = uploadResponse.result.path_display; // Get the file path in Dropbox
-    const fileUrl = dropboxFileUrl; // Use the Dropbox file path as the file URL
+
+    // Create shared link immediately after upload
+    const sharedLinkResponse = await dbx.sharingCreateSharedLinkWithSettings({
+      path: dropboxFileUrl!, // Use the path from the upload response
+    });
+
+    const sharedLink = sharedLinkResponse.result.url.replace("?dl=0", "?raw=1");
+
     // Ensure values are not undefined
-    if (!tableName || !recordId || !fileName || !fileUrl || !fileSize) {
+    if (!tableName || !recordId || !fileName || !dropboxFileUrl || !fileSize) {
       throw new Error("Missing required fields for the attachment");
     }
 
@@ -1377,12 +1384,13 @@ export async function uploadAttachment({
       fileUrl: dropboxFileUrl, // Dropbox URL/path of the file
       fileSize, // File size in bytes
       notes: notes || "", // Optional notes
+      sharedLink: sharedLink, // Shared link for download
       uploadedAt: new Date(), // Timestamp for when the file was uploaded
     });
 
-    return { success: true, uploadResponse };
+    return { success: true, uploadResponse, sharedLink };
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error uploading file or creating shared link:", error);
     throw new Error("File upload and metadata storage failed.");
   }
 }
@@ -1424,6 +1432,7 @@ export const deleteAttachment = async (attachmentId: number) => {
     const dbx = await getDropboxClient();
 
     // Delete the file from Dropbox
+    console.log("Attachment path: ", attachment.fileUrl);
     await dbx.filesDeleteV2({ path: attachment.fileUrl }); // Make sure you're accessing the fileUrl from the object
 
     // Delete the record from the attachments table

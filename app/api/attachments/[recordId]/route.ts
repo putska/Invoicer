@@ -20,13 +20,9 @@ export async function GET(
 
     // Parse recordId from params
     const recordId = parseInt(params.recordId, 10);
-    console.log("recordId", recordId);
     if (isNaN(recordId)) {
       throw new Error("Invalid recordId provided");
     }
-
-    console.log("tableName", tableName);
-    console.log("recordId", recordId);
 
     // Validate the inputs using Zod
     const parsedParams = getAttachmentsSchema.parse({

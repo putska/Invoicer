@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import twilio from "twilio";
+import crypto from "crypto"; // For Mailgun signature verification
 import { getPOByNumber, uploadAttachment } from "../../db/actions";
 import { validateFile } from "../../components/file-validation"; // Add this import
 
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
     // Get raw request body
     const rawBody = await request.text();
 
+    // 2. Check if it's a Mailgun request (look for Mailgun-specific parameters)
+    if (request.headers.get("X-Mailgun-Signature")) {
+      console.log("Mailgun request detected");
+      return handleMailgunRequest(request, rawBody); // Call Mailgun handler
+    }
+
     // Validate Twilio signature
     const signature = request.headers.get("x-twilio-signature") || "";
     const authToken = process.env.TWILIO_AUTH_TOKEN!;
@@ -39,10 +46,6 @@ export async function POST(request: Request) {
       parsedBody
     );
 
-    if (!isValid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-
     // Parse message body and media
     const formData = new URLSearchParams(rawBody);
     const bodyText = formData.get("Body") || "";
@@ -50,6 +53,10 @@ export async function POST(request: Request) {
     const poNumber = poNumberMatch ? poNumberMatch[1] : null;
     console.log("PO number:", poNumber);
     console.log("Media count:", formData.get("NumMedia"));
+    console.log("SMS body:", bodyText);
+    if (!isValid) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
     // Generate response
     const response = new twilio.twiml.MessagingResponse();
 
@@ -160,4 +167,51 @@ export async function POST(request: Request) {
       status: 500,
     });
   }
+}
+
+async function handleMailgunRequest(request: Request, rawBody: string) {
+  const mailgunSignature = request.headers.get("X-Mailgun-Signature") || "";
+  const mailgunTimestamp = request.headers.get("X-Mailgun-Timestamp") || "";
+  const isValid = verifyMailgunSignature(
+    process.env.MAILGUN_SIGNINGKEY!, // Use your Mailgun signing key
+    mailgunTimestamp + rawBody,
+    mailgunSignature
+  );
+
+  if (!isValid) {
+    console.error("Invalid Mailgun signature");
+    return NextResponse.json(
+      { error: "Invalid Mailgun signature" },
+      { status: 401 }
+    );
+  }
+
+  const formData = new URLSearchParams(rawBody);
+  const subject = formData.get("subject");
+  const textBody = formData.get("stripped-text");
+  const from = formData.get("from");
+  // ... extract other Mailgun data (attachments, etc.)
+
+  console.log("Mailgun Email Received:");
+  console.log("Subject:", subject);
+  console.log("From:", from);
+  console.log("Body:", textBody);
+
+  // ... (Your Mailgun processing logic - database updates, Dropbox, etc.)
+
+  return NextResponse.json(
+    { message: "Mailgun email processed" },
+    { status: 200 }
+  ); // Mailgun response
+}
+
+function verifyMailgunSignature(
+  signingKey: string,
+  rawBody: string,
+  signature: string
+): boolean {
+  const hmac = crypto.createHmac("sha256", signingKey);
+  hmac.update(rawBody);
+  const calculatedSignature = hmac.digest("hex");
+  return calculatedSignature === signature;
 }
