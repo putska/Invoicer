@@ -1,5 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useRouter } from "next/navigation";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 type Vendor = {
   id: number;
@@ -14,139 +21,162 @@ type Vendor = {
 };
 
 export default function VendorsPage() {
+  const router = useRouter();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pageSize] = useState(50);
 
-  // Fetch vendors directly in the page
-  const loadVendors = async () => {
+  // Function to load vendors from the API
+  const loadVendors = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/vendors");
       if (!response.ok) throw new Error("Error fetching vendors");
       const data = await response.json();
-      setVendors(data.vendors);
+      setVendors(data.vendors || []);
     } catch (err) {
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : "Loading failed");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Delete a vendor
-  const handleDelete = async (vendorId: number) => {
-    if (window.confirm("Are you sure you want to delete this vendor?")) {
-      try {
-        const response = await fetch(`/api/vendors/${vendorId}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) throw new Error("Error deleting vendor");
-        loadVendors(); // Reload vendors after deletion
-      } catch (err) {
-        setError((err as Error).message);
+  // Delete a vendor and refresh the list
+  const handleDelete = useCallback(
+    async (vendorId: number) => {
+      if (window.confirm("Are you sure you want to delete this vendor?")) {
+        try {
+          const response = await fetch(`/api/vendors/${vendorId}`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Error deleting vendor");
+          loadVendors();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Deletion failed");
+        }
       }
-    }
-  };
+    },
+    [loadVendors]
+  );
 
   useEffect(() => {
     loadVendors();
-  }, []);
+  }, [loadVendors]);
 
-  if (loading) return <div>Loading vendors...</div>;
-  if (error) return <div>{error}</div>;
+  // Define AgGrid column definitions for vendors
+  const columnDefs = useMemo<ColDef<Vendor>[]>(
+    () => [
+      {
+        headerName: "Vendor Name",
+        field: "vendorName",
+        flex: 1,
+        minWidth: 150,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "City",
+        field: "vendorCity",
+        flex: 1,
+        minWidth: 100,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "State",
+        field: "vendorState",
+        flex: 1,
+        minWidth: 100,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "ZIP Code",
+        field: "vendorZip",
+        flex: 1,
+        minWidth: 100,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "Phone",
+        field: "vendorPhone",
+        flex: 1,
+        minWidth: 120,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "Email",
+        field: "vendorEmail",
+        flex: 1,
+        minWidth: 150,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "Contact Person",
+        field: "vendorContact",
+        flex: 1,
+        minWidth: 150,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "Taxable",
+        field: "taxable",
+        flex: 1,
+        minWidth: 80,
+        filter: "agTextColumnFilter",
+        valueFormatter: (params) => (params.value ? "Yes" : "No"),
+      },
+      {
+        headerName: "Actions",
+        field: "id",
+        flex: 1,
+        minWidth: 150,
+        cellRenderer: (params: ICellRendererParams<Vendor>) => (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push(`/modules/vendors/${params.value}`)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(params.value!)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+            >
+              <TrashIcon className="w-4 h-4" />
+              Delete
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handleDelete, router]
+  );
+
+  if (loading) return <div className="p-6">Loading vendors...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
+    <div className="w-full p-6 bg-white rounded-md shadow-md">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-700">Vendor List</h1>
         <button
-          onClick={() => (window.location.href = "/vendors/new")} // Add Vendor button logic
-          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
+          onClick={() => router.push("/modules/vendors/new")}
+          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
         >
           Add Vendor
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 table-auto">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vendor Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                City
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                State
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ZIP Code
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Phone
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact Person
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Taxable
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {vendors.map((vendor) => (
-              <tr key={vendor.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorCity}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorState}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorZip}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorPhone}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorEmail}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.vendorContact}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {vendor.taxable ? "Yes" : "No"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 space-x-2">
-                  <button
-                    onClick={() => handleDelete(vendor.id)}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring focus:ring-red-300"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() =>
-                      (window.location.href = `/vendors/${vendor.id}`)
-                    }
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-300"
-                  >
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div
+        className="ag-theme-alpine"
+        style={{ height: "calc(100vh - 250px)", width: "100%" }}
+      >
+        <AgGridReact
+          rowData={vendors}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={pageSize}
+        />
       </div>
     </div>
   );

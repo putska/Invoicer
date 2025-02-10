@@ -321,17 +321,32 @@ export default function PurchaseOrderFormPage() {
             />
           </FormField>
           <FormField label="Vendor" error={errors.vendorId?.message}>
-            <select
-              {...register("vendorId", { valueAsNumber: true })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-            >
-              <option value="">Select a Vendor</option>
-              {vendors.map((vendor) => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.vendorName}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                {...register("vendorId", { valueAsNumber: true })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+              >
+                <option value="">Select a Vendor</option>
+                {vendors.map((vendor) => (
+                  <option key={vendor.id} value={vendor.id}>
+                    {vendor.vendorName}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    `/modules/vendors/new?returnUrl=${encodeURIComponent(
+                      window.location.href
+                    )}`
+                  )
+                }
+                className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition-colors"
+              >
+                Add
+              </button>
+            </div>
           </FormField>
         </div>
 

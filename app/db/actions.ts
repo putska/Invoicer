@@ -1092,7 +1092,20 @@ export const getVendorById = async (vendorId: number) => {
 // Add a new vendor
 export const addVendor = async (vendorData: Omit<Vendor, "id">) => {
   try {
-    const [newVendor] = await db.insert(vendors).values(vendorData).returning();
+    const [newVendor] = await db
+      .insert(vendors)
+      .values({
+        ...vendorData,
+        vendorAddress: vendorData.vendorAddress || "",
+        vendorCity: vendorData.vendorCity || "",
+        vendorState: vendorData.vendorState || "",
+        vendorZip: vendorData.vendorZip || "",
+        vendorPhone: vendorData.vendorPhone || "",
+        vendorEmail: vendorData.vendorEmail || "",
+        vendorContact: vendorData.vendorContact || "",
+        taxable: vendorData.taxable || false,
+      })
+      .returning();
     return newVendor;
   } catch (error) {
     console.error("Error adding vendor:", error);

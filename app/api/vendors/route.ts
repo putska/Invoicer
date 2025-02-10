@@ -6,10 +6,12 @@ import { z } from "zod";
 // Zod schema for validating vendor data
 const vendorSchema = z.object({
   vendorName: z.string().min(1, "Vendor name is required"),
-  vendorAddress: z.string().min(1, "Vendor address is required"),
-  vendorCity: z.string().min(1, "Vendor city is required"),
-  vendorState: z.string().length(2, "Vendor state must be a 2-letter code"),
-  vendorZip: z.string().min(5).max(10, "Vendor ZIP code is invalid"),
+  vendorAddress: z.string().optional(),
+  vendorCity: z.string().optional(),
+  //vendorState: z.string().length(2, "Vendor state must be a 2-letter code"),
+  vendorState: z.string().optional(),
+  //vendorZip: z.string().min(5).max(10, "Vendor ZIP code is invalid"),
+  vendorZip: z.string().optional(),
   vendorPhone: z.string().optional(),
   vendorEmail: z.string().email().optional(),
   vendorContact: z.string().optional(),

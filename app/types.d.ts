@@ -173,10 +173,10 @@ export interface LaborSnapshot {
 export interface Vendor {
   id?: number;
   vendorName: string;
-  vendorAddress: string;
-  vendorCity: string;
-  vendorState: string;
-  vendorZip: string;
+  vendorAddress?: string;
+  vendorCity?: string;
+  vendorState?: string;
+  vendorZip?: string;
   vendorPhone?: string;
   vendorEmail?: string;
   vendorContact?: string;
