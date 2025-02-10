@@ -25,7 +25,7 @@ const purchaseOrderSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val ?? "")), "Invalid due date"),
   shipTo: z.string().optional(), // Shipping location
   amount: z.string().optional(), // Total amount
-  costCode: z.string().min(1, "Cost code is required"),
+  costCode: z.string().optional(),
   shortDescription: z
     .string()
     .max(50, "Short description must be under 50 characters"),

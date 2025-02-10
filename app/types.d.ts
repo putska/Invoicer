@@ -222,7 +222,7 @@ export interface PurchaseOrderUpdate {
   shipToCity?: string;
   shipToState?: string;
   shipToZip?: string;
-  costCode: string;
+  costCode?: string;
   freight?: number;
   boxingCharges?: number;
   poAmount: number;

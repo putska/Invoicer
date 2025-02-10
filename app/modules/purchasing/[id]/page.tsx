@@ -258,7 +258,7 @@ export default function PurchaseOrderFormPage() {
         notes: formData.notes ?? "",
         longDescription: formData.longDescription ?? "",
       };
-
+      console.log("Saving with data:", updatedData);
       const isNewRecord = !id || id === "new";
       const method = isNewRecord ? "POST" : "PUT";
       const url = isNewRecord ? `/api/purchasing` : `/api/purchasing/${id}`;
@@ -272,7 +272,7 @@ export default function PurchaseOrderFormPage() {
       const payload = isNewRecord
         ? { ...updatedData, poNumber: undefined }
         : updatedData;
-
+      console.log("Saving  data:", payload);
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
