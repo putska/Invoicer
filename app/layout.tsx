@@ -62,6 +62,8 @@ export default async function RootLayout({
 
                       <Link href="/modules/purchasing">Purchase Orders</Link>
 
+                      <Link href="/modules/vendors">Vendors</Link>
+
                       <Link href="/modules/materials">Shop Materials</Link>
 
                       <UserButton showName />
