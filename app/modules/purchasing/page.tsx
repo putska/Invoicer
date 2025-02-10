@@ -69,6 +69,19 @@ export default function PurchaseOrderListPage() {
     setSelectedPO(null);
   }, [selectedPO]);
 
+  const handleAttachmentUpdate = useCallback(
+    (recordId: number, newAttachmentCount: number) => {
+      setRowData((prevData) =>
+        prevData.map((po) =>
+          po.id === recordId
+            ? { ...po, attachmentCount: newAttachmentCount }
+            : po
+        )
+      );
+    },
+    []
+  );
+
   // Memoized column definitions
   const columnDefs = useMemo<ColDef<PurchaseOrder>[]>(
     () => [
@@ -239,6 +252,7 @@ export default function PurchaseOrderListPage() {
         onClose={handleCloseAttachments}
         recordId={selectedPO ?? 0}
         tableName="purchase_orders"
+        onAttachmentUpdate={handleAttachmentUpdate} // Pass the callback here
       />
     </div>
   );

@@ -1388,6 +1388,29 @@ export async function uploadAttachment({
       uploadedAt: new Date(), // Timestamp for when the file was uploaded
     });
 
+    // Now notify connected clients of the update.
+    // For example, fetch the new count of attachments for this record:
+    // const updatedAttachments = await db
+    //   .select()
+    //   .from(attachments)
+    //   .where(
+    //     and(
+    //       eq(attachments.tableName, tableName),
+    //       eq(attachments.recordId, recordId)
+    //     )
+    //   );
+    // const newAttachmentCount = updatedAttachments.length;
+
+    // const io = getSocket();
+    // if (io) {
+    //   io.emit("edit", {
+    //     poId: recordId, // You can adjust this property based on your client expectations
+    //     updatedFields: {
+    //       attachmentCount: newAttachmentCount,
+    //     },
+    //   });
+    // }
+
     return { success: true, uploadResponse, sharedLink };
   } catch (error) {
     console.error("Error uploading file or creating shared link:", error);
@@ -1437,6 +1460,29 @@ export const deleteAttachment = async (attachmentId: number) => {
 
     // Delete the record from the attachments table
     await db.delete(attachments).where(eq(attachments.id, attachmentId));
+
+    // Notify connected clients that an attachment was removed.
+    // Here, we re-calculate the attachment count for the associated record.
+    // const updatedAttachments = await db
+    //   .select()
+    //   .from(attachments)
+    //   .where(
+    //     and(
+    //       eq(attachments.tableName, attachment.tableName),
+    //       eq(attachments.recordId, attachment.recordId)
+    //     )
+    //   );
+    // const newAttachmentCount = updatedAttachments.length;
+
+    // const io = getSocket();
+    // if (io) {
+    //   io.emit("edit", {
+    //     poId: attachment.recordId, // Adjust as needed
+    //     updatedFields: {
+    //       attachmentCount: newAttachmentCount,
+    //     },
+    //   });
+    // }
 
     return { success: true };
   } catch (error) {

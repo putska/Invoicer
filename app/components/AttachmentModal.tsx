@@ -8,6 +8,7 @@ interface AttachmentModalProps {
   onClose: () => void;
   recordId: number;
   tableName: string;
+  onAttachmentUpdate: (recordId: number, newAttachmentCount: number) => void;
 }
 
 interface Attachment {
@@ -21,9 +22,11 @@ const AttachmentModal = ({
   onClose,
   recordId,
   tableName,
+  onAttachmentUpdate,
 }: AttachmentModalProps) => {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false); // New state for upload progress
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const { register, handleSubmit, reset } = useForm<{ notes: string }>();
@@ -59,12 +62,9 @@ const AttachmentModal = ({
 
   const handleFormSubmit = async (data: { notes: string }) => {
     if (selectedFiles) {
+      setIsUploading(true); // Start the spinner
       try {
-        const formData = new FormData();
-        formData.append("recordId", recordId.toString());
-        formData.append("tableName", tableName);
-        formData.append("notes", data.notes);
-
+        // Process each file separately
         for (const file of selectedFiles) {
           const fileFormData = new FormData();
           fileFormData.append("recordId", recordId.toString());
@@ -82,27 +82,23 @@ const AttachmentModal = ({
             throw new Error(errorData.message || "File upload failed");
           }
 
-          const fileData = await response.json(); // Renamed to fileData to avoid conflict
+          const fileData = await response.json(); // Renamed to avoid conflict
           console.log(
             "Upload successful for:",
             file.name,
             fileData.uploadResult
           );
 
-          fetchAttachments(); // Refresh after each upload
-
-          // Update the attachments state.  Use the correct data.uploadResult
-          setAttachments((prevAttachments) => [
-            ...prevAttachments,
-            fileData.uploadResult,
-          ]);
+          // Optionally, you can refresh attachments after each upload
+          await fetchAttachments();
         }
-
         reset();
         setSelectedFiles(null);
       } catch (err) {
         console.error("Error uploading files:", err);
-        setError((err as Error).message); // Set the error message
+        setError((err as Error).message);
+      } finally {
+        setIsUploading(false); // Stop the spinner
       }
     }
   };
@@ -125,11 +121,18 @@ const AttachmentModal = ({
         throw new Error("Error deleting attachment");
       }
 
-      // Refresh the list of attachments after deleting
-      fetchAttachments();
+      // Refresh the list of attachments after deletion
+      await fetchAttachments();
     } catch (err) {
       console.error("Error deleting attachment:", err);
     }
+  };
+
+  // New: Wrap the onClose to call onAttachmentUpdate before closing.
+  const handleModalClose = () => {
+    // Use the current attachments state to update the parent.
+    onAttachmentUpdate(recordId, attachments.length);
+    onClose();
   };
 
   return (
@@ -143,6 +146,33 @@ const AttachmentModal = ({
           Manage Attachments
         </h2>
 
+        {/* Optionally show an upload indicator */}
+        {isUploading && (
+          <div className="flex items-center justify-center mb-4">
+            <svg
+              className="animate-spin h-5 w-5 text-gray-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              ></path>
+            </svg>
+            <span className="ml-2 text-gray-600">Uploading files...</span>
+          </div>
+        )}
+
         {/* Upload Form */}
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <div className="mb-4">
@@ -152,6 +182,7 @@ const AttachmentModal = ({
               onChange={handleFileChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md"
               multiple
+              disabled={isUploading} // Optionally disable if uploading
             />
           </div>
 
@@ -161,25 +192,27 @@ const AttachmentModal = ({
               {...register("notes")}
               className="w-full px-4 py-2 border border-gray-300 rounded-md"
               rows={3}
+              disabled={isUploading}
             />
           </div>
 
           <div className="flex justify-between">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleModalClose} // Use our new close handler
               className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
+              disabled={isUploading} // Prevent closing mid-upload if desired
             >
               Close
             </button>
             <button
               type="submit"
               className={`bg-indigo-600 text-white py-2 px-4 rounded-md ${
-                !selectedFiles
+                !selectedFiles || isUploading
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-indigo-700"
               }`}
-              disabled={!selectedFiles}
+              disabled={!selectedFiles || isUploading}
             >
               Upload
             </button>
@@ -225,7 +258,6 @@ const AttachmentModal = ({
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      {/* Use attachment.sharedLink directly */}
                       {attachment.sharedLink ? (
                         <a
                           href={attachment.sharedLink}
@@ -252,6 +284,7 @@ const AttachmentModal = ({
                         handleDeleteAttachment(attachment.id, tableName)
                       }
                       className="text-red-600 hover:underline text-sm"
+                      disabled={isUploading}
                     >
                       Delete
                     </button>
