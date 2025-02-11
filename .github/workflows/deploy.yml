@@ -45,7 +45,7 @@ jobs:
 
       - name: Copy Build Files to Server
         run: |
-          scp -o StrictHostKeyChecking=no -r .next node_modules package.json package-lock.json swatts@209.38.77.21:/home/swatts/Invoicer
+          rsync -avz --delete --exclude='.env' -e "ssh -o StrictHostKeyChecking=no" .next node_modules package.json package-lock.json swatts@209.38.77.21:/home/swatts/Invoicer
 
       - name: Restart Application
         run: |
