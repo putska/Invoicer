@@ -18,7 +18,7 @@ jobs:
 
       - name: Build Application
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }} # Add the database connection string
+          NEON_DATABASE_URL: ${{ secrets.DATABASE_URL }} # Add the database connection string
         run: npm run build
 
       - name: Set up SSH
