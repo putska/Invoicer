@@ -18,7 +18,9 @@ import {
 } from "../schema"; // Adjust the path if necessary
 
 if (!process.env.NEON_DATABASE_URL) {
-  throw new Error("DATABASE_URL must be a Neon Postgres connection string");
+  throw new Error(
+    "NEON_DATABASE_URL must be a Neon Postgres connection string"
+  );
 }
 
 const sql = neon(process.env.NEON_DATABASE_URL!);
