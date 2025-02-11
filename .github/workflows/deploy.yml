@@ -13,19 +13,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Application
+        run: npm run build
+
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.SWATTS_SSH_KEY }}
 
-      - name: Deploy Application
+      - name: Copy Build Files to Server
+        run: |
+          scp -o StrictHostKeyChecking=no -r .next node_modules package.json package-lock.json swatts@209.38.77.21:/home/swatts/Invoicer
+
+      - name: Restart Application
         run: |
           ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
           cd /home/swatts/Invoicer &&
-          git fetch origin main &&
-          git reset --hard origin/main &&
-          git clean -fd &&
-          npm install &&
-          npm run build &&
           pm2 restart Invoicer || pm2 start npm --name "Invoicer" -- start &&
           pm2 save'
