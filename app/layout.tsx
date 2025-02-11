@@ -66,6 +66,14 @@ export default async function RootLayout({
 
                       <Link href="/modules/materials">Shop Materials</Link>
 
+                      <Link
+                        href="http://146.190.163.59/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Wiki
+                      </Link>
+
                       <UserButton showName />
                     </SignedIn>
                   </div>
