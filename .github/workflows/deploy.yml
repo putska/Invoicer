@@ -18,7 +18,24 @@ jobs:
 
       - name: Build Application
         env:
-          NEON_DATABASE_URL: ${{ secrets.DATABASE_URL }} # Add the database connection string
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          NGROK_URL: ${{ secrets.NGROK_URL }}
+          MAX_SMS_FILE_SIZE: ${{ secrets.MAX_SMS_FILE_SIZE }}
+          ALLOWED_FILE_TYPES: ${{ secrets.ALLOWED_FILE_TYPES }}
+          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_SENDINGKEY: ${{ secrets.MAILGUN_SENDINGKEY }}
+          MAILGUN_SIGNING_KEY: ${{ secrets.MAILGUN_SIGNING_KEY }}
         run: npm run build
 
       - name: Set up SSH
