@@ -1,35 +1,14 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-Becerra,Alvaro,1007,Friday,02/07/25,CCSF SSC,21-615,,,,Journeyman,,,0,,,0,0,0:00,Alvaro Becerra,Scheduled day off
-Bracamonte,Julian,1133,Friday,02/07/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Bumgarner,Thomas,1048,Friday,02/07/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,
-Calderon,Lucio,1177,Friday,02/07/25,Bechtel,23-641,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-De La Torre,Miguel,1198,Friday,02/07/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Duran,Jose,1144,Friday,02/07/25,Bechtel,23-641,11-21 - Install CW Metal (A / B),11-21,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Espinosa,Luis,1191,Friday,02/07/25,Bechtel,23-641,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Estrada,Nick,1193,Friday,02/07/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Frostick,George,999,Friday,02/07/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hart,David,839,Friday,02/07/25,San Mateo Medical Center - Link,21-607L,11-12 - Install Membrane (A / B),11-12,,Journeyman,,RT,7,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Hart,David,839,Friday,02/07/25,San Mateo Medical Center - Link,21-607L,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,1,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
-Helton,Toby,1155,Friday,02/07/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hendricks,Jon,689,Friday,02/07/25,Milvia,22-624,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Leadman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
-Hendricks,Jon,689,Friday,02/07/25,Milvia,22-624,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Leadman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
-Hendricks,Kevin,1010,Friday,02/07/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Kevin Hendricks,
-Johnson,Paul,983,Friday,02/07/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Paul Johnson,
-Kenner,Geordan,251,Friday,02/07/25,CCSF SSC,21-615,11-31 - Install Interior Panels (A / B),11-31,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Geordan Kenner,
-Mason,Brandon,1164,Friday,02/07/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,06:30 AM,06:30 AM,0,0,0:00,SMMC-LINK,Told to take the day off due to not enough work
-Medina,Gilbert,812,Friday,02/07/25,Milvia,22-624,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,4 HRs High Pay
-Medina,Gilbert,812,Friday,02/07/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,4 HRs High Pay
-Molina,Rodrigo,870,Friday,02/07/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Rodrigo Molina,
-Morales,Jaime,831,Friday,02/07/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Noguera,Jovany,813,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,7,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Noguera,Jovany,813,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,1,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Quintana,Alejandro,1192,Friday,02/07/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Ramos,John,1190,Friday,02/07/25,Bechtel,23-641,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Robledo,Antonio,879,Friday,02/07/25,Bechtel,23-641,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Rodriguez,D'wone,1030,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,D'wone Rodriguez,
-Rodriguez,D'wone,1030,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,1,06:30 AM,03:00 PM,0,1,0:30,D'wone Rodriguez,
-Rodriguez,D'wone,1030,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-36 - Clean-up / Composite Crew (A / B),11-36,,Journeyman,,RT,1,06:30 AM,03:00 PM,0,1,0:30,D'wone Rodriguez,
-Sepulveda,Jonathan,898,Friday,02/07/25,Bechtel,23-641,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Stribling,Jacque,1189,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,Jacque Stribling,
-Stribling,Jacque,1189,Friday,02/07/25,Congregation Emanu-El-Construction,23-646,11-37 - Supervision A/B,11-37,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,Jacque Stribling,
-Vierra,Rye,735,Friday,02/07/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Altringer,Garth,783,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Amos,David,1196,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Arias,Ozzie,683,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Bumgarner,Thomas,1048,Monday,02/10/25,SFSU Student Housing - Building 1,23-639,,,,Journeyman,,OT,8,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,Cost code 11-34 water testing
+Carroll,Andrew,917,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Hendricks,Jon,689,Monday,02/10/25,Milvia,22-624,,,,Leadman,,,0,,,0,0,0:00,Jon Hendricks,DDO
+Hendricks,Kevin,1010,Monday,02/10/25,SFSU Student Housing - Building 1,23-639,,,,Apprentice,,OT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,Cost code 11-34 water testing
+Hernandez (Garcia),Eleazar,1176,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
+Medina,Gilbert,812,Monday,02/10/25,Milvia,22-624,,,,Journeyman,,,0,,,0,0,0:00,Gilbert Medina,DDO
+Nakagawa,Elijah,1171,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
+Pelletier,Teejay,1181,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
+Rolon,David,1162,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Sousa,Wagner,1188,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
