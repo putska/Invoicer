@@ -1,14 +1,58 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-Altringer,Garth,783,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
-Amos,David,1196,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
-Arias,Ozzie,683,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
-Bumgarner,Thomas,1048,Monday,02/10/25,SFSU Student Housing - Building 1,23-639,,,,Journeyman,,OT,8,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,Cost code 11-34 water testing
-Carroll,Andrew,917,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
-Hendricks,Jon,689,Monday,02/10/25,Milvia,22-624,,,,Leadman,,,0,,,0,0,0:00,Jon Hendricks,DDO
-Hendricks,Kevin,1010,Monday,02/10/25,SFSU Student Housing - Building 1,23-639,,,,Apprentice,,OT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,Cost code 11-34 water testing
-Hernandez (Garcia),Eleazar,1176,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
-Medina,Gilbert,812,Monday,02/10/25,Milvia,22-624,,,,Journeyman,,,0,,,0,0,0:00,Gilbert Medina,DDO
-Nakagawa,Elijah,1171,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
-Pelletier,Teejay,1181,Monday,02/10/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,Stanford,DDO
-Rolon,David,1162,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
-Sousa,Wagner,1188,Monday,02/10/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,DDO
+Altringer,Garth,783,Tuesday,02/11/25,Stanford GSE,20-592,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
+Amos,David,1196,Tuesday,02/11/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Amos,David,1196,Tuesday,02/11/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Amos,David,1196,Tuesday,02/11/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,4,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Arias,Ozzie,683,Tuesday,02/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,7 hours high pay
+Becerra,Alvaro,1007,Tuesday,02/11/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Alvaro Becerra,
+Bracamonte,Julian,1133,Tuesday,02/11/25,Bechtel,23-641,11-27- Install Louvers (A / B),11-27,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Bumgarner,Thomas,1048,Tuesday,02/11/25,SFSU Student Housing - Building 1,23-639,,,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Thomas Bumgarner,Cost code 11-34 water testing
+Calderon,Lucio,1177,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Carroll,Andrew,917,Tuesday,02/11/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,2 hours high pay
+Carroll,Andrew,917,Tuesday,02/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,2 hours high pay
+Carroll,Andrew,917,Tuesday,02/11/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,2 hours high pay
+Carroll,Andrew,917,Tuesday,02/11/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,2 hours high pay
+Centeno,Paul,1158,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+De La Torre,Miguel,1198,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Duran,Jose,1144,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+England,Chris,787,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-26 - Caulking (A / B),11-26-Caulking (A/B),,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Esparza,Vincent,1057,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Espinosa,Luis,1191,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Estrada,Adan,920,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Estrada,Nick,1193,Tuesday,02/11/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Frostick,George,999,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Galindo,Ray,712,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Gutierrez,Rogelio,837,Tuesday,02/11/25,Bechtel,23-641,,,,Journeyman,,RT,4,06:00 AM,10:00 AM,0,0,0:00,Crew,"Left early, death in family."
+Hart,David,839,Tuesday,02/11/25,San Mateo Medical Center - Link,21-607L,11-12 - Install Membrane (A / B),11-12,,Journeyman,,RT,2,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
+Hart,David,839,Tuesday,02/11/25,San Mateo Medical Center - Link,21-607L,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,6,06:30 AM,03:00 PM,0,1,0:30,SMMC-LINK,
+Helton,Toby,1155,Tuesday,02/11/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Hendricks,Jon,689,Tuesday,02/11/25,Milvia,22-624,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Leadman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
+Hendricks,Kevin,1010,Tuesday,02/11/25,SFSU Student Housing - Building 1,23-639,,,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,Cost code 11-34 water testing
+Hernandez (Garcia),Eleazar,1176,Tuesday,02/11/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,4,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Hernandez (Garcia),Eleazar,1176,Tuesday,02/11/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Apprentice,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Hernandez (Garcia),Eleazar,1176,Tuesday,02/11/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+James,Michael,754,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Johnson,Paul,983,Tuesday,02/11/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Paul Johnson,
+Kenner,Geordan,251,Tuesday,02/11/25,CCSF SSC,21-615,11-31 - Install Interior Panels (A / B),11-31,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Geordan Kenner,
+Mason,Brandon,1164,Tuesday,02/11/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,06:30 AM,06:30 AM,0,0,0:00,SMMC-LINK,Instructed to stay home due to lack of work
+Medina,Gilbert,812,Tuesday,02/11/25,Milvia,22-624,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,4 HRs HighPay
+Molina,Rodrigo,870,Tuesday,02/11/25,CCSF SSC,21-615,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Rodrigo Molina,
+Morales,Jaime,831,Tuesday,02/11/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,"Called in, sick child."
+Nakagawa,Elijah,1171,Tuesday,02/11/25,Stanford GSE,20-592,11-11 - Welding (A / B),11-11,,Apprentice,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Osburn,Bo,356,Tuesday,02/11/25,SFO ITB Phase 2,24-647,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Bo Osburn,,RT,4,06:00 AM,10:30 AM,0,1,0:30,Bo Osburn,
+Osburn,Bo,356,Tuesday,02/11/25,San Mateo Medical Center - Link,21-607L,11-37 - Supervision A/B,11-37,,Bo Osburn,,RT,2,10:30 AM,12:30 PM,0,0,0:00,Bo Osburn,
+Osburn,Bo,356,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Bo Osburn,,RT,2,12:30 PM,02:30 PM,0,0,0:00,Bo Osburn,
+Pelletier,Teejay,1181,Tuesday,02/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
+Quintana,Alejandro,1192,Tuesday,02/11/25,Bechtel,23-641,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Ramos,John,1190,Tuesday,02/11/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Rodriguez,Israel,840,Tuesday,02/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Rodriguez,Luis,874,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-26 - Caulking (A / B),11-26-Caulking (A/B),,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Rolon,David,1162,Tuesday,02/11/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,4,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Rolon,David,1162,Tuesday,02/11/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Rolon,David,1162,Tuesday,02/11/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,2,06:15 AM,02:45 PM,0,1,0:30,Stanford,
+Sanchez,Jaime,710,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Sepulveda,Jonathan,898,Tuesday,02/11/25,Bechtel,23-641,11-27- Install Louvers (A / B),11-27,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Sousa,Mike,257,Tuesday,02/11/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Sousa,Wagner,1188,Tuesday,02/11/25,Stanford GSE,20-592,11-11 - Welding (A / B),11-11,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
+Vierra,Rye,735,Tuesday,02/11/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,

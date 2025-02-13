@@ -14,7 +14,6 @@ import "./globals.css";
 import { PermissionProvider } from "./context/PermissionContext";
 import { SocketProvider } from "./context/SocketContext";
 import AuthHandler from "./components/AuthHandler"; // Move AuthHandler to a separate file
-import { getToken } from "./db/actions";
 
 const ptSans = PT_Sans({
   subsets: ["latin"], // Specify the font subset
@@ -34,7 +33,18 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={ptSans.className}>
-        <ClerkProvider>
+        <ClerkProvider
+          // Override Clerk’s localization strings here.
+          localization={{
+            // This key might differ depending on your Clerk version.
+            // For many setups, the initial sign in page title is under "signIn.start.title"
+            signIn: {
+              start: {
+                title: "Sign into CSE-Portal",
+              },
+            },
+          }}
+        >
           <SocketProvider>
             <AuthHandler>
               <PermissionProvider>
