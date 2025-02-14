@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAttachments, deleteAttachment } from "../../../../app/db/actions"; // Assuming these functions are correct
+import { authenticate, authorize } from "../../../../app/api/admin/helpers";
+import { PERMISSION_LEVELS } from "../../../../app/constants/permissions";
 import { z } from "zod";
 
 // Zod schema for validating query parameters
@@ -13,6 +15,16 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { recordId: string } }
 ) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
+  const isAuthorized = authorize(user, [
+    PERMISSION_LEVELS.ADMIN,
+    PERMISSION_LEVELS.WRITE,
+  ]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
   try {
     // Extract tableName from query parameters
     const { searchParams } = new URL(req.url);
@@ -52,6 +64,16 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { recordId: string } }
 ) {
+  // Authenticate the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
+  const isAuthorized = authorize(user, [
+    PERMISSION_LEVELS.ADMIN,
+    PERMISSION_LEVELS.WRITE,
+  ]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
   try {
     // Extract tableName from query parameters
     const { searchParams } = new URL(req.url);

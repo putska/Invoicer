@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authenticate, authorize } from "../../admin/helpers";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../../../modules/dropbox/dropboxClient";
 
@@ -8,6 +9,16 @@ export async function GET(
   request: Request,
   { params }: { params: { filePath: string[] } }
 ) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const dbx = await getDropboxClient();
 

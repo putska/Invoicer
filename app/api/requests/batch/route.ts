@@ -1,9 +1,19 @@
 // /api/requests/batch/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { addRequest } from "../../../db/actions"; // Ensure you have this action
-import { authenticate } from "../../admin/helpers";
+import { authenticate, authorize } from "../../admin/helpers";
 
 export async function POST(req: NextRequest) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const user = await authenticate();
     if (!user) {

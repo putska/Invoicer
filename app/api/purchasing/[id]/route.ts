@@ -44,6 +44,16 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   const poId = parsePurchaseOrderId(params);
   try {
     const purchaseOrder = await getPOById(poId);
@@ -65,6 +75,15 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
   const poId = parsePurchaseOrderId(params);
   try {
     // Authenticate the user

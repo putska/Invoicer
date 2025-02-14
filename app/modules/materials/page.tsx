@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -8,15 +8,22 @@ import AddEditMaterialModal from "./AddEditMaterialModal";
 import { Material, Project } from "../../types"; // Adjust the import based on your project structure
 import { ColDef } from "ag-grid-community"; // Ensure you import this from ag-grid
 import Link from "next/link";
-import { getUserId } from "../../api/admin/helpers";
+import { PermissionContext } from "../../context/PermissionContext";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 const MaterialsPage = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
+  const { hasWritePermission, isLoaded } = useContext(PermissionContext);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setModalOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [selectedRows, setSelectedRows] = useState<Material[]>([]);
   const [selectedJob, setSelectedJob] = useState<number | null>(null);
+
+  // Show a loading message until permissions are loaded
+  if (!isLoaded) {
+    return <div className="p-6">Loading permissions...</div>;
+  }
 
   const isCheckoutDisabled =
     !selectedJob ||
@@ -182,17 +189,40 @@ const MaterialsPage = () => {
     {
       headerName: "Actions",
       cellRenderer: (params: any) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 py-1">
           <button
-            className="bg-blue-500 text-white px-2 py-1 rounded"
             onClick={() => handleEditMaterial(params.data)}
+            className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md transition-colors ${
+              !hasWritePermission
+                ? "cursor-not-allowed opacity-50"
+                : "hover:bg-indigo-200"
+            }`}
+            disabled={!hasWritePermission}
+            title={
+              hasWritePermission
+                ? "Edit Material"
+                : "You do not have permission to edit material"
+            }
           >
+            <PencilSquareIcon className="w-4 h-4" />
             Edit
           </button>
+
           <button
-            className="bg-red-500 text-white px-2 py-1 rounded"
             onClick={() => handleDeleteMaterial(params.data.id)}
+            className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md transition-colors ${
+              !hasWritePermission
+                ? "cursor-not-allowed opacity-50"
+                : "hover:bg-red-200"
+            }`}
+            disabled={!hasWritePermission}
+            title={
+              hasWritePermission
+                ? "Delete Material"
+                : "You do not have permission to delete material"
+            }
           >
+            <TrashIcon className="w-4 h-4" />
             Delete
           </button>
         </div>
@@ -201,14 +231,24 @@ const MaterialsPage = () => {
   ];
 
   return (
-    <div className="ag-theme-alpine" style={{ height: "60vh", width: "100%" }}>
-      <div className="flex justify-between mb-4">
-        <h1 className="text-2xl font-bold">Materials</h1>
+    <div className="w-full p-6 bg-white rounded-md shadow-md">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold text-gray-700">Materials</h1>
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded"
           onClick={handleAddMaterial}
+          className={`bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md transition-colors ${
+            !hasWritePermission
+              ? "cursor-not-allowed opacity-50"
+              : "hover:bg-indigo-700"
+          }`}
+          disabled={!hasWritePermission}
+          title={
+            hasWritePermission
+              ? "Add Material"
+              : "You do not have permission to add material"
+          }
         >
-          Add Material
+          Add Materials
         </button>
       </div>
       {/* Jobsite Dropdown */}
@@ -244,13 +284,18 @@ const MaterialsPage = () => {
       </div>
 
       {/* Materials Grid */}
-      <AgGridReact
-        rowData={materials}
-        columnDefs={columnDefs}
-        onSelectionChanged={onSelectionChanged}
-        pagination={true}
-        paginationPageSize={20}
-      />
+      <div
+        className="ag-theme-alpine"
+        style={{ height: "calc(100vh - 250px)", width: "100%" }}
+      >
+        <AgGridReact
+          rowData={materials}
+          columnDefs={columnDefs}
+          onSelectionChanged={onSelectionChanged}
+          pagination={true}
+          paginationPageSize={20}
+        />
+      </div>
 
       {isModalOpen && (
         <AddEditMaterialModal

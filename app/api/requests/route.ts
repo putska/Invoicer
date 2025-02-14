@@ -5,6 +5,16 @@ import { Requisition } from "../../types";
 
 // GET all requests
 export async function GET(req: NextRequest) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const user = await authenticate();
     if (!user) {

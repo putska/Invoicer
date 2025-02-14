@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import twilio from "twilio";
 import crypto from "crypto"; // For Mailgun signature verification
+import { authenticate, authorize } from "../admin/helpers";
 import { getPOByNumber, uploadAttachment } from "../../db/actions";
 import { validateFile } from "../../components/file-validation"; // Add this import
 
@@ -9,6 +10,16 @@ async function fetchWithRetry(
   options: RequestInit,
   retries = 3
 ): Promise<Response> {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const response = await fetch(url, options);
     if (response.status === 200) return response;
@@ -21,6 +32,16 @@ async function fetchWithRetry(
 }
 
 export async function POST(request: Request) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     // Get raw request body
     const rawBody = await request.text();

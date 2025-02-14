@@ -40,6 +40,16 @@ const purchaseOrderSchema = z.object({
 
 // GET all purchase orders
 export async function GET() {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const purchaseOrders = await getPurchaseOrdersWithDetails();
     return NextResponse.json({
@@ -56,6 +66,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await authenticate();
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAuthorized = authorize(user, ["admin", "read"]);
+  if (!isAuthorized) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
   try {
     // Authenticate the user
     const user = await authenticate();

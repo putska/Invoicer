@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { useRouter } from "next/navigation";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PermissionContext } from "../../context/PermissionContext";
 
 type Vendor = {
   id: number;
@@ -22,10 +23,16 @@ type Vendor = {
 
 export default function VendorsPage() {
   const router = useRouter();
+  const { hasWritePermission, isLoaded } = useContext(PermissionContext);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageSize] = useState(50);
+
+  // Show a loading message until permissions are loaded
+  if (!isLoaded) {
+    return <div className="p-6">Loading permissions...</div>;
+  }
 
   // Function to load vendors from the API
   const loadVendors = useCallback(async () => {
@@ -133,14 +140,34 @@ export default function VendorsPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => router.push(`/modules/vendors/${params.value}`)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-indigo-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Edit Vendor"
+                  : "You do not have permission to edit vendors"
+              }
             >
               <PencilSquareIcon className="w-4 h-4" />
               Edit
             </button>
             <button
               onClick={() => handleDelete(params.value!)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-red-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Delete Vendor"
+                  : "You do not have permission to delete vendors"
+              }
             >
               <TrashIcon className="w-4 h-4" />
               Delete
@@ -161,7 +188,17 @@ export default function VendorsPage() {
         <h1 className="text-2xl font-semibold text-gray-700">Vendor List</h1>
         <button
           onClick={() => router.push("/modules/vendors/new")}
-          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+          className={`bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md transition-colors ${
+            !hasWritePermission
+              ? "cursor-not-allowed opacity-50"
+              : "hover:bg-indigo-700"
+          }`}
+          disabled={!hasWritePermission}
+          title={
+            hasWritePermission
+              ? "Add Vendor"
+              : "You do not have permission to add vendors"
+          }
         >
           Add Vendor
         </button>

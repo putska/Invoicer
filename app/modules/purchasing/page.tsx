@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -15,6 +15,7 @@ import {
 import { format } from "date-fns";
 import { generatePDF } from "../../components/pdfUtils";
 import { useRouter } from "next/navigation";
+import { PermissionContext } from "../../context/PermissionContext";
 
 type PurchaseOrder = {
   id: number;
@@ -31,17 +32,23 @@ type PurchaseOrder = {
   notes?: string;
   received?: string;
   backorder?: string;
-  attachmentCount?: number; // Added missing type
+  attachmentCount?: number;
 };
 
 export default function PurchaseOrderListPage() {
   const router = useRouter();
+  const { hasWritePermission, isLoaded } = useContext(PermissionContext);
   const [rowData, setRowData] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageSize] = useState(50);
   const [selectedPO, setSelectedPO] = useState<number | null>(null);
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+
+  // Show a loading message until permissions are loaded
+  if (!isLoaded) {
+    return <div className="p-6">Loading permissions...</div>;
+  }
 
   // Memoized handlers
   const handlePrint = useCallback((po: PurchaseOrder) => {
@@ -65,9 +72,9 @@ export default function PurchaseOrderListPage() {
 
   const handleCloseAttachments = useCallback(() => {
     setIsAttachmentModalOpen(false);
-    //loadPurchaseOrders(); //use this if you want to refresh the page when the dialog closes
+    // Optionally refresh the page when the dialog closes
     setSelectedPO(null);
-  }, [selectedPO]);
+  }, []);
 
   const handleAttachmentUpdate = useCallback(
     (recordId: number, newAttachmentCount: number) => {
@@ -82,7 +89,7 @@ export default function PurchaseOrderListPage() {
     []
   );
 
-  // Memoized column definitions
+  // Memoized column definitions with permission checks for Edit and Delete
   const columnDefs = useMemo<ColDef<PurchaseOrder>[]>(
     () => [
       {
@@ -140,7 +147,17 @@ export default function PurchaseOrderListPage() {
           <div className="flex items-center gap-2 py-1">
             <button
               onClick={() => router.push(`/modules/purchasing/${params.value}`)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-indigo-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Edit Purchase Order"
+                  : "You do not have permission to edit purchase orders"
+              }
             >
               <PencilSquareIcon className="w-4 h-4" />
               Edit
@@ -148,7 +165,17 @@ export default function PurchaseOrderListPage() {
 
             <button
               onClick={() => handleDelete(params.value!)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-red-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Delete Purchase Order"
+                  : "You do not have permission to delete purchase orders"
+              }
             >
               <TrashIcon className="w-4 h-4" />
               Delete
@@ -156,8 +183,17 @@ export default function PurchaseOrderListPage() {
 
             <button
               onClick={() => handleOpenAttachments(params.value!)}
-              className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              title="Attachments"
+              className={`relative p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-red-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Edit Attachments"
+                  : "You do not have permission to edit or add attachments"
+              }
             >
               <PaperClipIcon className="w-5 h-5" />
               {params.data?.attachmentCount &&
@@ -170,8 +206,17 @@ export default function PurchaseOrderListPage() {
 
             <button
               onClick={() => handlePrint(params.data!)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              title="Print PO"
+              className={`relative p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors ${
+                !hasWritePermission
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-red-200"
+              }`}
+              disabled={!hasWritePermission}
+              title={
+                hasWritePermission
+                  ? "Print PO"
+                  : "You do not have permission to print PO's"
+              }
             >
               <PrinterIcon className="w-5 h-5" />
             </button>
@@ -179,7 +224,7 @@ export default function PurchaseOrderListPage() {
         ),
       },
     ],
-    [router, handleOpenAttachments, handlePrint]
+    [router, handleOpenAttachments, handlePrint, hasWritePermission]
   );
 
   // Delete handler
@@ -229,7 +274,17 @@ export default function PurchaseOrderListPage() {
         </h1>
         <button
           onClick={() => router.push("/modules/purchasing/new")}
-          className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+          className={`bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md transition-colors ${
+            !hasWritePermission
+              ? "cursor-not-allowed opacity-50"
+              : "hover:bg-indigo-700"
+          }`}
+          disabled={!hasWritePermission}
+          title={
+            hasWritePermission
+              ? "Add Purchase Order"
+              : "You do not have permission to add purchase orders"
+          }
         >
           Add Purchase Order
         </button>
@@ -252,7 +307,7 @@ export default function PurchaseOrderListPage() {
         onClose={handleCloseAttachments}
         recordId={selectedPO ?? 0}
         tableName="purchase_orders"
-        onAttachmentUpdate={handleAttachmentUpdate} // Pass the callback here
+        onAttachmentUpdate={handleAttachmentUpdate}
       />
     </div>
   );

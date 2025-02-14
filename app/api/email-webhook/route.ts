@@ -4,6 +4,8 @@ import formData from "form-data";
 import crypto from "crypto";
 import { getPOByNumber, uploadAttachment } from "../../db/actions";
 import { validateFile } from "../../components/file-validation"; // Add this import
+import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
+import { PERMISSION_LEVELS } from "../../../app/constants/permissions";
 
 const mg = new mailgun(formData);
 const mgClient = mg.client({
@@ -25,6 +27,12 @@ function verifyMailgunSignature(
 }
 
 export async function POST(request: NextRequest) {
+  //Authenticate and authorize the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
+
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
   try {
     const formData = await request.formData();
 

@@ -44,12 +44,12 @@ export async function GET(req: NextRequest) {
 
 // Handler for POST requests to add new equipment
 export async function POST(req: NextRequest) {
-  // Authenticate and authorize the user
-  //const user = await authenticate();
-  //if (!user) return; // Response already sent in authenticate()
+  //Authenticate and authorize the user
+  const user = await authenticate();
+  if (!user) return; // Response already sent in authenticate()
 
-  //const isAuthorized = authorize(user, ["admin", "write"]);
-  //if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
+  const isAuthorized = authorize(user, ["admin", "write"]);
+  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
 
   try {
     const equipmentData: Partial<Equipment> = await req.json();
