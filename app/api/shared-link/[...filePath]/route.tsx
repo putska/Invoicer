@@ -9,11 +9,6 @@ export async function GET(
   request: Request,
   { params }: { params: { filePath: string[] } }
 ) {
-  const isAuthorized = authorize(user, ["admin", "read"]);
-  if (!isAuthorized) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
   try {
     const dbx = await getDropboxClient();
 
