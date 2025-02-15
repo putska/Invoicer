@@ -6,7 +6,7 @@ import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adj
 
 export async function POST(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   const { clerk_id, email, first_name, last_name, permission_level } =

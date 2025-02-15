@@ -13,10 +13,6 @@ import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adj
 export async function GET() {
   cookies();
 
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
-
   try {
     const manpowerData = await getAllManpower();
     return NextResponse.json({
@@ -35,6 +31,9 @@ export async function GET() {
 // POST: Add or update manpower data
 export async function POST(req: NextRequest) {
   try {
+    // Authenticate the user
+    const user = await authenticate(req);
+    if (!user) return; // Response already sent in authenticate()
     const { activityId, date, manpower } = await req.json();
 
     // Check if the record already exists
@@ -64,6 +63,9 @@ export async function POST(req: NextRequest) {
 // PUT route to update manpower data
 export async function PUT(req: NextRequest) {
   try {
+    // Authenticate the user
+    const user = await authenticate(req);
+    if (!user) return; // Response already sent in authenticate()
     const { activityId, date, manpower } = await req.json();
 
     const response = await updateManpower(activityId, date, manpower);
@@ -88,6 +90,9 @@ export async function DELETE(req: NextRequest) {
     );
   }
   try {
+    // Authenticate the user
+    const user = await authenticate(req);
+    if (!user) return; // Response already sent in authenticate()
     await deleteManpower(activityId, date);
     return NextResponse.json(
       { message: "Manpower deleted successfully" },

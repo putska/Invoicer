@@ -16,7 +16,7 @@ export async function GET(
   { params }: { params: { recordId: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
@@ -65,7 +65,7 @@ export async function DELETE(
   { params }: { params: { recordId: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)

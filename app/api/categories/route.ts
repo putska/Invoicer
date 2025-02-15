@@ -16,7 +16,7 @@ const categorySchema = z.object({
 // GET Route: Fetch all categories for a specific project
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 // POST Route: Create a new category
 export async function POST(req: NextRequest) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

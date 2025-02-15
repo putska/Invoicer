@@ -20,7 +20,7 @@ const laborDataSchema = z.object({
 // GET all labor data entries (for debugging or admin use)
 export async function GET(req: NextRequest) {
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 // POST: Add new labor data
 export async function POST(req: NextRequest) {
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

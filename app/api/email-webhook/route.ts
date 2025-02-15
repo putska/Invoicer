@@ -28,7 +28,7 @@ function verifyMailgunSignature(
 
 export async function POST(request: NextRequest) {
   //Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(request);
   if (!user) return; // Response already sent in authenticate()
 
   const isAuthorized = authorize(user, ["admin", "write"]);

@@ -8,10 +8,6 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
-
   try {
     const snapshotId = params.id;
 

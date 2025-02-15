@@ -27,7 +27,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -58,7 +58,7 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -71,7 +71,7 @@ export async function PUT(
   const vendorId = parseVendorId(params);
   try {
     // Authenticate the user
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -112,7 +112,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -125,7 +125,7 @@ export async function DELETE(
   const vendorId = parseVendorId(params);
   try {
     // Authenticate the user
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

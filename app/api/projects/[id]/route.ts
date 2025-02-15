@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   const projectId = params.id;
@@ -34,6 +34,9 @@ export async function PUT(
   const projectId = parseInt(params.id, 10);
 
   try {
+    // Authenticate the user
+    const user = await authenticate(req);
+    if (!user) return; // Response already sent in authenticate()
     const updatedProject = await req.json();
 
     // Validate date strings

@@ -14,7 +14,7 @@ import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adj
 
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 // Handler for POST requests to add new equipment
 export async function POST(req: NextRequest) {
   //Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   const isAuthorized = authorize(user, ["admin", "write"]);

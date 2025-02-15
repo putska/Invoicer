@@ -15,7 +15,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user
@@ -43,7 +43,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   const equipmentId = parseInt(params.id, 10);
@@ -78,7 +78,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user

@@ -19,7 +19,7 @@ const activitySchema = z.object({
 
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

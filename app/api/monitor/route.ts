@@ -6,7 +6,7 @@ import { authenticate } from "../../../app/api/admin/helpers"; // Adjust the imp
 
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   const projectId = parseInt(req.nextUrl.searchParams.get("projectId") || "0");

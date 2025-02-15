@@ -13,7 +13,7 @@ export async function GET(
 ) {
   const { id } = params;
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -38,7 +38,7 @@ export async function PUT(
 ) {
   const { id } = params;
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -67,7 +67,7 @@ export async function DELETE(
 ) {
   const { id } = params;
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

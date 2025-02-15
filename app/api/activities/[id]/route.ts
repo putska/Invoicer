@@ -26,7 +26,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -67,7 +67,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -124,7 +124,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   // Authenticate and authorize the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

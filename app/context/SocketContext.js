@@ -11,39 +11,39 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }) => {
-  // const [socket, setSocket] = useState(null);
-  // const { isLoaded, isSignedIn, user } = useUser(); // This hook provides your session info, including tokens
+  const [socket, setSocket] = useState(null);
+  const { isLoaded, isSignedIn, user } = useUser(); // This hook provides your session info, including tokens
 
-  // useEffect(() => {
-  //   console.log("Auth state:", { isLoaded, user });
-  //   if (!isLoaded) return;
+  useEffect(() => {
+    console.log("Auth state:", { isLoaded, user });
+    if (!isLoaded) return;
 
-  //   //this was added to make sure we listen on 4000 when running locally.  Still need to test in production.
-  //   const dev = process.env.NODE_ENV !== "production";
-  //   const SOCKET_SERVER_URL = dev
-  //     ? "http://localhost:4000"
-  //     : "http://209.38.77.21/";
-  //   console.log("user: ", user);
-  //   const token = user ? user.idToken : null;
-  //   const socketIo = io(SOCKET_SERVER_URL, {
-  //     auth: { token },
-  //   });
+    //this was added to make sure we listen on 4000 when running locally.  Still need to test in production.
+    const dev = process.env.NODE_ENV !== "production";
+    const SOCKET_SERVER_URL = dev
+      ? "http://localhost:4000"
+      : "http://209.38.77.21/";
+    console.log("user: ", user);
+    const token = user ? user.idToken : null;
+    const socketIo = io(SOCKET_SERVER_URL, {
+      auth: { token },
+    });
 
-  //   // const socketIo = io(SOCKET_SERVER_URL);
+    // const socketIo = io(SOCKET_SERVER_URL);
 
-  //   setSocket(socketIo);
+    setSocket(socketIo);
 
-  //   function cleanup() {
-  //     socketIo.disconnect();
-  //   }
+    function cleanup() {
+      socketIo.disconnect();
+    }
 
-  //   return cleanup;
-  // }, [isLoaded, user]);
+    return cleanup;
+  }, [isLoaded, user]);
 
-  // return (
-  //   <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
-  // );
   return (
-    <SocketContext.Provider value={null}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );
+  // return (
+  //   <SocketContext.Provider value={null}>{children}</SocketContext.Provider>
+  // );
 };

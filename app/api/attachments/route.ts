@@ -11,7 +11,7 @@ import { parse } from "parse-multipart-data";
 
 export async function POST(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)

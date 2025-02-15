@@ -21,16 +21,6 @@ const vendorSchema = z.object({
 
 // GET all vendors
 export async function GET() {
-  const user = await authenticate();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const isAuthorized = authorize(user, ["admin", "read"]);
-  if (!isAuthorized) {
-    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-  }
-
   try {
     const vendors = await getAllVendors();
     if (vendors.length > 0) {
@@ -60,7 +50,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     // Authenticate the user
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

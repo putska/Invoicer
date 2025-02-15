@@ -10,7 +10,7 @@ export async function GET(
   const { id: jobNumber, costCode } = params;
 
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

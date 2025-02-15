@@ -6,12 +6,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { projectId: string } }
 ): Promise<NextResponse> {
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { projectId } = params;
 
   if (!projectId) {

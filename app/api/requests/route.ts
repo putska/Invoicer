@@ -5,7 +5,7 @@ import { Requisition } from "../../types";
 
 // GET all requests
 export async function GET(req: NextRequest) {
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 // POST: Add a new request
 export async function POST(req: NextRequest) {
   try {
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

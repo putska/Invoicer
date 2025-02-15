@@ -1,15 +1,15 @@
 // app/api/admin/helpers.ts
 
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextResponse, NextRequest } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { getUserByClerkId } from "../../../app/db/actions";
 
 /**
  * Checks if the user is authenticated.
  * @returns userId if authenticated, otherwise responds with 401.
  */
-export const authenticate = async () => {
-  const { userId } = auth();
+export const authenticate = async (request: NextRequest) => {
+  const { userId } = getAuth(request);
 
   if (!userId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -38,10 +38,10 @@ export const authorize = (user: any, requiredLevels: string[]) => {
   return true;
 };
 
-//Get the user's clerkID then fetch the userId from the database
+// Get the user's clerkID then fetch the userId from the database
 
-export const getUserId = async () => {
-  const { userId: clerkId } = auth();
+export const getUserId = async (request: NextRequest) => {
+  const { userId: clerkId } = getAuth(request);
   if (!clerkId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

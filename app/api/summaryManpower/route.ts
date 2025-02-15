@@ -4,7 +4,7 @@ import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adj
 
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   try {

@@ -27,7 +27,7 @@ const projectSchema = z.object({
 
 export async function POST(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   try {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(req);
   if (!user) return; // Response already sent in authenticate()
 
   // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)

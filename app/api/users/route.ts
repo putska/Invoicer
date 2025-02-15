@@ -6,7 +6,7 @@ import { authenticate, authorize } from "../admin/helpers";
 export async function GET(req: NextRequest) {
   try {
     // Authenticate the user
-    const user = await authenticate();
+    const user = await authenticate(req);
     if (!user) {
       console.error("Unauthorized access attempt");
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

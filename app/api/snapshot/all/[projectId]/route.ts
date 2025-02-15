@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   // Authenticate the user
-  const user = await authenticate();
+  const user = await authenticate(request);
   if (!user) return; // Response already sent in authenticate()
   try {
     const snapshots = await getSnapshotsByProjectId(Number(params.projectId));

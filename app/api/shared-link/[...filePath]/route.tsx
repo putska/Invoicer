@@ -9,11 +9,6 @@ export async function GET(
   request: Request,
   { params }: { params: { filePath: string[] } }
 ) {
-  const user = await authenticate();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   const isAuthorized = authorize(user, ["admin", "read"]);
   if (!isAuthorized) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });

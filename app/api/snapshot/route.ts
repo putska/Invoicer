@@ -9,17 +9,6 @@ import {
 } from "../../../app/constants/permissions";
 
 export async function POST(req: Request) {
-  // Authenticate the user
-  const user = await authenticate();
-  if (!user) return; // Response already sent in authenticate()
-
-  // Authorize the user (e.g., only 'admin' or 'write' can fetch activities)
-  const isAuthorized = authorize(user, [
-    PERMISSION_LEVELS.ADMIN,
-    PERMISSION_LEVELS.WRITE,
-  ]);
-  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
-
   try {
     const { projectId, snapshotData } = await req.json();
 
