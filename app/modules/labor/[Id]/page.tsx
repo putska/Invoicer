@@ -1,4 +1,4 @@
-// app/modules/labor/[id]/page.tsx
+// app/modules/labor/[id]/
 
 "use client";
 
@@ -243,7 +243,7 @@ const LaborGrid: React.FC = () => {
     };
 
     // Listen for real-time "edit" events
-    socket.on("edit", handleExternalEdit);
+    //socket.on("edit", handleExternalEdit);
 
     return () => {
       // Clean up the event listener on unmount
