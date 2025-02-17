@@ -16,11 +16,10 @@ const nextConfig = {
       },
     ];
   },
-  productionBrowserSourceMaps: true, // 👈 Critical for debugging
-  webpack: (config) => {
-    config.devtool = "source-map";
-    return config;
+  experimental: {
+    middleware: true,
   },
+  productionBrowserSourceMaps: true, // Ensure source maps in production
 };
 
-export default nextConfig;
+module.exports = nextConfig;
