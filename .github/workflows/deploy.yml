@@ -18,24 +18,25 @@ jobs:
 
       - name: Build Application with Debug
         env:
-          # Keep existing secrets
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          # Add debug flags
-          NEXT_DEBUG: 'clerk*'
-          CLERK_DEBUG: '1'
-          NODE_OPTIONS: '--inspect'
-        run: |
-          npm run build
-          # Preserve source maps
-          cp -r .next/static/. .next/server/static/
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SWATTS_SSH_KEY }}
-
-      - name: Copy Build Files to Server
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+          DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          NGROK_URL: ${{ secrets.NGROK_URL }}
+          MAX_SMS_FILE_SIZE: ${{ secrets.MAX_SMS_FILE_SIZE }}
+          ALLOWED_FILE_TYPES: ${{ secrets.ALLOWED_FILE_TYPES }}
+          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_SENDINGKEY: ${{ secrets.MAILGUN_SENDINGKEY }}
+          MAILGUN_SIGNING_KEY: ${{ secrets.MAILGUN_SIGNING_KEY }}
+          
         run: |
           rsync -avz --delete \
             --include='.next/**' \
