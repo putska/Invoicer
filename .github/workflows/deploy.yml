@@ -16,7 +16,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Application
+      - name: Build Application with Debug
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
@@ -36,7 +36,11 @@ jobs:
           MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
           MAILGUN_SENDINGKEY: ${{ secrets.MAILGUN_SENDINGKEY }}
           MAILGUN_SIGNING_KEY: ${{ secrets.MAILGUN_SIGNING_KEY }}
-        run: npm run build
+          
+        run: |
+          npm run build
+          # Preserve source maps
+          cp -r .next/static/. .next/server/static/
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.7.0
@@ -45,11 +49,23 @@ jobs:
 
       - name: Copy Build Files to Server
         run: |
-          rsync -avz --delete --exclude='.env' -e "ssh -o StrictHostKeyChecking=no" .next node_modules package.json package-lock.json swatts@209.38.77.21:/home/swatts/Invoicer
+          rsync -avz --delete \
+            --include='.next/**' \
+            --include='node_modules/**' \
+            --include='package*' \
+            --include='next.config.js' \
+            --exclude='*' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ swatts@209.38.77.21:/home/swatts/Invoicer
 
-      - name: Restart Application
+      - name: Restart Application with Debug
         run: |
           ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
-          cd /home/swatts/Invoicer &&
-          pm2 restart Invoicer || pm2 start npm --name "Invoicer" -- start &&
-          pm2 save'
+            cd /home/swatts/Invoicer
+            pm2 delete Invoicer || true
+            pm2 start npm --name "Invoicer" -- \
+              --start -- \
+              --inspect \
+              -r source-map-support/register \
+              -r ./utils/debug-get-auth.ts
+            pm2 save'
