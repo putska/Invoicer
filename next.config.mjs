@@ -22,4 +22,4 @@ const nextConfig = {
   productionBrowserSourceMaps: true, // Ensure source maps in production
 };
 
-module.exports = nextConfig;
+export default nextConfig;
