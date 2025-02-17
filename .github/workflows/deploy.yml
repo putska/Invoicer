@@ -38,6 +38,17 @@ jobs:
           MAILGUN_SIGNING_KEY: ${{ secrets.MAILGUN_SIGNING_KEY }}
           
         run: |
+          npm run build
+          # Preserve source maps
+          cp -r .next/static/. .next/server/static/
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SWATTS_SSH_KEY }}
+
+      - name: Copy Build Files to Server
+        run: |
           rsync -avz --delete \
             --include='.next/**' \
             --include='node_modules/**' \
