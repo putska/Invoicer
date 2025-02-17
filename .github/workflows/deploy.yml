@@ -63,9 +63,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
             cd /home/swatts/Invoicer
             pm2 delete Invoicer || true
-            pm2 start npm --name "Invoicer" -- \
-              --start -- \
-              --inspect \
-              -r source-map-support/register \
-              -r ./utils/debug-get-auth.ts
+            NODE_OPTIONS="--inspect --require source-map-support/register" \
+            pm2 start npm --name "Invoicer" -- start
             pm2 save'
