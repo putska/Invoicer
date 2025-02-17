@@ -16,27 +16,19 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Application
+      - name: Build Application with Debug
         env:
+          # Keep existing secrets
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
-          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
-          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
-          DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
-          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
-          NGROK_URL: ${{ secrets.NGROK_URL }}
-          MAX_SMS_FILE_SIZE: ${{ secrets.MAX_SMS_FILE_SIZE }}
-          ALLOWED_FILE_TYPES: ${{ secrets.ALLOWED_FILE_TYPES }}
-          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
-          MAILGUN_SENDINGKEY: ${{ secrets.MAILGUN_SENDINGKEY }}
-          MAILGUN_SIGNING_KEY: ${{ secrets.MAILGUN_SIGNING_KEY }}
-        run: npm run build
+          # Add debug flags
+          NEXT_DEBUG: 'clerk*'
+          CLERK_DEBUG: '1'
+          NODE_OPTIONS: '--inspect'
+        run: |
+          npm run build
+          # Preserve source maps
+          cp -r .next/static/. .next/server/static/
 
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.7.0
@@ -45,11 +37,23 @@ jobs:
 
       - name: Copy Build Files to Server
         run: |
-          rsync -avz --delete --exclude='.env' -e "ssh -o StrictHostKeyChecking=no" .next node_modules package.json package-lock.json swatts@209.38.77.21:/home/swatts/Invoicer
+          rsync -avz --delete \
+            --include='.next/**' \
+            --include='node_modules/**' \
+            --include='package*' \
+            --include='next.config.js' \
+            --exclude='*' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ swatts@209.38.77.21:/home/swatts/Invoicer
 
-      - name: Restart Application
+      - name: Restart Application with Debug
         run: |
           ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
-          cd /home/swatts/Invoicer &&
-          pm2 restart Invoicer || pm2 start npm --name "Invoicer" -- start &&
-          pm2 save'
+            cd /home/swatts/Invoicer
+            pm2 delete Invoicer || true
+            pm2 start npm --name "Invoicer" -- \
+              --start -- \
+              --inspect \
+              -r source-map-support/register \
+              -r ./utils/debug-get-auth.ts
+            pm2 save'
