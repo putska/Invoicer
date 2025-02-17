@@ -3,17 +3,21 @@ import { getAuth as clerkGetAuth } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
 
 export function getAuth(request: NextRequest) {
-  // Capture the call stack
   const stack = new Error().stack
     ?.split("\n")
     .slice(2)
-    .filter((line) => !line.includes("node_modules"))
+    .map((line) =>
+      line
+        .replace("webpack-internal:///(rsc)/", "") // Clean Next.js internal paths
+        .replace(/\(\.next.*?\)/, "")
+    )
     .join("\n  ");
 
   console.log(
     `getAuth() called from:\n  ${stack}\n` +
-      `Route: ${request.nextUrl.pathname}\n` +
-      `Method: ${request.method}`
+      `URL: ${request.nextUrl.pathname}\n` +
+      `IP: ${request.ip}\n` +
+      `Headers: ${JSON.stringify(Object.fromEntries(request.headers))}`
   );
 
   return clerkGetAuth(request);
