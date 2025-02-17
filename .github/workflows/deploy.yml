@@ -50,10 +50,12 @@ jobs:
       - name: Copy Build Files to Server
         run: |
           rsync -avz --delete \
-            --include='.next/**' \
-            --include='node_modules/**' \
-            --include='package*' \
+            --include='.next' \
+            --include="public" \
+            --include='package.json' \
+            --include='package-lock.json'\
             --include='next.config.js' \
+            --include='node_modules' \
             --exclude='*' \
             -e "ssh -o StrictHostKeyChecking=no" \
             ./ swatts@209.38.77.21:/home/swatts/Invoicer
@@ -62,7 +64,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no swatts@209.38.77.21 '
             cd /home/swatts/Invoicer
-            pm2 delete Invoicer || true
-            NODE_OPTIONS="--inspect --require source-map-support/register" \
+            pm2 delete Invoicer
+            NODE_OPTIONS="--inspect=0.0.0.0:9230" \
             pm2 start npm --name "Invoicer" -- start
             pm2 save'
