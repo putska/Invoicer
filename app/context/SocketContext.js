@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
     const dev = process.env.NODE_ENV !== "production";
     const SOCKET_SERVER_URL = dev
       ? "http://localhost:4000"
-      : "http://209.38.77.21/";
+      : "http://209.38.77.21:3000";
 
     const socketIo = io(SOCKET_SERVER_URL);
 
@@ -33,7 +33,4 @@ export const SocketProvider = ({ children }) => {
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );
-  // return (
-  //   <SocketContext.Provider value={null}>{children}</SocketContext.Provider>
-  // );
 };
