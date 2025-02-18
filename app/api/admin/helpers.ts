@@ -1,8 +1,8 @@
 // app/api/admin/helpers.ts
 
 import { NextResponse, NextRequest } from "next/server";
-//import { getAuth } from "@clerk/nextjs/server";
-import { getAuth } from "../../components/debug-get-auth"; // Changed import path
+import { getAuth } from "@clerk/nextjs/server";
+//import { getAuth } from "../../components/debug-get-auth"; // Changed import path
 import { getUserByClerkId } from "../../../app/db/actions";
 
 /**
