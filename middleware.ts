@@ -15,18 +15,20 @@ const adminRoutes = createRouteMatcher([
   "/api/admin(.*)", // Protect admin APIs too
 ]);
 
+// 👇 Add publicRoutes configuration HERE (second argument)
+const publicRoutes = createRouteMatcher(["/api/tokens", "/api/tokens/refresh"]);
+
 export default clerkMiddleware(async (auth, req) => {
-  // First check if it's a protected route
+  if (publicRoutes(req)) {
+    return NextResponse.next();
+  }
+
   if (protectedRoutes(req)) {
     auth().protect();
 
-    // Then check if it's an admin route
     if (adminRoutes(req)) {
       const clerkUserId = auth().userId;
-
-      if (!clerkUserId) {
-        return redirectToUnauthorized(req);
-      }
+      if (!clerkUserId) return redirectToUnauthorized(req);
 
       try {
         const user = await getUserByClerkId(clerkUserId);
@@ -42,11 +44,10 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // Public routes fall through
   return NextResponse.next();
 });
 
-// Helper function for redirects
+// Helper function remains the same
 const redirectToUnauthorized = (req: Request) => {
   const url = new URL(req.url);
   url.pathname = "/unauthorized";
@@ -54,6 +55,5 @@ const redirectToUnauthorized = (req: Request) => {
 };
 
 export const config = {
-  // Simplified matcher pattern
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

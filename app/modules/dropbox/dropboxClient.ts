@@ -45,9 +45,11 @@ import { DropboxAuth } from "dropbox";
 
 export async function getDropboxClient() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const tokenUrl = `${baseUrl}/api/tokens`; // Correct URL
+    const dev = process.env.NODE_ENV !== "production";
+    const baseUrl = dev ? "http://localhost:3000" : "https://cse-portal.com";
 
+    const tokenUrl = `${baseUrl}/api/tokens`; // Correct URL
+    console.log("tokenUrl: ", tokenUrl);
     const response = await fetch(tokenUrl);
     if (!response.ok) {
       const errorText = await response.text();

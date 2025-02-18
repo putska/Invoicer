@@ -6,7 +6,9 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
+    console.log("Getting Dropbox token");
     const tokens = await getToken("dropbox");
+    console.log("Tokens: ", tokens);
     if (!tokens || tokens.length === 0) {
       return await refreshTokenAndStore(); // Refresh and store a new token
     }
