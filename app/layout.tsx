@@ -77,7 +77,7 @@ export default async function RootLayout({
                       <Link href="/modules/materials">Shop Materials</Link>
 
                       <Link
-                        href="https://wiki.cserectors.com"
+                        href="https://wiki.cse-portal.com"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
