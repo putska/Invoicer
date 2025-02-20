@@ -39,6 +39,7 @@ const poSchema = z.object({
   notes: z.string().optional(),
   received: z.string().optional(),
   backorder: z.string().optional(),
+  generatePDF: z.boolean().default(false),
 });
 
 type PurchaseOrder = z.infer<typeof poSchema>;
@@ -112,6 +113,7 @@ export default function PurchaseOrderFormPage() {
       poDate: new Date().toISOString().split("T")[0],
       projectManager: user?.fullName || "",
       amount: "0",
+      generatePDF: false,
     },
   });
 
@@ -283,7 +285,7 @@ export default function PurchaseOrderFormPage() {
       const result = await response.json();
       console.log("Server Response:", result);
 
-      if (isNewRecord) {
+      if (isNewRecord && formData.generatePDF) {
         generatePDF({
           ...formData,
           poNumber: result.newPurchaseOrder.poNumber,
@@ -292,6 +294,7 @@ export default function PurchaseOrderFormPage() {
           amount: formData.amount || "0",
         });
       }
+
       router.push("/modules/purchasing");
     } catch (err) {
       console.error("Error submitting form:", err);
@@ -467,6 +470,21 @@ export default function PurchaseOrderFormPage() {
         </FormField>
 
         {/* Buttons */}
+        {(!id || id === "new") && (
+          <FormField label="">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="generatePDF"
+                {...register("generatePDF")}
+                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+              <label htmlFor="generatePDF" className="text-gray-700">
+                Generate PDF for this Purchase Order
+              </label>
+            </div>
+          </FormField>
+        )}
         <div className="flex justify-end space-x-4">
           <button
             type="button"
