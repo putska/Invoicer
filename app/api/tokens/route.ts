@@ -160,7 +160,6 @@ async function refreshTokenAndStore() {
 //     });
 
 //     console.log("Token refreshed and stored in database", newExpiresAt);
-//     //console.log("Access Token: ", newAccessToken);
 //     const date = new Date(newExpiresAt);
 //     console.log("Token expiry date:", date.toLocaleString());
 
