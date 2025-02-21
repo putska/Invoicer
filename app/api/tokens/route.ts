@@ -136,7 +136,7 @@ async function refreshTokenAndStore() {
 //   if (!clientId || !clientSecret || !refreshToken) {
 //     throw new Error("Missing Dropbox environment variables");
 //   }
-
+//
 //   const dbxAuth = new DropboxAuth({
 //     clientId,
 //     clientSecret,
