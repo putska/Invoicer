@@ -8,13 +8,12 @@ export async function GET() {
   try {
     console.log("Getting Dropbox token");
     const tokens = await getToken("dropbox");
-    console.log("Tokens: ", tokens);
     if (!tokens || tokens.length === 0) {
       return await refreshTokenAndStore(); // Refresh and store a new token
     }
 
     const token = tokens[0]; // Get the first token record
-
+    console.log("Using refresh token from database: ", token.refreshToken);
     const now = Date.now();
     const isValid = token.expiresAt > now + 300000; // 5-minute buffer
 
@@ -91,7 +90,8 @@ async function refreshTokenAndStore() {
 
     const data = await response.json();
     const newAccessToken = data.access_token;
-    const newExpiresIn = data.expires_in; // Expires in seconds
+    //const newExpiresIn = data.expires_in; // Expires in seconds
+    const newExpiresIn = 300; // 5 minutes in seconds
     const newExpiresAt = Date.now() + newExpiresIn * 1000; // Calculate expiry timestamp
 
     if (!newAccessToken || !newExpiresAt) {
