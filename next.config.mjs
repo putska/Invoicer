@@ -8,7 +8,7 @@ const nextConfig = {
     return [
       {
         source: "/",
-        destination: "/modules/summary",
+        destination: "/modules/welcome",
         permanent: true,
       },
     ];

@@ -34,7 +34,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={ptSans.className}>
         <ClerkProvider
-          afterSignOutUrl="/modules/unauthorized" // Redirect to unauthorized page after sign out
+          afterSignOutUrl="/modules/welcome" // Redirect to unauthorized page after sign out
           // Override Clerk’s localization strings here.
           localization={{
             // This key might differ depending on your Clerk version.

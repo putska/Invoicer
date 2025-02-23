@@ -16,7 +16,13 @@ const adminRoutes = createRouteMatcher([
 ]);
 
 // 👇 Add publicRoutes configuration HERE (second argument)
-const publicRoutes = createRouteMatcher(["/api/tokens", "/api/tokens/refresh"]);
+const publicRoutes = createRouteMatcher([
+  "/modules/welcome/page.tsx",
+  "/api/tokens",
+  "/api/tokens/refresh",
+  "/modules/privacy/page.tsx",
+  "/",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (publicRoutes(req)) {
@@ -50,7 +56,7 @@ export default clerkMiddleware(async (auth, req) => {
 // Helper function remains the same
 const redirectToUnauthorized = (req: Request) => {
   const url = new URL(req.url);
-  url.pathname = "/unauthorized";
+  url.pathname = "/modules/welcome/page.tsx";
   return NextResponse.redirect(url);
 };
 
