@@ -1469,7 +1469,15 @@ export const deleteAttachment = async (attachmentId: number) => {
 
     // Delete the file from Dropbox
     console.log("Attachment path: ", attachment.fileUrl);
-    await dbx.filesDeleteV2({ path: attachment.fileUrl }); // Make sure you're accessing the fileUrl from the object
+    try {
+      await dbx.filesDeleteV2({ path: attachment.fileUrl });
+    } catch (err) {
+      console.error(
+        "Error deleting file from Dropbox:",
+        (err as { error_summary?: string; message?: string }).error_summary ||
+          (err as { message?: string }).message
+      );
+    }
 
     // Delete the record from the attachments table
     await db.delete(attachments).where(eq(attachments.id, attachmentId));
