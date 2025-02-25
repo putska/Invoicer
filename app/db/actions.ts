@@ -781,6 +781,31 @@ export const updateUserPermission = async (
   }
 };
 
+// Update a user's record (email, first_name, last_name, permission_level)
+export const updateUser = async (user: {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  permission_level: string;
+}): Promise<void> => {
+  try {
+    await db
+      .update(users)
+      .set({
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        permission_level: user.permission_level,
+      })
+      .where(eq(users.id, user.id))
+      .execute();
+  } catch (error) {
+    console.error("Error updating user:", error);
+    throw new Error("Could not update user");
+  }
+};
+
 // Create a new user
 export const createUser = async (userData: {
   clerk_id: string;
