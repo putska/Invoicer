@@ -309,3 +309,19 @@ export interface Requisition {
   createdAt: string; // Timestamp when the requisition was created
   updatedAt: string; // Timestamp when the requisition was last updated
 }
+
+// Safety forms
+export interface FormSubmission {
+  id: number;
+  formName: string;
+  pdfName: string;
+  jobName: string;
+  userName: string;
+  dateCreated: string;
+  submissionDate: Date;
+  formData: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+}

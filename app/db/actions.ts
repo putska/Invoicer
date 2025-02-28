@@ -17,6 +17,7 @@ import {
   materials,
   requests,
   tokens,
+  forms,
 } from "./schema";
 import {
   Customer,
@@ -32,6 +33,7 @@ import {
   LaborData,
   Material,
   Requisition,
+  FormSubmission,
 } from "../types";
 import { desc, eq, and, inArray, sql, max } from "drizzle-orm";
 import { Dropbox } from "dropbox";
@@ -1875,4 +1877,141 @@ export async function upsertToken(
         expiresAt: values.expiresAt,
       },
     });
+}
+
+// Begin Safety form Actions
+
+// Get all safety forms
+export async function getAllFormSubmissions(includeDeleted = false) {
+  if (includeDeleted) {
+    // Return all records, including deleted ones
+    return await db.select().from(forms);
+  } else {
+    // Return only records where isDeleted is false
+    return await db.select().from(forms).where(eq(forms.isDeleted, false));
+  }
+}
+
+// Create a new form submission
+export async function createFormSubmission(
+  input: Omit<
+    FormSubmission,
+    "id" | "createdAt" | "updatedAt" | "isDeleted" | "deletedAt"
+  >
+): Promise<FormSubmission> {
+  const [result] = await db
+    .insert(forms)
+    .values({
+      formName: input.formName,
+      pdfName: input.pdfName,
+      jobName: input.jobName,
+      userName: input.userName,
+      dateCreated: input.dateCreated,
+      formData: input.formData,
+      submissionDate: input.submissionDate,
+      isDeleted: false,
+      deletedAt: null,
+    })
+    .returning();
+  return {
+    id: result.id,
+    formName: result.formName,
+    pdfName: result.pdfName,
+    jobName: result.jobName,
+    userName: result.userName,
+    dateCreated: result.dateCreated ?? "",
+    submissionDate: result.submissionDate,
+    formData: result.formData as Record<string, any>,
+    createdAt: result.createdAt,
+    updatedAt: result.updatedAt,
+    isDeleted: result.isDeleted,
+    deletedAt: result.deletedAt ?? null,
+  };
+}
+
+// Get a form submission by id
+export async function getFormSubmission(
+  id: number
+): Promise<FormSubmission | null> {
+  const result = await db
+    .select()
+    .from(forms)
+    .where(
+      and(
+        eq(forms.id, id),
+        eq(forms.isDeleted, false) // Exclude soft-deleted
+      )
+    )
+    .limit(1);
+  if (!result.length) return null;
+  const record = result[0];
+  return {
+    id: record.id,
+    formName: record.formName,
+    pdfName: record.pdfName,
+    jobName: record.jobName,
+    userName: record.userName,
+    dateCreated: record.dateCreated ?? "",
+    submissionDate: record.submissionDate,
+    formData: record.formData as Record<string, any>,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    isDeleted: record.isDeleted,
+    deletedAt: record.deletedAt ?? null,
+  };
+}
+
+// Update a form submission by id
+export async function updateFormSubmission(
+  id: number,
+  input: Partial<
+    Omit<
+      FormSubmission,
+      "id" | "createdAt" | "updatedAt" | "isDeleted" | "deletedAt"
+    >
+  >
+): Promise<FormSubmission | null> {
+  const [result] = await db
+    .update(forms)
+    .set({
+      formName: input.formName,
+      pdfName: input.pdfName,
+      jobName: input.jobName,
+      userName: input.userName,
+      dateCreated: input.dateCreated,
+      submissionDate: input.submissionDate,
+      formData: input.formData,
+      updatedAt: new Date(), // update the timestamp
+    })
+    .where(eq(forms.id, id))
+    .returning();
+  if (!result) return null;
+  return {
+    id: result.id,
+    formName: result.formName,
+    pdfName: result.pdfName,
+    jobName: result.jobName,
+    userName: result.userName,
+    dateCreated: result.dateCreated ?? "",
+    submissionDate: result.submissionDate,
+    formData: result.formData as Record<string, any>,
+    createdAt: result.createdAt,
+    updatedAt: result.updatedAt,
+    isDeleted: result.isDeleted ?? null,
+    deletedAt: result.deletedAt ?? new Date(),
+  };
+}
+
+// Delete a form submission by id (soft delete)
+export async function deleteFormSubmission(id: number): Promise<boolean> {
+  const [result] = await db
+    .update(forms)
+    .set({
+      isDeleted: true,
+      deletedAt: new Date(),
+      updatedAt: new Date(), // Track when deletion happened
+    })
+    .where(eq(forms.id, id))
+    .returning();
+  return !!result;
 }

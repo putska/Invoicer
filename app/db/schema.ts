@@ -13,6 +13,7 @@ import {
   PgJsonBuilder,
   varchar,
   bigint,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -254,4 +255,22 @@ export const tokens = pgTable("tokens", {
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"), // Optional but recommended
   expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+});
+
+// Begin safety forms schema
+
+export const forms = pgTable("forms", {
+  id: serial("id").primaryKey(),
+  formName: text("form_name").notNull(),
+  pdfName: text("pdf_form").notNull(),
+  jobName: text("job_name").notNull(),
+  //jobId: integer("job_id").notNull().default(0), // Adding later
+  userName: text("user_name").notNull(),
+  dateCreated: text("date_created"), // Stored as text for easier handling in JavaScript
+  submissionDate: timestamp("submission_date").defaultNow().notNull(),
+  formData: jsonb("form_data").notNull(), // data for forms in jsonb format
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
