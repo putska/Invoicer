@@ -11,6 +11,16 @@ const nextConfig = {
         destination: "/modules/welcome",
         permanent: true,
       },
+      {
+        source: "/safety",
+        destination: "/modules/safety",
+        permanent: true,
+      },
+      {
+        source: "/purchasing",
+        destination: "/modules/purchasing",
+        permanent: true,
+      },
     ];
   },
   productionBrowserSourceMaps: true,

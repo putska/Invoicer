@@ -77,6 +77,8 @@ export default async function RootLayout({
 
                       <Link href="/modules/materials">Shop Materials</Link>
 
+                      <Link href="/modules/safety">Safety</Link>
+
                       <Link
                         href="https://wiki.cse-portal.com"
                         target="_blank"
