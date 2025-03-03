@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { generatePDF } from "../../../components/pdfUtils";
+import { useFullNameFromDB } from "../../../components/useFullNameFromDB";
 
 // ---------------- Schema & Types ----------------
 
@@ -92,7 +93,7 @@ export default function PurchaseOrderFormPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { user } = useUser();
-
+  const fullName = useFullNameFromDB();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export default function PurchaseOrderFormPage() {
     resolver: zodResolver(poSchema),
     defaultValues: {
       poDate: new Date().toISOString().split("T")[0],
-      projectManager: user?.fullName || "",
+      projectManager: fullName || "",
       amount: "0",
       generatePDF: false,
     },

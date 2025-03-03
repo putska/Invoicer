@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { generatePDF } from "../../../../components/PdfUtilsSafety";
+import { useFullNameFromDB } from "../../../../components/useFullNameFromDB";
 
 // ---------------- Schema & Types ----------------
 
@@ -282,7 +283,7 @@ export default function MEWPFormPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { user } = useUser();
-  const [fullName, setFullName] = useState<string>("");
+  const fullName = useFullNameFromDB();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "success">(
     "loading"
@@ -310,7 +311,7 @@ export default function MEWPFormPage() {
         },
         mewpId: "",
         hourMeterReading: "",
-        inspectionConductedBy: user?.fullName || "",
+        inspectionConductedBy: fullName || "",
         inspectionDate: new Date().toISOString().split("T")[0],
         powerOffChecks: {
           wheelsAndTires: { ok: false, no: false, na: false, note: "" },
@@ -491,31 +492,6 @@ export default function MEWPFormPage() {
       return () => clearTimeout(handler);
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
-
-  useEffect(() => {
-    async function fetchUserName() {
-      if (user) {
-        try {
-          const res = await fetch("/api/getUser", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clerk_id: user.id }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            // Assuming your database returns first_name and last_name
-            setFullName(`${data.first_name} ${data.last_name}`);
-          } else {
-            console.error("Error fetching user data:", await res.text());
-          }
-        } catch (err) {
-          console.error("Fetch error:", err);
-        }
-      }
-    }
-
-    fetchUserName();
-  }, [user]);
 
   // ---------------- API Loaders ----------------
 
