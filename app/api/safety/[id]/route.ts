@@ -1,3 +1,4 @@
+// Query parameters: id
 //app/api/safety/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
