@@ -113,7 +113,12 @@ export default function SimpleFallProtectionFormPage() {
       </h1>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit, (errors) =>
+            console.error("Validation errors:", errors)
+          )}
+          className="space-y-4"
+        >
           <div className="bg-gray-50 p-4 rounded-md">
             <FormField
               label="Manufacturer"
