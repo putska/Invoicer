@@ -165,6 +165,7 @@ export default function SimpleFallProtectionFormPage() {
             </button>
             <button
               type="submit"
+              onClick={() => console.log("Button clicked")}
               className="bg-indigo-600 text-white py-2 px-4 rounded-md"
             >
               Save
