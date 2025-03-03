@@ -47,11 +47,17 @@ export const generatePDF = async (data: any) => {
     let pdfPath;
     console.log(`Generating PDF for form: ${data.formName}`);
     switch (data.formName) {
-      case "Job Hazard Analysis":
+      case "JHA":
         pdfPath = "/JHA.pdf";
         break;
-      case "Fall Protection Inspection Form":
+      case "Fall-Protection":
         pdfPath = "/FallProtection.pdf";
+        break;
+      case "Telehandler":
+        pdfPath = "/Telehandler.pdf";
+        break;
+      case "MEWP":
+        pdfPath = "/MEWP.pdf";
         break;
       default:
         throw new Error(`Unknown form type: ${data.formName}`);
@@ -66,14 +72,14 @@ export const generatePDF = async (data: any) => {
     const form = pdfDoc.getForm();
 
     // Get all field names from the PDF for debugging
-    const fields = form.getFields();
-    console.log(
-      "Available PDF fields:",
-      fields.map((f) => f.getName())
-    );
+    //const fields = form.getFields();
+    //console.log(
+    //  "Available PDF fields:",
+    //  fields.map((f) => f.getName())
+    //);
 
     // Fill the form based on the form type
-    if (data.formName === "Job Hazard Analysis") {
+    if (data.formName === "JHA") {
       // JHA specific fields
       safeSetTextField(form, "Text1", formatDate(data.dateCreated));
       safeSetTextField(form, "Text2", data.shiftTime || "");
@@ -178,7 +184,7 @@ export const generatePDF = async (data: any) => {
       );
 
       //************** Fall Protection Inspection Form */
-    } else if (data.formName === "Fall Protection Inspection Form") {
+    } else if (data.formName === "Fall-Protection") {
       // Fall Protection specific fields
       safeSetTextField(form, "Text1", data.formData.manufacturer || "");
       safeSetTextField(
@@ -468,10 +474,7 @@ export const generatePDF = async (data: any) => {
       safeSetTextField(form, "Text24", data.formData.additionalNotes || "");
 
       //************** Mobile Elevating Work Platform (MEWP) Pre-Use Inspection */
-    } else if (
-      data.formName ===
-      "Mobile Elevating Work Platform (MEWP) Pre-Use Inspection"
-    ) {
+    } else if (data.formName === "MEWP") {
       // Basic Information
       safeSetTextField(form, "Text1", data.formData.jobName || "");
       safeSetTextField(form, "Text2", data.formData.mewpMakeModel || "");
@@ -923,7 +926,7 @@ export const generatePDF = async (data: any) => {
         );
         safeSetCheckBox(
           form,
-          "Check Bo82",
+          "Check Box82",
           !!data.formData.powerOffChecks.other1?.ok
         );
         safeSetCheckBox(
@@ -938,7 +941,7 @@ export const generatePDF = async (data: any) => {
         );
         safeSetCheckBox(
           form,
-          "Check Bo85",
+          "Check Box85",
           !!data.formData.powerOffChecks.other2?.ok
         );
         safeSetCheckBox(
@@ -953,7 +956,7 @@ export const generatePDF = async (data: any) => {
         );
         safeSetCheckBox(
           form,
-          "Check Bo88",
+          "Check Box88",
           !!data.formData.powerOffChecks.other3?.ok
         );
         safeSetCheckBox(
@@ -1463,7 +1466,7 @@ export const generatePDF = async (data: any) => {
         );
       }
       //************** Telehandler/Forklift Pre-Use Inspection */
-    } else if (data.formName === "Telehandler/Forklift Pre-Use Inspection") {
+    } else if (data.formName === "Telehandler") {
       // Basic Information
       safeSetTextField(form, "Text1", data.formData.jobName || "");
       safeSetTextField(form, "Calibri10", data.formData.makeModel || "");
@@ -2471,7 +2474,7 @@ export const listPDFFields = async (pdfPath: string): Promise<string[]> => {
       type: field.constructor.name,
     }));
 
-    console.log("PDF Fields:", fieldDetails);
+    //console.log("PDF Fields:", fieldDetails);
 
     return fields.map((field) => field.getName());
   } catch (error) {

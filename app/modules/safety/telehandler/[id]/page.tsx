@@ -2,7 +2,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useForm, useWatch, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  useFieldArray,
+  FormProvider,
+  useFormContext,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -164,6 +170,7 @@ const FormField = ({
   </div>
 );
 
+// Modified CheckboxGroup Component to behave like radio buttons
 const CheckboxGroup = ({
   label,
   okName,
@@ -173,54 +180,94 @@ const CheckboxGroup = ({
   register,
   errors,
   showNote = true,
-}: CheckboxGroupProps) => (
-  <div className="grid grid-cols-12 gap-2 items-center mb-2 py-1 border-b border-gray-100">
-    <div className="col-span-5 pr-2">{label}</div>
-    <div className="col-span-1 flex items-center justify-center">
-      <input
-        type="checkbox"
-        id={okName}
-        {...register(okName)}
-        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-      />
-      <label htmlFor={okName} className="ml-1 text-xs text-gray-700">
-        OK
-      </label>
-    </div>
-    <div className="col-span-1 flex items-center justify-center">
-      <input
-        type="checkbox"
-        id={noName}
-        {...register(noName)}
-        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-      />
-      <label htmlFor={noName} className="ml-1 text-xs text-gray-700">
-        No
-      </label>
-    </div>
-    <div className="col-span-1 flex items-center justify-center">
-      <input
-        type="checkbox"
-        id={naName}
-        {...register(naName)}
-        className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
-      />
-      <label htmlFor={naName} className="ml-1 text-xs text-gray-700">
-        N/A
-      </label>
-    </div>
-    {showNote && noteName && (
-      <div className="col-span-4">
+}: CheckboxGroupProps) => {
+  // Extract the base path for the checkbox group (e.g., "formData.powerOffChecks.wheelsAndTires")
+  const basePath = okName.substring(0, okName.lastIndexOf("."));
+
+  // Get the setValue function from useForm context
+  const { setValue, watch } = useFormContext();
+
+  // Watch the current values
+  const okValue = watch(okName);
+  const noValue = watch(noName);
+  const naValue = watch(naName);
+
+  // Handle radio-like behavior when OK is clicked
+  const handleOkClick = () => {
+    setValue(okName, true);
+    setValue(noName, false);
+    setValue(naName, false);
+  };
+
+  // Handle radio-like behavior when No is clicked
+  const handleNoClick = () => {
+    setValue(okName, false);
+    setValue(noName, true);
+    setValue(naName, false);
+  };
+
+  // Handle radio-like behavior when N/A is clicked
+  const handleNaClick = () => {
+    setValue(okName, false);
+    setValue(noName, false);
+    setValue(naName, true);
+  };
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center mb-2 py-1 border-b border-gray-100">
+      <div className="col-span-5 pr-2">{label}</div>
+      <div className="col-span-1 flex items-center justify-center">
         <input
-          type="text"
-          {...register(noteName)}
-          placeholder="Note"
-          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+          type="checkbox"
+          id={okName}
+          {...register(okName)}
+          checked={okValue}
+          onChange={handleOkClick}
+          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
         />
+        <label htmlFor={okName} className="ml-1 text-xs text-gray-700">
+          OK
+        </label>
       </div>
-    )}
-  </div>
-);
+      <div className="col-span-1 flex items-center justify-center">
+        <input
+          type="checkbox"
+          id={noName}
+          {...register(noName)}
+          checked={noValue}
+          onChange={handleNoClick}
+          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+        />
+        <label htmlFor={noName} className="ml-1 text-xs text-gray-700">
+          No
+        </label>
+      </div>
+      <div className="col-span-1 flex items-center justify-center">
+        <input
+          type="checkbox"
+          id={naName}
+          {...register(naName)}
+          checked={naValue}
+          onChange={handleNaClick}
+          className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
+        />
+        <label htmlFor={naName} className="ml-1 text-xs text-gray-700">
+          N/A
+        </label>
+      </div>
+      {showNote && noteName && (
+        <div className="col-span-4">
+          <input
+            type="text"
+            {...register(noteName)}
+            placeholder="Note"
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
 // ---------------- Main Component ----------------
 
 export default function TelehandlerFormPage() {
@@ -233,18 +280,10 @@ export default function TelehandlerFormPage() {
     "loading"
   );
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    control,
-    formState: { errors, dirtyFields },
-    setValue,
-    watch,
-  } = useForm<TelehandlerForm>({
+  const methods = useForm<TelehandlerForm>({
     resolver: zodResolver(telehandlerFormSchema),
     defaultValues: {
-      formName: "Telehandler/Forklift Pre-Use Inspection",
+      formName: "Telehandler",
       pdfName: "Telehandler.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: user?.fullName || "",
@@ -371,6 +410,16 @@ export default function TelehandlerFormPage() {
     },
   });
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, dirtyFields },
+    setValue,
+    watch,
+  } = methods;
+
   // Field array for comments
   const { fields, append, remove } = useFieldArray({
     control,
@@ -386,7 +435,7 @@ export default function TelehandlerFormPage() {
     async (data: TelehandlerForm) => {
       try {
         const response = await fetch(`/api/safety/${id}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
@@ -521,801 +570,806 @@ export default function TelehandlerFormPage() {
           ? "Edit Telehandler Inspection"
           : "New Telehandler Inspection"}
       </h1>
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Basic Information Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Basic Information
+            </h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Basic Information Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Basic Information
-          </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Job Name"
+                error={errors.formData?.jobName?.message}
+                required
+              >
+                <input
+                  {...register("formData.jobName")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Job Name"
-              error={errors.formData?.jobName?.message}
-              required
-            >
-              <input
-                {...register("formData.jobName")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
+              <FormField
+                label="Make/Model"
+                error={errors.formData?.makeModel?.message}
+                required
+              >
+                <input
+                  {...register("formData.makeModel")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
+            </div>
 
-            <FormField
-              label="Make/Model"
-              error={errors.formData?.makeModel?.message}
-              required
-            >
-              <input
-                {...register("formData.makeModel")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
+            <div className="mt-4">
+              <FormField label="Type" error={undefined}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="telehandler"
+                      {...register("formData.telehandlerType.telehandler")}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="telehandler"
+                      className="ml-2 block text-sm text-gray-700"
+                    >
+                      Telehandler
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="forklift"
+                      {...register("formData.telehandlerType.forklift")}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="forklift"
+                      className="ml-2 block text-sm text-gray-700"
+                    >
+                      Forklift
+                    </label>
+                  </div>
+                </div>
+              </FormField>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <FormField
+                label="Hour Meter Reading"
+                error={errors.formData?.hourMeterReading?.message}
+              >
+                <input
+                  {...register("formData.hourMeterReading")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <FormField
+                label="Inspection Conducted By"
+                error={errors.formData?.inspectionConductedBy?.message}
+                required
+              >
+                <input
+                  {...register("formData.inspectionConductedBy")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
+
+              <FormField
+                label="Date"
+                error={errors.formData?.inspectionDate?.message}
+                required
+              >
+                <input
+                  type="date"
+                  {...register("formData.inspectionDate")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
+            </div>
           </div>
+          {/* Power Off Checks Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Power Off Checks
+            </h2>
 
-          <div className="mt-4">
-            <FormField label="Type" error={undefined}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="telehandler"
-                    {...register("formData.telehandlerType.telehandler")}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="telehandler"
-                    className="ml-2 block text-sm text-gray-700"
-                  >
-                    Telehandler
-                  </label>
+            <div className="border rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
+                <div className="col-span-5 pl-2 font-semibold">Item</div>
+                <div className="col-span-1 text-center font-semibold">OK</div>
+                <div className="col-span-1 text-center font-semibold">No</div>
+                <div className="col-span-1 text-center font-semibold">N/A</div>
+                <div className="col-span-4 text-center font-semibold">Note</div>
+              </div>
+
+              <div className="p-2">
+                <CheckboxGroup
+                  label="1. Wheels and tires (tire pressure correct)"
+                  okName="formData.powerOffChecks.wheelsAndTires.ok"
+                  noName="formData.powerOffChecks.wheelsAndTires.no"
+                  naName="formData.powerOffChecks.wheelsAndTires.na"
+                  noteName="formData.powerOffChecks.wheelsAndTires.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="2. Lights/strobes"
+                  okName="formData.powerOffChecks.lightsStrobes.ok"
+                  noName="formData.powerOffChecks.lightsStrobes.no"
+                  naName="formData.powerOffChecks.lightsStrobes.na"
+                  noteName="formData.powerOffChecks.lightsStrobes.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="3. Mirrors/visibility aids"
+                  okName="formData.powerOffChecks.mirrorsVisibilityAids.ok"
+                  noName="formData.powerOffChecks.mirrorsVisibilityAids.no"
+                  naName="formData.powerOffChecks.mirrorsVisibilityAids.na"
+                  noteName="formData.powerOffChecks.mirrorsVisibilityAids.note"
+                  register={register}
+                />
+
+                <div className="pl-4 mt-2 mb-1 font-medium">
+                  4. Engine/engine compartment:
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="forklift"
-                    {...register("formData.telehandlerType.forklift")}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="forklift"
-                    className="ml-2 block text-sm text-gray-700"
-                  >
-                    Forklift
-                  </label>
+                <CheckboxGroup
+                  label="a. Belts/hoses"
+                  okName="formData.powerOffChecks.engineCompartmentBeltsHoses.ok"
+                  noName="formData.powerOffChecks.engineCompartmentBeltsHoses.no"
+                  naName="formData.powerOffChecks.engineCompartmentBeltsHoses.na"
+                  noteName="formData.powerOffChecks.engineCompartmentBeltsHoses.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="b. Cables/wires"
+                  okName="formData.powerOffChecks.engineCompartmentCablesWires.ok"
+                  noName="formData.powerOffChecks.engineCompartmentCablesWires.no"
+                  naName="formData.powerOffChecks.engineCompartmentCablesWires.na"
+                  noteName="formData.powerOffChecks.engineCompartmentCablesWires.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="c. Debris"
+                  okName="formData.powerOffChecks.engineCompartmentDebris.ok"
+                  noName="formData.powerOffChecks.engineCompartmentDebris.no"
+                  naName="formData.powerOffChecks.engineCompartmentDebris.na"
+                  noteName="formData.powerOffChecks.engineCompartmentDebris.note"
+                  register={register}
+                />
+
+                <div className="pl-4 mt-2 mb-1 font-medium">
+                  5. Battery/batteries:
                 </div>
+
+                <CheckboxGroup
+                  label="a. Terminals tight"
+                  okName="formData.powerOffChecks.batteryTerminalsTight.ok"
+                  noName="formData.powerOffChecks.batteryTerminalsTight.no"
+                  naName="formData.powerOffChecks.batteryTerminalsTight.na"
+                  noteName="formData.powerOffChecks.batteryTerminalsTight.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="b. Clean/dry/secure"
+                  okName="formData.powerOffChecks.batteryCleanDrySecure.ok"
+                  noName="formData.powerOffChecks.batteryCleanDrySecure.no"
+                  naName="formData.powerOffChecks.batteryCleanDrySecure.na"
+                  noteName="formData.powerOffChecks.batteryCleanDrySecure.note"
+                  register={register}
+                />
+
+                <div className="pl-4 mt-2 mb-1 font-medium">6. Hydraulics:</div>
+
+                <CheckboxGroup
+                  label="a. Cylinders/rods"
+                  okName="formData.powerOffChecks.hydraulicsCylindersRods.ok"
+                  noName="formData.powerOffChecks.hydraulicsCylindersRods.no"
+                  naName="formData.powerOffChecks.hydraulicsCylindersRods.na"
+                  noteName="formData.powerOffChecks.hydraulicsCylindersRods.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="b. Hoses/lines/fittings"
+                  okName="formData.powerOffChecks.hydraulicsHosesLinesFittings.ok"
+                  noName="formData.powerOffChecks.hydraulicsHosesLinesFittings.no"
+                  naName="formData.powerOffChecks.hydraulicsHosesLinesFittings.na"
+                  noteName="formData.powerOffChecks.hydraulicsHosesLinesFittings.note"
+                  register={register}
+                />
+
+                <div className="pl-4 mt-2 mb-1 font-medium">7. Fluids:</div>
+
+                <CheckboxGroup
+                  label="a. Engine oil (Level & Leaks)"
+                  okName="formData.powerOffChecks.engineOil.ok"
+                  noName="formData.powerOffChecks.engineOil.no"
+                  naName="formData.powerOffChecks.engineOil.na"
+                  noteName="formData.powerOffChecks.engineOil.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="b. Engine coolant (Level & Leaks)"
+                  okName="formData.powerOffChecks.engineCoolant.ok"
+                  noName="formData.powerOffChecks.engineCoolant.no"
+                  naName="formData.powerOffChecks.engineCoolant.na"
+                  noteName="formData.powerOffChecks.engineCoolant.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="c. Hydraulic oil (Level & Leaks)"
+                  okName="formData.powerOffChecks.hydraulicOil.ok"
+                  noName="formData.powerOffChecks.hydraulicOil.no"
+                  naName="formData.powerOffChecks.hydraulicOil.na"
+                  noteName="formData.powerOffChecks.hydraulicOil.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="d. Fuel/battery (Level & Leaks)"
+                  okName="formData.powerOffChecks.fuelBattery.ok"
+                  noName="formData.powerOffChecks.fuelBattery.no"
+                  naName="formData.powerOffChecks.fuelBattery.na"
+                  noteName="formData.powerOffChecks.fuelBattery.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="8. Data/Capacity plate/Load Charts"
+                  okName="formData.powerOffChecks.dataCapacityPlate.ok"
+                  noName="formData.powerOffChecks.dataCapacityPlate.no"
+                  naName="formData.powerOffChecks.dataCapacityPlate.na"
+                  noteName="formData.powerOffChecks.dataCapacityPlate.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="9. Windows/Glass/Doors"
+                  okName="formData.powerOffChecks.windowsGlassDoors.ok"
+                  noName="formData.powerOffChecks.windowsGlassDoors.no"
+                  naName="formData.powerOffChecks.windowsGlassDoors.na"
+                  noteName="formData.powerOffChecks.windowsGlassDoors.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="10. Hood Cover/Panels"
+                  okName="formData.powerOffChecks.hoodCoverPanels.ok"
+                  noName="formData.powerOffChecks.hoodCoverPanels.no"
+                  naName="formData.powerOffChecks.hoodCoverPanels.na"
+                  noteName="formData.powerOffChecks.hoodCoverPanels.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="11. Air Filter Indicator"
+                  okName="formData.powerOffChecks.airFilterIndicator.ok"
+                  noName="formData.powerOffChecks.airFilterIndicator.no"
+                  naName="formData.powerOffChecks.airFilterIndicator.na"
+                  noteName="formData.powerOffChecks.airFilterIndicator.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="12. Counterweight/Counterweights bolts"
+                  okName="formData.powerOffChecks.counterweightBolts.ok"
+                  noName="formData.powerOffChecks.counterweightBolts.no"
+                  naName="formData.powerOffChecks.counterweightBolts.na"
+                  noteName="formData.powerOffChecks.counterweightBolts.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="13. Lifting Attachment(s)"
+                  okName="formData.powerOffChecks.liftingAttachments.ok"
+                  noName="formData.powerOffChecks.liftingAttachments.no"
+                  naName="formData.powerOffChecks.liftingAttachments.na"
+                  noteName="formData.powerOffChecks.liftingAttachments.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="14. Boom Sections-Damage, wear pads"
+                  okName="formData.powerOffChecks.boomSectionsDamage.ok"
+                  noName="formData.powerOffChecks.boomSectionsDamage.no"
+                  naName="formData.powerOffChecks.boomSectionsDamage.na"
+                  noteName="formData.powerOffChecks.boomSectionsDamage.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="15. Boom angle indicator-free movement"
+                  okName="formData.powerOffChecks.boomAngleIndicator.ok"
+                  noName="formData.powerOffChecks.boomAngleIndicator.no"
+                  naName="formData.powerOffChecks.boomAngleIndicator.na"
+                  noteName="formData.powerOffChecks.boomAngleIndicator.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="16. ROPS/Cab"
+                  okName="formData.powerOffChecks.ropsCab.ok"
+                  noName="formData.powerOffChecks.ropsCab.no"
+                  naName="formData.powerOffChecks.ropsCab.na"
+                  noteName="formData.powerOffChecks.ropsCab.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="17. Frame level indicator"
+                  okName="formData.powerOffChecks.frameLevelIndicator.ok"
+                  noName="formData.powerOffChecks.frameLevelIndicator.no"
+                  naName="formData.powerOffChecks.frameLevelIndicator.na"
+                  noteName="formData.powerOffChecks.frameLevelIndicator.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="18. Seatbelt"
+                  okName="formData.powerOffChecks.seatbelt.ok"
+                  noName="formData.powerOffChecks.seatbelt.no"
+                  naName="formData.powerOffChecks.seatbelt.na"
+                  noteName="formData.powerOffChecks.seatbelt.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="19. Other:"
+                  okName="formData.powerOffChecks.other1.ok"
+                  noName="formData.powerOffChecks.other1.no"
+                  naName="formData.powerOffChecks.other1.na"
+                  noteName="formData.powerOffChecks.other1.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="20. Other:"
+                  okName="formData.powerOffChecks.other2.ok"
+                  noName="formData.powerOffChecks.other2.no"
+                  naName="formData.powerOffChecks.other2.na"
+                  noteName="formData.powerOffChecks.other2.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="21. Other:"
+                  okName="formData.powerOffChecks.other3.ok"
+                  noName="formData.powerOffChecks.other3.no"
+                  naName="formData.powerOffChecks.other3.na"
+                  noteName="formData.powerOffChecks.other3.note"
+                  register={register}
+                />
               </div>
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FormField
-              label="Hour Meter Reading"
-              error={errors.formData?.hourMeterReading?.message}
-            >
-              <input
-                {...register("formData.hourMeterReading")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <FormField
-              label="Inspection Conducted By"
-              error={errors.formData?.inspectionConductedBy?.message}
-              required
-            >
-              <input
-                {...register("formData.inspectionConductedBy")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-
-            <FormField
-              label="Date"
-              error={errors.formData?.inspectionDate?.message}
-              required
-            >
-              <input
-                type="date"
-                {...register("formData.inspectionDate")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-          </div>
-        </div>
-        {/* Power Off Checks Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Power Off Checks
-          </h2>
-
-          <div className="border rounded-md overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
-              <div className="col-span-5 pl-2 font-semibold">Item</div>
-              <div className="col-span-1 text-center font-semibold">OK</div>
-              <div className="col-span-1 text-center font-semibold">No</div>
-              <div className="col-span-1 text-center font-semibold">N/A</div>
-              <div className="col-span-4 text-center font-semibold">Note</div>
-            </div>
-
-            <div className="p-2">
-              <CheckboxGroup
-                label="1. Wheels and tires (tire pressure correct)"
-                okName="formData.powerOffChecks.wheelsAndTires.ok"
-                noName="formData.powerOffChecks.wheelsAndTires.no"
-                naName="formData.powerOffChecks.wheelsAndTires.na"
-                noteName="formData.powerOffChecks.wheelsAndTires.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="2. Lights/strobes"
-                okName="formData.powerOffChecks.lightsStrobes.ok"
-                noName="formData.powerOffChecks.lightsStrobes.no"
-                naName="formData.powerOffChecks.lightsStrobes.na"
-                noteName="formData.powerOffChecks.lightsStrobes.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="3. Mirrors/visibility aids"
-                okName="formData.powerOffChecks.mirrorsVisibilityAids.ok"
-                noName="formData.powerOffChecks.mirrorsVisibilityAids.no"
-                naName="formData.powerOffChecks.mirrorsVisibilityAids.na"
-                noteName="formData.powerOffChecks.mirrorsVisibilityAids.note"
-                register={register}
-              />
-
-              <div className="pl-4 mt-2 mb-1 font-medium">
-                4. Engine/engine compartment:
-              </div>
-
-              <CheckboxGroup
-                label="a. Belts/hoses"
-                okName="formData.powerOffChecks.engineCompartmentBeltsHoses.ok"
-                noName="formData.powerOffChecks.engineCompartmentBeltsHoses.no"
-                naName="formData.powerOffChecks.engineCompartmentBeltsHoses.na"
-                noteName="formData.powerOffChecks.engineCompartmentBeltsHoses.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="b. Cables/wires"
-                okName="formData.powerOffChecks.engineCompartmentCablesWires.ok"
-                noName="formData.powerOffChecks.engineCompartmentCablesWires.no"
-                naName="formData.powerOffChecks.engineCompartmentCablesWires.na"
-                noteName="formData.powerOffChecks.engineCompartmentCablesWires.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="c. Debris"
-                okName="formData.powerOffChecks.engineCompartmentDebris.ok"
-                noName="formData.powerOffChecks.engineCompartmentDebris.no"
-                naName="formData.powerOffChecks.engineCompartmentDebris.na"
-                noteName="formData.powerOffChecks.engineCompartmentDebris.note"
-                register={register}
-              />
-
-              <div className="pl-4 mt-2 mb-1 font-medium">
-                5. Battery/batteries:
-              </div>
-
-              <CheckboxGroup
-                label="a. Terminals tight"
-                okName="formData.powerOffChecks.batteryTerminalsTight.ok"
-                noName="formData.powerOffChecks.batteryTerminalsTight.no"
-                naName="formData.powerOffChecks.batteryTerminalsTight.na"
-                noteName="formData.powerOffChecks.batteryTerminalsTight.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="b. Clean/dry/secure"
-                okName="formData.powerOffChecks.batteryCleanDrySecure.ok"
-                noName="formData.powerOffChecks.batteryCleanDrySecure.no"
-                naName="formData.powerOffChecks.batteryCleanDrySecure.na"
-                noteName="formData.powerOffChecks.batteryCleanDrySecure.note"
-                register={register}
-              />
-
-              <div className="pl-4 mt-2 mb-1 font-medium">6. Hydraulics:</div>
-
-              <CheckboxGroup
-                label="a. Cylinders/rods"
-                okName="formData.powerOffChecks.hydraulicsCylindersRods.ok"
-                noName="formData.powerOffChecks.hydraulicsCylindersRods.no"
-                naName="formData.powerOffChecks.hydraulicsCylindersRods.na"
-                noteName="formData.powerOffChecks.hydraulicsCylindersRods.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="b. Hoses/lines/fittings"
-                okName="formData.powerOffChecks.hydraulicsHosesLinesFittings.ok"
-                noName="formData.powerOffChecks.hydraulicsHosesLinesFittings.no"
-                naName="formData.powerOffChecks.hydraulicsHosesLinesFittings.na"
-                noteName="formData.powerOffChecks.hydraulicsHosesLinesFittings.note"
-                register={register}
-              />
-
-              <div className="pl-4 mt-2 mb-1 font-medium">7. Fluids:</div>
-
-              <CheckboxGroup
-                label="a. Engine oil (Level & Leaks)"
-                okName="formData.powerOffChecks.engineOil.ok"
-                noName="formData.powerOffChecks.engineOil.no"
-                naName="formData.powerOffChecks.engineOil.na"
-                noteName="formData.powerOffChecks.engineOil.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="b. Engine coolant (Level & Leaks)"
-                okName="formData.powerOffChecks.engineCoolant.ok"
-                noName="formData.powerOffChecks.engineCoolant.no"
-                naName="formData.powerOffChecks.engineCoolant.na"
-                noteName="formData.powerOffChecks.engineCoolant.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="c. Hydraulic oil (Level & Leaks)"
-                okName="formData.powerOffChecks.hydraulicOil.ok"
-                noName="formData.powerOffChecks.hydraulicOil.no"
-                naName="formData.powerOffChecks.hydraulicOil.na"
-                noteName="formData.powerOffChecks.hydraulicOil.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="d. Fuel/battery (Level & Leaks)"
-                okName="formData.powerOffChecks.fuelBattery.ok"
-                noName="formData.powerOffChecks.fuelBattery.no"
-                naName="formData.powerOffChecks.fuelBattery.na"
-                noteName="formData.powerOffChecks.fuelBattery.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="8. Data/Capacity plate/Load Charts"
-                okName="formData.powerOffChecks.dataCapacityPlate.ok"
-                noName="formData.powerOffChecks.dataCapacityPlate.no"
-                naName="formData.powerOffChecks.dataCapacityPlate.na"
-                noteName="formData.powerOffChecks.dataCapacityPlate.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="9. Windows/Glass/Doors"
-                okName="formData.powerOffChecks.windowsGlassDoors.ok"
-                noName="formData.powerOffChecks.windowsGlassDoors.no"
-                naName="formData.powerOffChecks.windowsGlassDoors.na"
-                noteName="formData.powerOffChecks.windowsGlassDoors.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="10. Hood Cover/Panels"
-                okName="formData.powerOffChecks.hoodCoverPanels.ok"
-                noName="formData.powerOffChecks.hoodCoverPanels.no"
-                naName="formData.powerOffChecks.hoodCoverPanels.na"
-                noteName="formData.powerOffChecks.hoodCoverPanels.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="11. Air Filter Indicator"
-                okName="formData.powerOffChecks.airFilterIndicator.ok"
-                noName="formData.powerOffChecks.airFilterIndicator.no"
-                naName="formData.powerOffChecks.airFilterIndicator.na"
-                noteName="formData.powerOffChecks.airFilterIndicator.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="12. Counterweight/Counterweights bolts"
-                okName="formData.powerOffChecks.counterweightBolts.ok"
-                noName="formData.powerOffChecks.counterweightBolts.no"
-                naName="formData.powerOffChecks.counterweightBolts.na"
-                noteName="formData.powerOffChecks.counterweightBolts.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="13. Lifting Attachment(s)"
-                okName="formData.powerOffChecks.liftingAttachments.ok"
-                noName="formData.powerOffChecks.liftingAttachments.no"
-                naName="formData.powerOffChecks.liftingAttachments.na"
-                noteName="formData.powerOffChecks.liftingAttachments.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="14. Boom Sections-Damage, wear pads"
-                okName="formData.powerOffChecks.boomSectionsDamage.ok"
-                noName="formData.powerOffChecks.boomSectionsDamage.no"
-                naName="formData.powerOffChecks.boomSectionsDamage.na"
-                noteName="formData.powerOffChecks.boomSectionsDamage.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="15. Boom angle indicator-free movement"
-                okName="formData.powerOffChecks.boomAngleIndicator.ok"
-                noName="formData.powerOffChecks.boomAngleIndicator.no"
-                naName="formData.powerOffChecks.boomAngleIndicator.na"
-                noteName="formData.powerOffChecks.boomAngleIndicator.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="16. ROPS/Cab"
-                okName="formData.powerOffChecks.ropsCab.ok"
-                noName="formData.powerOffChecks.ropsCab.no"
-                naName="formData.powerOffChecks.ropsCab.na"
-                noteName="formData.powerOffChecks.ropsCab.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="17. Frame level indicator"
-                okName="formData.powerOffChecks.frameLevelIndicator.ok"
-                noName="formData.powerOffChecks.frameLevelIndicator.no"
-                naName="formData.powerOffChecks.frameLevelIndicator.na"
-                noteName="formData.powerOffChecks.frameLevelIndicator.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="18. Seatbelt"
-                okName="formData.powerOffChecks.seatbelt.ok"
-                noName="formData.powerOffChecks.seatbelt.no"
-                naName="formData.powerOffChecks.seatbelt.na"
-                noteName="formData.powerOffChecks.seatbelt.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="19. Other:"
-                okName="formData.powerOffChecks.other1.ok"
-                noName="formData.powerOffChecks.other1.no"
-                naName="formData.powerOffChecks.other1.na"
-                noteName="formData.powerOffChecks.other1.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="20. Other:"
-                okName="formData.powerOffChecks.other2.ok"
-                noName="formData.powerOffChecks.other2.no"
-                naName="formData.powerOffChecks.other2.na"
-                noteName="formData.powerOffChecks.other2.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="21. Other:"
-                okName="formData.powerOffChecks.other3.ok"
-                noName="formData.powerOffChecks.other3.no"
-                naName="formData.powerOffChecks.other3.na"
-                noteName="formData.powerOffChecks.other3.note"
-                register={register}
-              />
             </div>
           </div>
-        </div>
-        {/* Power On Checks Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Power On Checks
-          </h2>
+          {/* Power On Checks Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Power On Checks
+            </h2>
 
-          <div className="border rounded-md overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
-              <div className="col-span-5 pl-2 font-semibold">Item</div>
-              <div className="col-span-1 text-center font-semibold">OK</div>
-              <div className="col-span-1 text-center font-semibold">No</div>
-              <div className="col-span-1 text-center font-semibold">N/A</div>
-              <div className="col-span-4 text-center font-semibold">Note</div>
-            </div>
-
-            <div className="p-2">
-              <CheckboxGroup
-                label="22. Unit starts and runs properly"
-                okName="formData.powerOnChecks.unitStartsRunsProperly.ok"
-                noName="formData.powerOnChecks.unitStartsRunsProperly.no"
-                naName="formData.powerOnChecks.unitStartsRunsProperly.na"
-                noteName="formData.powerOnChecks.unitStartsRunsProperly.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="23. Instruments/gauges"
-                okName="formData.powerOnChecks.instrumentsGauges.ok"
-                noName="formData.powerOnChecks.instrumentsGauges.no"
-                naName="formData.powerOnChecks.instrumentsGauges.na"
-                noteName="formData.powerOnChecks.instrumentsGauges.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="24. Warning lights/audible alarms"
-                okName="formData.powerOnChecks.warningLightsAlarms.ok"
-                noName="formData.powerOnChecks.warningLightsAlarms.no"
-                naName="formData.powerOnChecks.warningLightsAlarms.na"
-                noteName="formData.powerOnChecks.warningLightsAlarms.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="25. Fuel level"
-                okName="formData.powerOnChecks.fuelLevel.ok"
-                noName="formData.powerOnChecks.fuelLevel.no"
-                naName="formData.powerOnChecks.fuelLevel.na"
-                noteName="formData.powerOnChecks.fuelLevel.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="26. Horn/audible warning device(s)"
-                okName="formData.powerOnChecks.hornWarningDevices.ok"
-                noName="formData.powerOnChecks.hornWarningDevices.no"
-                naName="formData.powerOnChecks.hornWarningDevices.na"
-                noteName="formData.powerOnChecks.hornWarningDevices.note"
-                register={register}
-              />
-
-              <div className="pl-4 mt-2 mb-1 font-medium">
-                27. Function controls:
+            <div className="border rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
+                <div className="col-span-5 pl-2 font-semibold">Item</div>
+                <div className="col-span-1 text-center font-semibold">OK</div>
+                <div className="col-span-1 text-center font-semibold">No</div>
+                <div className="col-span-1 text-center font-semibold">N/A</div>
+                <div className="col-span-4 text-center font-semibold">Note</div>
               </div>
 
-              <CheckboxGroup
-                label="a. Boom & Carriage – raise/lower/tilt/extend/retract"
-                okName="formData.powerOnChecks.boomCarriage.ok"
-                noName="formData.powerOnChecks.boomCarriage.no"
-                naName="formData.powerOnChecks.boomCarriage.na"
-                noteName="formData.powerOnChecks.boomCarriage.note"
-                register={register}
-              />
+              <div className="p-2">
+                <CheckboxGroup
+                  label="22. Unit starts and runs properly"
+                  okName="formData.powerOnChecks.unitStartsRunsProperly.ok"
+                  noName="formData.powerOnChecks.unitStartsRunsProperly.no"
+                  naName="formData.powerOnChecks.unitStartsRunsProperly.na"
+                  noteName="formData.powerOnChecks.unitStartsRunsProperly.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="b. Lifting Attachment – proper movement"
-                okName="formData.powerOnChecks.liftingAttachment.ok"
-                noName="formData.powerOnChecks.liftingAttachment.no"
-                naName="formData.powerOnChecks.liftingAttachment.na"
-                noteName="formData.powerOnChecks.liftingAttachment.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="23. Instruments/gauges"
+                  okName="formData.powerOnChecks.instrumentsGauges.ok"
+                  noName="formData.powerOnChecks.instrumentsGauges.no"
+                  naName="formData.powerOnChecks.instrumentsGauges.na"
+                  noteName="formData.powerOnChecks.instrumentsGauges.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="c. Drive - forward/reverse"
-                okName="formData.powerOnChecks.driveForwardReverse.ok"
-                noName="formData.powerOnChecks.driveForwardReverse.no"
-                naName="formData.powerOnChecks.driveForwardReverse.na"
-                noteName="formData.powerOnChecks.driveForwardReverse.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="24. Warning lights/audible alarms"
+                  okName="formData.powerOnChecks.warningLightsAlarms.ok"
+                  noName="formData.powerOnChecks.warningLightsAlarms.no"
+                  naName="formData.powerOnChecks.warningLightsAlarms.na"
+                  noteName="formData.powerOnChecks.warningLightsAlarms.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="d. Steer – left/right"
-                okName="formData.powerOnChecks.steerLeftRight.ok"
-                noName="formData.powerOnChecks.steerLeftRight.no"
-                naName="formData.powerOnChecks.steerLeftRight.na"
-                noteName="formData.powerOnChecks.steerLeftRight.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="25. Fuel level"
+                  okName="formData.powerOnChecks.fuelLevel.ok"
+                  noName="formData.powerOnChecks.fuelLevel.no"
+                  naName="formData.powerOnChecks.fuelLevel.na"
+                  noteName="formData.powerOnChecks.fuelLevel.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="e. Frame level"
-                okName="formData.powerOnChecks.frameLevel.ok"
-                noName="formData.powerOnChecks.frameLevel.no"
-                naName="formData.powerOnChecks.frameLevel.na"
-                noteName="formData.powerOnChecks.frameLevel.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="26. Horn/audible warning device(s)"
+                  okName="formData.powerOnChecks.hornWarningDevices.ok"
+                  noName="formData.powerOnChecks.hornWarningDevices.no"
+                  naName="formData.powerOnChecks.hornWarningDevices.na"
+                  noteName="formData.powerOnChecks.hornWarningDevices.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="f. Outriggers"
-                okName="formData.powerOnChecks.outriggers.ok"
-                noName="formData.powerOnChecks.outriggers.no"
-                naName="formData.powerOnChecks.outriggers.na"
-                noteName="formData.powerOnChecks.outriggers.note"
-                register={register}
-              />
+                <div className="pl-4 mt-2 mb-1 font-medium">
+                  27. Function controls:
+                </div>
 
-              <CheckboxGroup
-                label="Other:"
-                okName="formData.powerOnChecks.otherFunctionControl.ok"
-                noName="formData.powerOnChecks.otherFunctionControl.no"
-                naName="formData.powerOnChecks.otherFunctionControl.na"
-                noteName="formData.powerOnChecks.otherFunctionControl.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="a. Boom & Carriage – raise/lower/tilt/extend/retract"
+                  okName="formData.powerOnChecks.boomCarriage.ok"
+                  noName="formData.powerOnChecks.boomCarriage.no"
+                  naName="formData.powerOnChecks.boomCarriage.na"
+                  noteName="formData.powerOnChecks.boomCarriage.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="28. Braking"
-                okName="formData.powerOnChecks.braking.ok"
-                noName="formData.powerOnChecks.braking.no"
-                naName="formData.powerOnChecks.braking.na"
-                noteName="formData.powerOnChecks.braking.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="b. Lifting Attachment – proper movement"
+                  okName="formData.powerOnChecks.liftingAttachment.ok"
+                  noName="formData.powerOnChecks.liftingAttachment.no"
+                  naName="formData.powerOnChecks.liftingAttachment.na"
+                  noteName="formData.powerOnChecks.liftingAttachment.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="a. Service/De-clutch"
-                okName="formData.powerOnChecks.serviceDeClutch.ok"
-                noName="formData.powerOnChecks.serviceDeClutch.no"
-                naName="formData.powerOnChecks.serviceDeClutch.na"
-                noteName="formData.powerOnChecks.serviceDeClutch.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="c. Drive - forward/reverse"
+                  okName="formData.powerOnChecks.driveForwardReverse.ok"
+                  noName="formData.powerOnChecks.driveForwardReverse.no"
+                  naName="formData.powerOnChecks.driveForwardReverse.na"
+                  noteName="formData.powerOnChecks.driveForwardReverse.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="b. Parking"
-                okName="formData.powerOnChecks.parking.ok"
-                noName="formData.powerOnChecks.parking.no"
-                naName="formData.powerOnChecks.parking.na"
-                noteName="formData.powerOnChecks.parking.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="d. Steer – left/right"
+                  okName="formData.powerOnChecks.steerLeftRight.ok"
+                  noName="formData.powerOnChecks.steerLeftRight.no"
+                  naName="formData.powerOnChecks.steerLeftRight.na"
+                  noteName="formData.powerOnChecks.steerLeftRight.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="31. Other:"
-                okName="formData.powerOnChecks.otherPowerOn.ok"
-                noName="formData.powerOnChecks.otherPowerOn.no"
-                naName="formData.powerOnChecks.otherPowerOn.na"
-                noteName="formData.powerOnChecks.otherPowerOn.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="e. Frame level"
+                  okName="formData.powerOnChecks.frameLevel.ok"
+                  noName="formData.powerOnChecks.frameLevel.no"
+                  naName="formData.powerOnChecks.frameLevel.na"
+                  noteName="formData.powerOnChecks.frameLevel.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="f. Outriggers"
+                  okName="formData.powerOnChecks.outriggers.ok"
+                  noName="formData.powerOnChecks.outriggers.no"
+                  naName="formData.powerOnChecks.outriggers.na"
+                  noteName="formData.powerOnChecks.outriggers.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="Other:"
+                  okName="formData.powerOnChecks.otherFunctionControl.ok"
+                  noName="formData.powerOnChecks.otherFunctionControl.no"
+                  naName="formData.powerOnChecks.otherFunctionControl.na"
+                  noteName="formData.powerOnChecks.otherFunctionControl.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="28. Braking"
+                  okName="formData.powerOnChecks.braking.ok"
+                  noName="formData.powerOnChecks.braking.no"
+                  naName="formData.powerOnChecks.braking.na"
+                  noteName="formData.powerOnChecks.braking.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="a. Service/De-clutch"
+                  okName="formData.powerOnChecks.serviceDeClutch.ok"
+                  noName="formData.powerOnChecks.serviceDeClutch.no"
+                  naName="formData.powerOnChecks.serviceDeClutch.na"
+                  noteName="formData.powerOnChecks.serviceDeClutch.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="b. Parking"
+                  okName="formData.powerOnChecks.parking.ok"
+                  noName="formData.powerOnChecks.parking.no"
+                  naName="formData.powerOnChecks.parking.na"
+                  noteName="formData.powerOnChecks.parking.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="31. Other:"
+                  okName="formData.powerOnChecks.otherPowerOn.ok"
+                  noName="formData.powerOnChecks.otherPowerOn.no"
+                  naName="formData.powerOnChecks.otherPowerOn.na"
+                  noteName="formData.powerOnChecks.otherPowerOn.note"
+                  register={register}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        {/* General Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">General</h2>
+          {/* General Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">General</h2>
 
-          <div className="border rounded-md overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
-              <div className="col-span-5 pl-2 font-semibold">Item</div>
-              <div className="col-span-1 text-center font-semibold">OK</div>
-              <div className="col-span-1 text-center font-semibold">No</div>
-              <div className="col-span-1 text-center font-semibold">N/A</div>
-              <div className="col-span-4 text-center font-semibold">Note</div>
-            </div>
+            <div className="border rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
+                <div className="col-span-5 pl-2 font-semibold">Item</div>
+                <div className="col-span-1 text-center font-semibold">OK</div>
+                <div className="col-span-1 text-center font-semibold">No</div>
+                <div className="col-span-1 text-center font-semibold">N/A</div>
+                <div className="col-span-4 text-center font-semibold">Note</div>
+              </div>
 
-            <div className="p-2">
-              <CheckboxGroup
-                label="32. Decals/Warnings/Placards"
-                okName="formData.generalChecks.decalsWarningsPlacards.ok"
-                noName="formData.generalChecks.decalsWarningsPlacards.no"
-                naName="formData.generalChecks.decalsWarningsPlacards.na"
-                noteName="formData.generalChecks.decalsWarningsPlacards.note"
-                register={register}
-              />
+              <div className="p-2">
+                <CheckboxGroup
+                  label="32. Decals/Warnings/Placards"
+                  okName="formData.generalChecks.decalsWarningsPlacards.ok"
+                  noName="formData.generalChecks.decalsWarningsPlacards.no"
+                  naName="formData.generalChecks.decalsWarningsPlacards.na"
+                  noteName="formData.generalChecks.decalsWarningsPlacards.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="33. Manufacturer Operators Manual"
-                okName="formData.generalChecks.manufacturerOperatorsManual.ok"
-                noName="formData.generalChecks.manufacturerOperatorsManual.no"
-                naName="formData.generalChecks.manufacturerOperatorsManual.na"
-                noteName="formData.generalChecks.manufacturerOperatorsManual.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="33. Manufacturer Operators Manual"
+                  okName="formData.generalChecks.manufacturerOperatorsManual.ok"
+                  noName="formData.generalChecks.manufacturerOperatorsManual.no"
+                  naName="formData.generalChecks.manufacturerOperatorsManual.na"
+                  noteName="formData.generalChecks.manufacturerOperatorsManual.note"
+                  register={register}
+                />
 
-              <CheckboxGroup
-                label="34. Misc. parts – loose/missing/broken"
-                okName="formData.generalChecks.miscPartsLooseMissingBroken.ok"
-                noName="formData.generalChecks.miscPartsLooseMissingBroken.no"
-                naName="formData.generalChecks.miscPartsLooseMissingBroken.na"
-                noteName="formData.generalChecks.miscPartsLooseMissingBroken.note"
-                register={register}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Work Area Inspection */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Work Area Inspection
-          </h2>
-
-          <div className="border rounded-md overflow-hidden">
-            <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
-              <div className="col-span-5 pl-2 font-semibold">Item</div>
-              <div className="col-span-1 text-center font-semibold">OK</div>
-              <div className="col-span-1 text-center font-semibold">No</div>
-              <div className="col-span-1 text-center font-semibold">N/A</div>
-              <div className="col-span-4 text-center font-semibold">Note</div>
-            </div>
-
-            <div className="p-2">
-              <CheckboxGroup
-                label="35. Drop-offs or holes"
-                okName="formData.workAreaChecks.dropOffsHoles.ok"
-                noName="formData.workAreaChecks.dropOffsHoles.no"
-                naName="formData.workAreaChecks.dropOffsHoles.na"
-                noteName="formData.workAreaChecks.dropOffsHoles.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="36. Bumps and floor/ground obstructions"
-                okName="formData.workAreaChecks.bumpsFloorObstructions.ok"
-                noName="formData.workAreaChecks.bumpsFloorObstructions.no"
-                naName="formData.workAreaChecks.bumpsFloorObstructions.na"
-                noteName="formData.workAreaChecks.bumpsFloorObstructions.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="37. Debris"
-                okName="formData.workAreaChecks.debris.ok"
-                noName="formData.workAreaChecks.debris.no"
-                naName="formData.workAreaChecks.debris.na"
-                noteName="formData.workAreaChecks.debris.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="38. Overhead obstructions"
-                okName="formData.workAreaChecks.overheadObstructions.ok"
-                noName="formData.workAreaChecks.overheadObstructions.no"
-                naName="formData.workAreaChecks.overheadObstructions.na"
-                noteName="formData.workAreaChecks.overheadObstructions.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="39. Energized power lines"
-                okName="formData.workAreaChecks.energizedPowerLines.ok"
-                noName="formData.workAreaChecks.energizedPowerLines.no"
-                naName="formData.workAreaChecks.energizedPowerLines.na"
-                noteName="formData.workAreaChecks.energizedPowerLines.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="40. Hazardous locations"
-                okName="formData.workAreaChecks.hazardousLocations.ok"
-                noName="formData.workAreaChecks.hazardousLocations.no"
-                naName="formData.workAreaChecks.hazardousLocations.na"
-                noteName="formData.workAreaChecks.hazardousLocations.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="41. Ground surface and support conditions"
-                okName="formData.workAreaChecks.groundSurfaceSupport.ok"
-                noName="formData.workAreaChecks.groundSurfaceSupport.no"
-                naName="formData.workAreaChecks.groundSurfaceSupport.na"
-                noteName="formData.workAreaChecks.groundSurfaceSupport.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="42. Pedestrian/vehicle traffic"
-                okName="formData.workAreaChecks.pedestrianVehicleTraffic.ok"
-                noName="formData.workAreaChecks.pedestrianVehicleTraffic.no"
-                naName="formData.workAreaChecks.pedestrianVehicleTraffic.na"
-                noteName="formData.workAreaChecks.pedestrianVehicleTraffic.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="43. Wind and weather conditions"
-                okName="formData.workAreaChecks.windWeatherConditions.ok"
-                noName="formData.workAreaChecks.windWeatherConditions.no"
-                naName="formData.workAreaChecks.windWeatherConditions.na"
-                noteName="formData.workAreaChecks.windWeatherConditions.note"
-                register={register}
-              />
-
-              <CheckboxGroup
-                label="44. Other possible hazards:"
-                okName="formData.workAreaChecks.otherPossibleHazards.ok"
-                noName="formData.workAreaChecks.otherPossibleHazards.no"
-                naName="formData.workAreaChecks.otherPossibleHazards.na"
-                noteName="formData.workAreaChecks.otherPossibleHazards.note"
-                register={register}
-              />
+                <CheckboxGroup
+                  label="34. Misc. parts – loose/missing/broken"
+                  okName="formData.generalChecks.miscPartsLooseMissingBroken.ok"
+                  noName="formData.generalChecks.miscPartsLooseMissingBroken.no"
+                  naName="formData.generalChecks.miscPartsLooseMissingBroken.na"
+                  noteName="formData.generalChecks.miscPartsLooseMissingBroken.note"
+                  register={register}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        {/* Comments/Action Items */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Comments/Action Items
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Report any problems found to supervisor. ALWAYS lock/tag-out unsafe
-            equipment.
-          </p>
 
-          <div className="border rounded-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-blue-100">
-                <tr>
-                  <th className="p-2 text-left w-1/6">Item #</th>
-                  <th className="p-2 text-left w-5/6">Comments/Action Items</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => (
-                  <tr
-                    key={field.id}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="p-2 border">
-                      <input
-                        {...register(
-                          `formData.commentItems.${index}.itemNumber`
-                        )}
-                        className="w-full p-1 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                      />
-                    </td>
-                    <td className="p-2 border">
-                      <input
-                        {...register(`formData.commentItems.${index}.comment`)}
-                        className="w-full p-1 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                      />
-                    </td>
+          {/* Work Area Inspection */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Work Area Inspection
+            </h2>
+
+            <div className="border rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 gap-2 items-center py-2 bg-blue-100">
+                <div className="col-span-5 pl-2 font-semibold">Item</div>
+                <div className="col-span-1 text-center font-semibold">OK</div>
+                <div className="col-span-1 text-center font-semibold">No</div>
+                <div className="col-span-1 text-center font-semibold">N/A</div>
+                <div className="col-span-4 text-center font-semibold">Note</div>
+              </div>
+
+              <div className="p-2">
+                <CheckboxGroup
+                  label="35. Drop-offs or holes"
+                  okName="formData.workAreaChecks.dropOffsHoles.ok"
+                  noName="formData.workAreaChecks.dropOffsHoles.no"
+                  naName="formData.workAreaChecks.dropOffsHoles.na"
+                  noteName="formData.workAreaChecks.dropOffsHoles.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="36. Bumps and floor/ground obstructions"
+                  okName="formData.workAreaChecks.bumpsFloorObstructions.ok"
+                  noName="formData.workAreaChecks.bumpsFloorObstructions.no"
+                  naName="formData.workAreaChecks.bumpsFloorObstructions.na"
+                  noteName="formData.workAreaChecks.bumpsFloorObstructions.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="37. Debris"
+                  okName="formData.workAreaChecks.debris.ok"
+                  noName="formData.workAreaChecks.debris.no"
+                  naName="formData.workAreaChecks.debris.na"
+                  noteName="formData.workAreaChecks.debris.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="38. Overhead obstructions"
+                  okName="formData.workAreaChecks.overheadObstructions.ok"
+                  noName="formData.workAreaChecks.overheadObstructions.no"
+                  naName="formData.workAreaChecks.overheadObstructions.na"
+                  noteName="formData.workAreaChecks.overheadObstructions.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="39. Energized power lines"
+                  okName="formData.workAreaChecks.energizedPowerLines.ok"
+                  noName="formData.workAreaChecks.energizedPowerLines.no"
+                  naName="formData.workAreaChecks.energizedPowerLines.na"
+                  noteName="formData.workAreaChecks.energizedPowerLines.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="40. Hazardous locations"
+                  okName="formData.workAreaChecks.hazardousLocations.ok"
+                  noName="formData.workAreaChecks.hazardousLocations.no"
+                  naName="formData.workAreaChecks.hazardousLocations.na"
+                  noteName="formData.workAreaChecks.hazardousLocations.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="41. Ground surface and support conditions"
+                  okName="formData.workAreaChecks.groundSurfaceSupport.ok"
+                  noName="formData.workAreaChecks.groundSurfaceSupport.no"
+                  naName="formData.workAreaChecks.groundSurfaceSupport.na"
+                  noteName="formData.workAreaChecks.groundSurfaceSupport.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="42. Pedestrian/vehicle traffic"
+                  okName="formData.workAreaChecks.pedestrianVehicleTraffic.ok"
+                  noName="formData.workAreaChecks.pedestrianVehicleTraffic.no"
+                  naName="formData.workAreaChecks.pedestrianVehicleTraffic.na"
+                  noteName="formData.workAreaChecks.pedestrianVehicleTraffic.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="43. Wind and weather conditions"
+                  okName="formData.workAreaChecks.windWeatherConditions.ok"
+                  noName="formData.workAreaChecks.windWeatherConditions.no"
+                  naName="formData.workAreaChecks.windWeatherConditions.na"
+                  noteName="formData.workAreaChecks.windWeatherConditions.note"
+                  register={register}
+                />
+
+                <CheckboxGroup
+                  label="44. Other possible hazards:"
+                  okName="formData.workAreaChecks.otherPossibleHazards.ok"
+                  noName="formData.workAreaChecks.otherPossibleHazards.no"
+                  naName="formData.workAreaChecks.otherPossibleHazards.na"
+                  noteName="formData.workAreaChecks.otherPossibleHazards.note"
+                  register={register}
+                />
+              </div>
+            </div>
+          </div>
+          {/* Comments/Action Items */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Comments/Action Items
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Report any problems found to supervisor. ALWAYS lock/tag-out
+              unsafe equipment.
+            </p>
+
+            <div className="border rounded-md overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-blue-100">
+                  <tr>
+                    <th className="p-2 text-left w-1/6">Item #</th>
+                    <th className="p-2 text-left w-5/6">
+                      Comments/Action Items
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {fields.map((field, index) => (
+                    <tr
+                      key={field.id}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    >
+                      <td className="p-2 border">
+                        <input
+                          {...register(
+                            `formData.commentItems.${index}.itemNumber`
+                          )}
+                          className="w-full p-1 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                        />
+                      </td>
+                      <td className="p-2 border">
+                        <input
+                          {...register(
+                            `formData.commentItems.${index}.comment`
+                          )}
+                          className="w-full p-1 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => append({})}
+                className="text-indigo-600 hover:text-indigo-800"
+              >
+                + Add another comment
+              </button>
+            </div>
           </div>
 
-          <div className="mt-2">
+          {/* PDF Generation Option */}
+          {(!id || id === "new") && (
+            <FormField label="">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="generatePDF"
+                  {...register("formData.generatePDF")}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <label htmlFor="generatePDF" className="text-gray-700">
+                  Generate PDF for this Telehandler Inspection
+                </label>
+              </div>
+            </FormField>
+          )}
+
+          {/* Form Buttons */}
+          <div className="flex justify-end space-x-4 mt-6">
             <button
               type="button"
-              onClick={() => append({})}
-              className="text-indigo-600 hover:text-indigo-800"
+              onClick={() => router.push("/modules/safety")}
+              className="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-100"
             >
-              + Add another comment
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
+            >
+              Save
             </button>
           </div>
-        </div>
-
-        {/* PDF Generation Option */}
-        {(!id || id === "new") && (
-          <FormField label="">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="generatePDF"
-                {...register("formData.generatePDF")}
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="generatePDF" className="text-gray-700">
-                Generate PDF for this Telehandler Inspection
-              </label>
-            </div>
-          </FormField>
-        )}
-
-        {/* Form Buttons */}
-        <div className="flex justify-end space-x-4 mt-6">
-          <button
-            type="button"
-            onClick={() => router.push("/modules/safety")}
-            className="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-100"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="submit"
-            className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
-          >
-            Save
-          </button>
-        </div>
-      </form>
+        </form>
+      </FormProvider>
     </div>
   );
 }

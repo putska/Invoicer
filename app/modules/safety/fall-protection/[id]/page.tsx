@@ -2,7 +2,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useForm, useWatch } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  FormProvider,
+  useFormContext,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -164,45 +169,76 @@ const CheckboxField = ({
   noteName,
   register,
   errors,
-}: CheckboxFieldProps) => (
-  <div className="grid grid-cols-12 gap-2 items-center mb-2 py-2 border-b border-gray-100">
-    <div className="col-span-4">{label}</div>
-    <div className="col-span-2 flex items-center justify-center">
-      <div className="flex items-center">
+}: CheckboxFieldProps) => {
+  // Get the setValue function from useForm context
+  const { setValue, watch } = useFormContext();
+
+  // Watch the current values
+  const passValue = watch(passName);
+  const failValue = watch(failName);
+
+  // Handle radio-like behavior when Pass is clicked
+  const handlePassClick = () => {
+    setValue(passName, true);
+    setValue(failName, false);
+  };
+
+  // Handle radio-like behavior when Fail is clicked
+  const handleFailClick = () => {
+    setValue(passName, false);
+    setValue(failName, true);
+  };
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center mb-2 py-2 border-b border-gray-100">
+      <div className="col-span-4">{label}</div>
+      <div className="col-span-2 flex items-center justify-center">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id={passName}
+            {...register(passName)}
+            checked={passValue}
+            onChange={handlePassClick}
+            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+          />
+          <label
+            htmlFor={passName}
+            className="ml-1 block text-sm text-gray-700"
+          >
+            PASS
+          </label>
+        </div>
+      </div>
+      <div className="col-span-2 flex items-center justify-center">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id={failName}
+            {...register(failName)}
+            checked={failValue}
+            onChange={handleFailClick}
+            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+          />
+          <label
+            htmlFor={failName}
+            className="ml-1 block text-sm text-gray-700"
+          >
+            FAIL
+          </label>
+        </div>
+      </div>
+      <div className="col-span-4">
         <input
-          type="checkbox"
-          id={passName}
-          {...register(passName)}
-          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+          type="text"
+          {...register(noteName)}
+          placeholder="Notes"
+          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
         />
-        <label htmlFor={passName} className="ml-1 block text-sm text-gray-700">
-          PASS
-        </label>
       </div>
     </div>
-    <div className="col-span-2 flex items-center justify-center">
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id={failName}
-          {...register(failName)}
-          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-        />
-        <label htmlFor={failName} className="ml-1 block text-sm text-gray-700">
-          FAIL
-        </label>
-      </div>
-    </div>
-    <div className="col-span-4">
-      <input
-        type="text"
-        {...register(noteName)}
-        placeholder="Notes"
-        className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-      />
-    </div>
-  </div>
-);
+  );
+};
 
 // ---------------- Main Component ----------------
 
@@ -216,18 +252,10 @@ export default function FallProtectionFormPage() {
     "loading"
   );
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    control,
-    formState: { errors, dirtyFields },
-    setValue,
-    watch,
-  } = useForm<FallProtectionForm>({
+  const methods = useForm<FallProtectionForm>({
     resolver: zodResolver(fallProtectionSchema),
     defaultValues: {
-      formName: "Fall Protection Inspection Form",
+      formName: "Fall-Protection",
       pdfName: "FallProtection.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: user?.fullName || "",
@@ -269,6 +297,16 @@ export default function FallProtectionFormPage() {
     },
   });
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, dirtyFields },
+    setValue,
+    watch,
+  } = methods;
+
   // ---------------- Debounced Auto-Save ----------------
 
   // Watch form values so we can auto-save drafts for existing records
@@ -278,7 +316,7 @@ export default function FallProtectionFormPage() {
     async (data: FallProtectionForm) => {
       try {
         const response = await fetch(`/api/safety/${id}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
@@ -412,369 +450,375 @@ export default function FallProtectionFormPage() {
           ? "Edit Fall Protection Inspection"
           : "New Fall Protection Inspection"}
       </h1>
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Basic Information Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Harness Information
+            </h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Basic Information Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Harness Information
-          </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Manufacturer"
+                error={errors.formData?.manufacturer?.message}
+                required
+              >
+                <input
+                  {...register("formData.manufacturer")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Manufacturer"
-              error={errors.formData?.manufacturer?.message}
-              required
-            >
-              <input
-                {...register("formData.manufacturer")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
+              <FormField
+                label="Date of Manufacture"
+                error={errors.formData?.dateOfManufacture?.message}
+                required
+              >
+                <input
+                  type="date"
+                  {...register("formData.dateOfManufacture")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-            <FormField
-              label="Date of Manufacture"
-              error={errors.formData?.dateOfManufacture?.message}
-              required
-            >
-              <input
-                type="date"
-                {...register("formData.dateOfManufacture")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
+              <FormField
+                label="Serial #"
+                error={errors.formData?.serialNumber?.message}
+                required
+              >
+                <input
+                  {...register("formData.serialNumber")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-            <FormField
-              label="Serial #"
-              error={errors.formData?.serialNumber?.message}
-              required
-            >
-              <input
-                {...register("formData.serialNumber")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-
-            <FormField
-              label="Model #"
-              error={errors.formData?.modelNumber?.message}
-              required
-            >
-              <input
-                {...register("formData.modelNumber")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-          </div>
-        </div>
-
-        {/* Inspection Information */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            Inspection Information
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Inspection Date"
-              error={errors.formData?.inspectionDate?.message}
-              required
-            >
-              <input
-                type="date"
-                {...register("formData.inspectionDate")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-
-            <FormField
-              label="Remove from Service Date"
-              error={errors.formData?.removeFromServiceDate?.message}
-            >
-              <input
-                type="date"
-                {...register("formData.removeFromServiceDate")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-
-            <FormField
-              label="Name of User (Authorized Person)"
-              error={errors.formData?.authorizedPerson?.message}
-              required
-            >
-              <input
-                {...register("formData.authorizedPerson")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-
-            <FormField
-              label="Name of Competent Person"
-              error={errors.formData?.competentPerson?.message}
-              required
-            >
-              <input
-                {...register("formData.competentPerson")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              />
-            </FormField>
-          </div>
-        </div>
-
-        {/* Labels & Markings Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            LABELS & MARKINGS
-          </h2>
-
-          <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
-            <div className="col-span-4 font-semibold">Item</div>
-            <div className="col-span-2 text-center font-semibold text-green-600">
-              PASS
+              <FormField
+                label="Model #"
+                error={errors.formData?.modelNumber?.message}
+                required
+              >
+                <input
+                  {...register("formData.modelNumber")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
             </div>
-            <div className="col-span-2 text-center font-semibold text-red-600">
-              FAIL
-            </div>
-            <div className="col-span-4 font-semibold">NOTE</div>
           </div>
 
-          <CheckboxField
-            label="Label (legible/in tact)"
-            passName="formData.labelsAndMarkings.label.pass"
-            failName="formData.labelsAndMarkings.label.fail"
-            noteName="formData.labelsAndMarkings.label.note"
-            register={register}
-            errors={errors}
-          />
+          {/* Inspection Information */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              Inspection Information
+            </h2>
 
-          <CheckboxField
-            label="Appropriate (ANSI/OSHA) Markings"
-            passName="formData.labelsAndMarkings.markings.pass"
-            failName="formData.labelsAndMarkings.markings.fail"
-            noteName="formData.labelsAndMarkings.markings.note"
-            register={register}
-            errors={errors}
-          />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Inspection Date"
+                error={errors.formData?.inspectionDate?.message}
+                required
+              >
+                <input
+                  type="date"
+                  {...register("formData.inspectionDate")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-          <CheckboxField
-            label="Date of First Use"
-            passName="formData.labelsAndMarkings.dateOfFirstUse.pass"
-            failName="formData.labelsAndMarkings.dateOfFirstUse.fail"
-            noteName="formData.labelsAndMarkings.dateOfFirstUse.note"
-            register={register}
-            errors={errors}
-          />
+              <FormField
+                label="Remove from Service Date"
+                error={errors.formData?.removeFromServiceDate?.message}
+              >
+                <input
+                  type="date"
+                  {...register("formData.removeFromServiceDate")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-          <CheckboxField
-            label="Impact Indicator (signs of deployment)"
-            passName="formData.labelsAndMarkings.impactIndicator.pass"
-            failName="formData.labelsAndMarkings.impactIndicator.fail"
-            noteName="formData.labelsAndMarkings.impactIndicator.note"
-            register={register}
-            errors={errors}
-          />
-        </div>
+              <FormField
+                label="Name of User (Authorized Person)"
+                error={errors.formData?.authorizedPerson?.message}
+                required
+              >
+                <input
+                  {...register("formData.authorizedPerson")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
 
-        {/* Hardware Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            HARDWARE (BUCKLES & RINGS)
-          </h2>
-
-          <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
-            <div className="col-span-4 font-semibold">Item</div>
-            <div className="col-span-2 text-center font-semibold text-green-600">
-              PASS
+              <FormField
+                label="Name of Competent Person"
+                error={errors.formData?.competentPerson?.message}
+                required
+              >
+                <input
+                  {...register("formData.competentPerson")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
             </div>
-            <div className="col-span-2 text-center font-semibold text-red-600">
-              FAIL
-            </div>
-            <div className="col-span-4 font-semibold">NOTE</div>
           </div>
 
-          <CheckboxField
-            label="Shoulder Adjustment Buckles"
-            passName="formData.hardware.shoulderBuckles.pass"
-            failName="formData.hardware.shoulderBuckles.fail"
-            noteName="formData.hardware.shoulderBuckles.note"
-            register={register}
-            errors={errors}
-          />
+          {/* Labels & Markings Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              LABELS & MARKINGS
+            </h2>
 
-          <CheckboxField
-            label="Leg & Waist Buckles / Other Hardware"
-            passName="formData.hardware.legWaistBuckles.pass"
-            failName="formData.hardware.legWaistBuckles.fail"
-            noteName="formData.hardware.legWaistBuckles.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="D-Rings (Dorsal, Side, Shoulder or Sternal)"
-            passName="formData.hardware.dRings.pass"
-            failName="formData.hardware.dRings.fail"
-            noteName="formData.hardware.dRings.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Corrosion / Pitting / Nicks"
-            passName="formData.hardware.corrosion.pass"
-            failName="formData.hardware.corrosion.fail"
-            noteName="formData.hardware.corrosion.note"
-            register={register}
-            errors={errors}
-          />
-        </div>
-
-        {/* Webbing Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">WEBBING</h2>
-
-          <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
-            <div className="col-span-4 font-semibold">Item</div>
-            <div className="col-span-2 text-center font-semibold text-green-600">
-              PASS
+            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
+              <div className="col-span-4 font-semibold">Item</div>
+              <div className="col-span-2 text-center font-semibold text-green-600">
+                PASS
+              </div>
+              <div className="col-span-2 text-center font-semibold text-red-600">
+                FAIL
+              </div>
+              <div className="col-span-4 font-semibold">NOTE</div>
             </div>
-            <div className="col-span-2 text-center font-semibold text-red-600">
-              FAIL
-            </div>
-            <div className="col-span-4 font-semibold">NOTE</div>
-          </div>
 
-          <CheckboxField
-            label="Shoulder / Chest / Leg / Back Strap"
-            passName="formData.webbing.shoulderStrap.pass"
-            failName="formData.webbing.shoulderStrap.fail"
-            noteName="formData.webbing.shoulderStrap.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Cuts / Burns / Holes"
-            passName="formData.webbing.cutsBurns.pass"
-            failName="formData.webbing.cutsBurns.fail"
-            noteName="formData.webbing.cutsBurns.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Paint Contamination"
-            passName="formData.webbing.paintContamination.pass"
-            failName="formData.webbing.paintContamination.fail"
-            noteName="formData.webbing.paintContamination.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Excessive Wear"
-            passName="formData.webbing.excessiveWear.pass"
-            failName="formData.webbing.excessiveWear.fail"
-            noteName="formData.webbing.excessiveWear.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Heat / UV Damage"
-            passName="formData.webbing.heatDamage.pass"
-            failName="formData.webbing.heatDamage.fail"
-            noteName="formData.webbing.heatDamage.note"
-            register={register}
-            errors={errors}
-          />
-        </div>
-
-        {/* Stitching Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">STITCHING</h2>
-
-          <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
-            <div className="col-span-4 font-semibold">Item</div>
-            <div className="col-span-2 text-center font-semibold text-green-600">
-              PASS
-            </div>
-            <div className="col-span-2 text-center font-semibold text-red-600">
-              FAIL
-            </div>
-            <div className="col-span-4 font-semibold">NOTE</div>
-          </div>
-
-          <CheckboxField
-            label="Shoulders / Chest"
-            passName="formData.stitching.shouldersChest.pass"
-            failName="formData.stitching.shouldersChest.fail"
-            noteName="formData.stitching.shouldersChest.note"
-            register={register}
-            errors={errors}
-          />
-
-          <CheckboxField
-            label="Legs / Back Straps"
-            passName="formData.stitching.legsBackStraps.pass"
-            failName="formData.stitching.legsBackStraps.fail"
-            noteName="formData.stitching.legsBackStraps.note"
-            register={register}
-            errors={errors}
-          />
-        </div>
-
-        {/* Additional Notes Section */}
-        <div className="bg-gray-50 p-4 rounded-md mb-6">
-          <h2 className="text-xl font-medium text-gray-700 mb-4">
-            ADDITIONAL NOTES
-          </h2>
-
-          <FormField label="" error={errors.formData?.additionalNotes?.message}>
-            <textarea
-              {...register("formData.additionalNotes")}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-              rows={5}
+            <CheckboxField
+              label="Label (legible/in tact)"
+              passName="formData.labelsAndMarkings.label.pass"
+              failName="formData.labelsAndMarkings.label.fail"
+              noteName="formData.labelsAndMarkings.label.note"
+              register={register}
+              errors={errors}
             />
-          </FormField>
-        </div>
 
-        {/* PDF Generation Option */}
-        {(!id || id === "new") && (
-          <FormField label="">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="generatePDF"
-                {...register("formData.generatePDF")}
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="generatePDF" className="text-gray-700">
-                Generate PDF for this Fall Protection Inspection
-              </label>
+            <CheckboxField
+              label="Appropriate (ANSI/OSHA) Markings"
+              passName="formData.labelsAndMarkings.markings.pass"
+              failName="formData.labelsAndMarkings.markings.fail"
+              noteName="formData.labelsAndMarkings.markings.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Date of First Use"
+              passName="formData.labelsAndMarkings.dateOfFirstUse.pass"
+              failName="formData.labelsAndMarkings.dateOfFirstUse.fail"
+              noteName="formData.labelsAndMarkings.dateOfFirstUse.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Impact Indicator (signs of deployment)"
+              passName="formData.labelsAndMarkings.impactIndicator.pass"
+              failName="formData.labelsAndMarkings.impactIndicator.fail"
+              noteName="formData.labelsAndMarkings.impactIndicator.note"
+              register={register}
+              errors={errors}
+            />
+          </div>
+
+          {/* Hardware Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              HARDWARE (BUCKLES & RINGS)
+            </h2>
+
+            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
+              <div className="col-span-4 font-semibold">Item</div>
+              <div className="col-span-2 text-center font-semibold text-green-600">
+                PASS
+              </div>
+              <div className="col-span-2 text-center font-semibold text-red-600">
+                FAIL
+              </div>
+              <div className="col-span-4 font-semibold">NOTE</div>
             </div>
-          </FormField>
-        )}
 
-        {/* Form Buttons */}
-        <div className="flex justify-end space-x-4 mt-6">
-          <button
-            type="button"
-            onClick={() => router.push("/modules/safety")}
-            className="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-100"
-          >
-            Cancel
-          </button>
+            <CheckboxField
+              label="Shoulder Adjustment Buckles"
+              passName="formData.hardware.shoulderBuckles.pass"
+              failName="formData.hardware.shoulderBuckles.fail"
+              noteName="formData.hardware.shoulderBuckles.note"
+              register={register}
+              errors={errors}
+            />
 
-          <button
-            type="submit"
-            className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
-          >
-            Save
-          </button>
-        </div>
-      </form>
+            <CheckboxField
+              label="Leg & Waist Buckles / Other Hardware"
+              passName="formData.hardware.legWaistBuckles.pass"
+              failName="formData.hardware.legWaistBuckles.fail"
+              noteName="formData.hardware.legWaistBuckles.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="D-Rings (Dorsal, Side, Shoulder or Sternal)"
+              passName="formData.hardware.dRings.pass"
+              failName="formData.hardware.dRings.fail"
+              noteName="formData.hardware.dRings.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Corrosion / Pitting / Nicks"
+              passName="formData.hardware.corrosion.pass"
+              failName="formData.hardware.corrosion.fail"
+              noteName="formData.hardware.corrosion.note"
+              register={register}
+              errors={errors}
+            />
+          </div>
+
+          {/* Webbing Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">WEBBING</h2>
+
+            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
+              <div className="col-span-4 font-semibold">Item</div>
+              <div className="col-span-2 text-center font-semibold text-green-600">
+                PASS
+              </div>
+              <div className="col-span-2 text-center font-semibold text-red-600">
+                FAIL
+              </div>
+              <div className="col-span-4 font-semibold">NOTE</div>
+            </div>
+
+            <CheckboxField
+              label="Shoulder / Chest / Leg / Back Strap"
+              passName="formData.webbing.shoulderStrap.pass"
+              failName="formData.webbing.shoulderStrap.fail"
+              noteName="formData.webbing.shoulderStrap.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Cuts / Burns / Holes"
+              passName="formData.webbing.cutsBurns.pass"
+              failName="formData.webbing.cutsBurns.fail"
+              noteName="formData.webbing.cutsBurns.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Paint Contamination"
+              passName="formData.webbing.paintContamination.pass"
+              failName="formData.webbing.paintContamination.fail"
+              noteName="formData.webbing.paintContamination.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Excessive Wear"
+              passName="formData.webbing.excessiveWear.pass"
+              failName="formData.webbing.excessiveWear.fail"
+              noteName="formData.webbing.excessiveWear.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Heat / UV Damage"
+              passName="formData.webbing.heatDamage.pass"
+              failName="formData.webbing.heatDamage.fail"
+              noteName="formData.webbing.heatDamage.note"
+              register={register}
+              errors={errors}
+            />
+          </div>
+
+          {/* Stitching Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              STITCHING
+            </h2>
+
+            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
+              <div className="col-span-4 font-semibold">Item</div>
+              <div className="col-span-2 text-center font-semibold text-green-600">
+                PASS
+              </div>
+              <div className="col-span-2 text-center font-semibold text-red-600">
+                FAIL
+              </div>
+              <div className="col-span-4 font-semibold">NOTE</div>
+            </div>
+
+            <CheckboxField
+              label="Shoulders / Chest"
+              passName="formData.stitching.shouldersChest.pass"
+              failName="formData.stitching.shouldersChest.fail"
+              noteName="formData.stitching.shouldersChest.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Legs / Back Straps"
+              passName="formData.stitching.legsBackStraps.pass"
+              failName="formData.stitching.legsBackStraps.fail"
+              noteName="formData.stitching.legsBackStraps.note"
+              register={register}
+              errors={errors}
+            />
+          </div>
+
+          {/* Additional Notes Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              ADDITIONAL NOTES
+            </h2>
+
+            <FormField
+              label=""
+              error={errors.formData?.additionalNotes?.message}
+            >
+              <textarea
+                {...register("formData.additionalNotes")}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                rows={5}
+              />
+            </FormField>
+          </div>
+
+          {/* PDF Generation Option */}
+          {(!id || id === "new") && (
+            <FormField label="">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="generatePDF"
+                  {...register("formData.generatePDF")}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <label htmlFor="generatePDF" className="text-gray-700">
+                  Generate PDF for this Fall Protection Inspection
+                </label>
+              </div>
+            </FormField>
+          )}
+
+          {/* Form Buttons */}
+          <div className="flex justify-end space-x-4 mt-6">
+            <button
+              type="button"
+              onClick={() => router.push("/modules/safety")}
+              className="bg-gray-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring focus:ring-gray-100"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring focus:ring-indigo-100"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </FormProvider>
     </div>
   );
 }

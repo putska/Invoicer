@@ -180,7 +180,7 @@ export default function SafetyFormListPage() {
   const handleEdit = (form: FormSubmission) => {
     console.log("Editing form:", form.formName, form.id);
     switch (form.formName.toLowerCase()) {
-      case "fall protection":
+      case "fall-protection":
         router.push(`/modules/safety/fall-protection/${form.id}`);
         break;
       case "jha":
@@ -203,7 +203,7 @@ export default function SafetyFormListPage() {
       window.confirm("Are you sure you want to delete this purchase order?")
     ) {
       try {
-        const response = await fetch(`/api/purchasing/${poId}`, {
+        const response = await fetch(`/api/safety/${poId}`, {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Error deleting purchase order");

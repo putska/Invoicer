@@ -117,7 +117,7 @@ export default function JHAFormPage() {
   } = useForm<JHAForm>({
     resolver: zodResolver(jhaFormSchema),
     defaultValues: {
-      formName: "Job Hazard Analysis",
+      formName: "JHA",
       pdfName: "JHA.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: user?.fullName || "",
@@ -161,7 +161,7 @@ export default function JHAFormPage() {
     async (data: JHAForm) => {
       try {
         const response = await fetch(`/api/safety/${id}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
