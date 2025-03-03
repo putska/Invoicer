@@ -143,6 +143,13 @@ const mewpFormSchema = z.object({
 
 type MEWPForm = z.infer<typeof mewpFormSchema>;
 
+type Job = {
+  id: number;
+  name: string;
+  number: string;
+  status: string;
+};
+
 interface FormFieldProps {
   label: string;
   error?: string;
@@ -277,6 +284,63 @@ const CheckboxGroup = ({
   );
 };
 
+// Add this component to your file
+const MewpTypeCheckboxGroup = () => {
+  // Get the setValue function from useForm context
+  const { setValue, watch, register } = useFormContext();
+
+  // Define all MEWP types
+  const mewpTypes = [
+    { id: "scissorLift", label: "Scissor Lift" },
+    { id: "personnelLift", label: "Personnel Lift" },
+    { id: "aerialLift", label: "Aerial Lift" },
+    { id: "telescopingLift", label: "Telescoping Lift" },
+    { id: "boomLift", label: "Boom Lift" },
+    { id: "articulatingLift", label: "Articulating Lift" },
+  ];
+
+  // Watch all MEWP type values
+  const mewpTypeValues: Record<string, boolean> = {
+    scissorLift: watch("formData.mewpType.scissorLift"),
+    personnelLift: watch("formData.mewpType.personnelLift"),
+    aerialLift: watch("formData.mewpType.aerialLift"),
+    telescopingLift: watch("formData.mewpType.telescopingLift"),
+    boomLift: watch("formData.mewpType.boomLift"),
+    articulatingLift: watch("formData.mewpType.articulatingLift"),
+  };
+
+  // Handle radio-like behavior when a type is clicked
+  const handleTypeClick = (selectedType: string) => {
+    // Set all types to false first
+    mewpTypes.forEach((type) => {
+      setValue(`formData.mewpType.${type.id}`, false);
+    });
+
+    // Then set only the selected type to true
+    setValue(`formData.mewpType.${selectedType}`, true);
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {mewpTypes.map((type) => (
+        <div key={type.id} className="flex items-center">
+          <input
+            type="checkbox"
+            id={type.id}
+            {...register(`formData.mewpType.${type.id}`)}
+            checked={mewpTypeValues[type.id]}
+            onChange={() => handleTypeClick(type.id)}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <label htmlFor={type.id} className="ml-2 block text-sm text-gray-700">
+            {type.label}
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ---------------- Main Component ----------------
 
 export default function MEWPFormPage() {
@@ -284,6 +348,7 @@ export default function MEWPFormPage() {
   const { id } = useParams() as { id: string };
   const { user } = useUser();
   const fullName = useFullNameFromDB();
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "success">(
     "loading"
@@ -493,7 +558,35 @@ export default function MEWPFormPage() {
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
+  // Update fields when fullName changes
+  useEffect(() => {
+    if (fullName) {
+      setValue("formData.inspectionConductedBy", fullName);
+    }
+  }, [fullName, setValue]);
+
   // ---------------- API Loaders ----------------
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/projects");
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (!result.projects) throw new Error("Failed to load jobs");
+
+      // If we're editing (id exists and isn't "new"), show all jobs.
+      // Otherwise, for a new form, show only active jobs.
+      const jobsToSet =
+        id && id !== "new"
+          ? result.projects
+          : result.projects.filter((job: Job) => job.status === "active");
+
+      setJobs(jobsToSet);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    }
+  }, [id]);
 
   const loadSafetyForm = useCallback(
     async (formId: string) => {
@@ -528,6 +621,8 @@ export default function MEWPFormPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Wait for dropdown data to load
+        await loadJobs();
         // Now load the safety form if we're editing
         if (id && id !== "new") {
           await loadSafetyForm(id);
@@ -599,7 +694,9 @@ export default function MEWPFormPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
       <h1 className="text-2xl font-semibold text-gray-700 mb-6">
-        {id && id !== "new" ? "Edit MEWP Inspection" : "New MEWP Inspection"}
+        {id && id !== "new"
+          ? "Edit Mobile Elevated Work Platform Inspection"
+          : "New Mobile Elevated Work Platform Inspection"}
       </h1>
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -612,13 +709,20 @@ export default function MEWPFormPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Job Name"
-                error={errors.formData?.jobName?.message}
+                error={errors.jobName?.message}
                 required
               >
-                <input
-                  {...register("formData.jobName")}
+                <select
+                  {...register("jobName")}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                />
+                >
+                  <option value="">Select a Job</option>
+                  {jobs.map((job) => (
+                    <option key={job.id} value={job.name}>
+                      {job.name}
+                    </option>
+                  ))}
+                </select>
               </FormField>
 
               <FormField
@@ -635,97 +739,7 @@ export default function MEWPFormPage() {
 
             <div className="mt-4">
               <FormField label="MEWP Type" error={undefined}>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="scissorLift"
-                      {...register("formData.mewpType.scissorLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="scissorLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Scissor Lift
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="personnelLift"
-                      {...register("formData.mewpType.personnelLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="personnelLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Personnel Lift
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="aerialLift"
-                      {...register("formData.mewpType.aerialLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="aerialLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Aerial Lift
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="telescopingLift"
-                      {...register("formData.mewpType.telescopingLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="telescopingLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Telescoping Lift
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="boomLift"
-                      {...register("formData.mewpType.boomLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="boomLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Boom Lift
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="articulatingLift"
-                      {...register("formData.mewpType.articulatingLift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="articulatingLift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Articulating Lift
-                    </label>
-                  </div>
-                </div>
+                <MewpTypeCheckboxGroup />
               </FormField>
             </div>
 

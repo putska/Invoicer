@@ -342,6 +342,14 @@ export default function FallProtectionFormPage() {
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
+  // Update fields when fullName changes
+  useEffect(() => {
+    if (fullName) {
+      setValue("formData.authorizedPerson", fullName);
+      setValue("formData.competentPerson", fullName);
+    }
+  }, [fullName, setValue]);
+
   // ---------------- API Loaders ----------------
 
   const loadSafetyForm = useCallback(

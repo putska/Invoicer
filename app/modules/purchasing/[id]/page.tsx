@@ -152,6 +152,13 @@ export default function PurchaseOrderFormPage() {
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
+  // Update projectManager when fullName changes
+  useEffect(() => {
+    if (fullName) {
+      setValue("projectManager", fullName);
+    }
+  }, [fullName, setValue]);
+
   // ---------------- API Loaders ----------------
 
   const loadPurchaseOrder = useCallback(

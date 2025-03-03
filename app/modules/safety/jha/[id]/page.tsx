@@ -187,6 +187,13 @@ export default function JHAFormPage() {
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
+  // Update fields when fullName changes
+  useEffect(() => {
+    if (fullName) {
+      setValue("formData.competentPersonName", fullName);
+    }
+  }, [fullName, setValue]);
+
   // ---------------- API Loaders ----------------
 
   const loadJobs = useCallback(async () => {

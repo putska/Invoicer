@@ -135,6 +135,13 @@ const telehandlerFormSchema = z.object({
 
 type TelehandlerForm = z.infer<typeof telehandlerFormSchema>;
 
+type Job = {
+  id: number;
+  name: string;
+  number: string;
+  status: string;
+};
+
 interface FormFieldProps {
   label: string;
   error?: string;
@@ -269,6 +276,64 @@ const CheckboxGroup = ({
     </div>
   );
 };
+
+// Add this component in your file, similar to your CheckboxGroup component
+const TypeCheckboxGroup = () => {
+  // Get the setValue function from useForm context
+  const { setValue, watch, register } = useFormContext();
+
+  // Watch the current values
+  const telehandlerValue = watch("formData.telehandlerType.telehandler");
+  const forkliftValue = watch("formData.telehandlerType.forklift");
+
+  // Handle radio-like behavior when Telehandler is clicked
+  const handleTelehandlerClick = () => {
+    setValue("formData.telehandlerType.telehandler", true);
+    setValue("formData.telehandlerType.forklift", false);
+  };
+
+  // Handle radio-like behavior when Forklift is clicked
+  const handleForkliftClick = () => {
+    setValue("formData.telehandlerType.telehandler", false);
+    setValue("formData.telehandlerType.forklift", true);
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          id="telehandler"
+          {...register("formData.telehandlerType.telehandler")}
+          checked={telehandlerValue}
+          onChange={handleTelehandlerClick}
+          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
+        <label
+          htmlFor="telehandler"
+          className="ml-2 block text-sm text-gray-700"
+        >
+          Telehandler
+        </label>
+      </div>
+
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          id="forklift"
+          {...register("formData.telehandlerType.forklift")}
+          checked={forkliftValue}
+          onChange={handleForkliftClick}
+          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
+        <label htmlFor="forklift" className="ml-2 block text-sm text-gray-700">
+          Forklift
+        </label>
+      </div>
+    </div>
+  );
+};
+
 // ---------------- Main Component ----------------
 
 export default function TelehandlerFormPage() {
@@ -276,6 +341,7 @@ export default function TelehandlerFormPage() {
   const { id } = useParams() as { id: string };
   const { user } = useUser();
   const fullName = useFullNameFromDB();
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "success">(
     "loading"
@@ -461,7 +527,35 @@ export default function TelehandlerFormPage() {
     }
   }, [watchedValues, dirtyFields, id, handleSubmit, saveDraft]);
 
+  // Update fields when fullName changes
+  useEffect(() => {
+    if (fullName) {
+      setValue("formData.inspectionConductedBy", fullName);
+    }
+  }, [fullName, setValue]);
+
   // ---------------- API Loaders ----------------
+
+  const loadJobs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/projects");
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (!result.projects) throw new Error("Failed to load jobs");
+
+      // If we're editing (id exists and isn't "new"), show all jobs.
+      // Otherwise, for a new form, show only active jobs.
+      const jobsToSet =
+        id && id !== "new"
+          ? result.projects
+          : result.projects.filter((job: Job) => job.status === "active");
+
+      setJobs(jobsToSet);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    }
+  }, [id]);
 
   const loadSafetyForm = useCallback(
     async (formId: string) => {
@@ -496,6 +590,8 @@ export default function TelehandlerFormPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Wait for dropdown data to load
+        await loadJobs();
         // Now load the safety form if we're editing
         if (id && id !== "new") {
           await loadSafetyForm(id);
@@ -578,17 +674,23 @@ export default function TelehandlerFormPage() {
             <h2 className="text-xl font-medium text-gray-700 mb-4">
               Basic Information
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Job Name"
-                error={errors.formData?.jobName?.message}
+                error={errors.jobName?.message}
                 required
               >
-                <input
-                  {...register("formData.jobName")}
+                <select
+                  {...register("jobName")}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                />
+                >
+                  <option value="">Select a Job</option>
+                  {jobs.map((job) => (
+                    <option key={job.id} value={job.name}>
+                      {job.name}
+                    </option>
+                  ))}
+                </select>
               </FormField>
 
               <FormField
@@ -605,40 +707,9 @@ export default function TelehandlerFormPage() {
 
             <div className="mt-4">
               <FormField label="Type" error={undefined}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="telehandler"
-                      {...register("formData.telehandlerType.telehandler")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="telehandler"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Telehandler
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="forklift"
-                      {...register("formData.telehandlerType.forklift")}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="forklift"
-                      className="ml-2 block text-sm text-gray-700"
-                    >
-                      Forklift
-                    </label>
-                  </div>
-                </div>
+                <TypeCheckboxGroup />
               </FormField>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <FormField
                 label="Hour Meter Reading"
@@ -650,7 +721,6 @@ export default function TelehandlerFormPage() {
                 />
               </FormField>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <FormField
                 label="Inspection Conducted By"
