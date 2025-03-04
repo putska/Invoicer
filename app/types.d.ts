@@ -325,3 +325,79 @@ export interface FormSubmission {
   isDeleted: boolean;
   deletedAt: Date | null;
 }
+
+// Opti
+
+export interface Part {
+  qty: number;
+  part_no: string;
+  length: number;
+  mark_no: string;
+  finish: string;
+  fab: string;
+  release?: string;
+  stklensize?: number;
+  tblname?: string;
+}
+
+export interface ExtCutlistItem {
+  item: number;
+  part_no: string;
+  length: number;
+  mark: string;
+  qty: number;
+  fab: string;
+  release?: string;
+  tempqty: number;
+  stklen: number;
+  drops: number;
+  usedropsfor: string;
+  stklensize: number;
+  finish: string;
+  tblname?: string;
+}
+
+export interface ExtListItem {
+  part_no: string;
+  finish: string;
+  length1: number;
+  length2: number;
+  qty1: number;
+  qty2: number;
+}
+
+export interface OptimizationResult {
+  cutPattern: CutPatternItem[];
+  stockLengthsNeeded: StockLengthNeeded[];
+  summary: OptimizationSummary;
+}
+
+export interface CutPatternItem {
+  stockLength: number;
+  stockId: number;
+  cuts: Cut[];
+  remainingLength: number;
+}
+
+export interface Cut {
+  part_no: string;
+  length: number;
+  mark: string;
+  finish: string;
+  fab: string;
+  release?: string;
+}
+
+export interface StockLengthNeeded {
+  part_no: string;
+  finish: string;
+  stockLength: number;
+  quantity: number;
+}
+
+export interface OptimizationSummary {
+  totalStockLength: number;
+  totalCutLength: number;
+  wastePercentage: number;
+  totalStockPieces: number;
+}

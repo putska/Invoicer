@@ -18,6 +18,11 @@ import {
   requests,
   tokens,
   forms,
+  parts,
+  stockLengths,
+  optimizationJobs,
+  cutPatterns,
+  cuts,
 } from "./schema";
 import {
   Customer,
@@ -34,8 +39,13 @@ import {
   Material,
   Requisition,
   FormSubmission,
+  Part,
+  CutPatternItem,
+  OptimizationResult,
+  ExtListItem,
 } from "../types";
 import { desc, eq, and, inArray, sql, max } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 //import fetch from "node-fetch";
@@ -2014,4 +2024,239 @@ export async function deleteFormSubmission(id: number): Promise<boolean> {
     .where(eq(forms.id, id))
     .returning();
   return !!result;
+}
+
+// End Safety form Actions
+
+// Begin Opti
+
+// Part actions
+export async function getParts(userId: string) {
+  return await db.select().from(parts).where(eq(parts.userId, userId));
+}
+
+export async function addPart(
+  part: Omit<typeof parts.$inferInsert, "id" | "createdAt">
+) {
+  const result = await db.insert(parts).values(part).returning();
+  revalidatePath("/optimize");
+  return result[0];
+}
+
+export async function deletePart(id: number) {
+  await db.delete(parts).where(eq(parts.id, id));
+  revalidatePath("/optimize");
+}
+
+// Stock length actions
+export async function getStockLengths(userId: string) {
+  return await db
+    .select()
+    .from(stockLengths)
+    .where(eq(stockLengths.userId, userId));
+}
+
+export async function addStockLength(
+  stockLength: Omit<typeof stockLengths.$inferInsert, "id" | "createdAt">
+) {
+  const result = await db.insert(stockLengths).values(stockLength).returning();
+  revalidatePath("/optimize");
+  return result[0];
+}
+
+export async function updateStockLength(
+  id: number,
+  data: Partial<typeof stockLengths.$inferInsert>
+) {
+  const result = await db
+    .update(stockLengths)
+    .set(data)
+    .where(eq(stockLengths.id, id))
+    .returning();
+
+  revalidatePath("/optimize");
+  return result[0];
+}
+
+// Optimization job actions
+export async function createOptimizationJob(
+  userId: string,
+  name: string,
+  bladeWidth: number
+) {
+  const result = await db
+    .insert(optimizationJobs)
+    .values({
+      userId,
+      name,
+      status: "pending",
+      bladeWidth: bladeWidth.toString(),
+    })
+    .returning();
+
+  revalidatePath("/optimize");
+  return result[0];
+}
+
+export async function updateOptimizationJob(
+  id: number,
+  data: Partial<typeof optimizationJobs.$inferInsert>
+) {
+  const result = await db
+    .update(optimizationJobs)
+    .set(data)
+    .where(eq(optimizationJobs.id, id))
+    .returning();
+
+  revalidatePath("/optimize");
+  return result[0];
+}
+
+export async function getOptimizationJobs(userId: string) {
+  return await db
+    .select()
+    .from(optimizationJobs)
+    .where(eq(optimizationJobs.userId, userId))
+    .orderBy(optimizationJobs.createdAt);
+}
+
+export async function getOptimizationJobById(id: number) {
+  const jobData = await db
+    .select()
+    .from(optimizationJobs)
+    .where(eq(optimizationJobs.id, id))
+    .limit(1);
+
+  if (jobData.length === 0) {
+    return null;
+  }
+
+  return jobData[0];
+}
+
+// Store optimization results
+export async function saveOptimizationResults(
+  jobId: number,
+  results: OptimizationResult
+) {
+  // First, update the job with summary data
+  await db
+    .update(optimizationJobs)
+    .set({
+      resultsJson: JSON.stringify(results.summary),
+      status: "completed",
+      completedAt: new Date(),
+    })
+    .where(eq(optimizationJobs.id, jobId));
+
+  // Then save each cutting pattern
+  for (const pattern of results.cutPattern) {
+    // Check your schema to confirm the exact field name for job ID reference
+    // It could be "optimization_job_id" or something similar
+    const cutPatternResult = await db
+      .insert(cutPatterns)
+      .values({
+        jobId: jobId, // Use the exact field name from your schema
+        stockLength: pattern.stockLength.toString(), // Convert to string for decimal field
+        stockId: pattern.stockId,
+        remainingLength: pattern.remainingLength.toString(), // Convert to string for decimal field
+      })
+      .returning();
+
+    const cutPatternId = cutPatternResult[0].id;
+
+    // Save all cuts for this pattern
+    await Promise.all(
+      pattern.cuts.map((cut, index) =>
+        db.insert(cuts).values({
+          cutPatternId: cutPatternId, // Use the exact field name from your schema
+          partNo: cut.part_no,
+          length: cut.length.toString(), // Convert to string for decimal field
+          markNo: cut.mark || "",
+          finish: cut.finish || "",
+          fab: cut.fab || "",
+          position: index,
+        })
+      )
+    );
+  }
+
+  revalidatePath("/optimize");
+  return true;
+}
+
+// Load optimization results
+export async function getOptimizationResults(
+  jobId: number
+): Promise<OptimizationResult | null> {
+  // First get the job data
+  const job = await getOptimizationJobById(jobId);
+
+  if (!job || !job.resultsJson) {
+    return null;
+  }
+
+  // Get all cut patterns for this job
+  const cutPatternData = await db
+    .select()
+    .from(cutPatterns)
+    .where(eq(cutPatterns.jobId, jobId)) // Use correct field name
+    .orderBy(cutPatterns.stockId);
+
+  // For each pattern, get its cuts
+  const cutPattern = await Promise.all(
+    cutPatternData.map(async (pattern) => {
+      const cutsData = await db
+        .select()
+        .from(cuts)
+        .where(eq(cuts.cutPatternId, pattern.id)) // Use correct field name
+        .orderBy(cuts.position);
+
+      return {
+        stockLength: Number(pattern.stockLength),
+        stockId: pattern.stockId,
+        remainingLength: Number(pattern.remainingLength),
+        cuts: cutsData.map((cut) => ({
+          part_no: cut.partNo || "", // Provide default values for null fields
+          length: Number(cut.length),
+          mark: cut.markNo || "", // Convert null to empty string
+          finish: cut.finish || "", // Convert null to empty string
+          fab: cut.fab || "", // Convert null to empty string
+          release: undefined,
+        })),
+      };
+    })
+  );
+
+  // Calculate stock lengths needed from the patterns
+  const stockLengthsMap = new Map<
+    string,
+    { part_no: string; finish: string; stockLength: number; quantity: number }
+  >();
+
+  cutPattern.forEach((pattern) => {
+    if (pattern.cuts.length === 0) return;
+
+    const partNo = pattern.cuts[0].part_no;
+    const finish = pattern.cuts[0].finish;
+    const key = `${partNo}|${finish}|${pattern.stockLength}`;
+
+    if (stockLengthsMap.has(key)) {
+      const entry = stockLengthsMap.get(key)!;
+      entry.quantity += 1;
+    } else {
+      stockLengthsMap.set(key, {
+        part_no: partNo,
+        finish: finish,
+        stockLength: pattern.stockLength,
+        quantity: 1,
+      });
+    }
+  });
+
+  return {
+    summary: JSON.parse(job.resultsJson),
+    cutPattern,
+    stockLengthsNeeded: Array.from(stockLengthsMap.values()),
+  };
 }

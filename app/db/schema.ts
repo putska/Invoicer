@@ -274,3 +274,65 @@ export const forms = pgTable("forms", {
   isDeleted: boolean("is_deleted").default(false).notNull(),
   deletedAt: timestamp("deleted_at"),
 });
+
+// Begin Opti
+
+export const parts = pgTable("parts", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  partNo: varchar("part_no", { length: 50 }).notNull(),
+  length: decimal("length", { precision: 10, scale: 2 }).notNull(),
+  markNo: varchar("mark_no", { length: 50 }),
+  finish: varchar("finish", { length: 100 }),
+  fab: varchar("fab", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const stockLengths = pgTable("stock_lengths", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  partNo: varchar("part_no", { length: 50 }).notNull(),
+  finish: varchar("finish", { length: 100 }),
+  length1: decimal("length1", { precision: 10, scale: 2 }).notNull(),
+  length2: decimal("length2", { precision: 10, scale: 2 }),
+  qty1: integer("qty1").notNull(),
+  qty2: integer("qty2"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const optimizationJobs = pgTable("optimization_jobs", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  bladeWidth: decimal("blade_width", { precision: 10, scale: 2 }).default(
+    "0.25"
+  ),
+  resultsJson: text("results_json"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const cutPatterns = pgTable("cut_patterns", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => optimizationJobs.id),
+  stockLength: decimal("stock_length", { precision: 10, scale: 2 }).notNull(),
+  stockId: integer("stock_id").notNull(),
+  remainingLength: decimal("remaining_length", {
+    precision: 10,
+    scale: 2,
+  }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const cuts = pgTable("cuts", {
+  id: serial("id").primaryKey(),
+  cutPatternId: integer("cut_pattern_id").references(() => cutPatterns.id),
+  partNo: varchar("part_no", { length: 50 }).notNull(),
+  length: decimal("length", { precision: 10, scale: 2 }).notNull(),
+  markNo: varchar("mark_no", { length: 50 }),
+  finish: varchar("finish", { length: 100 }),
+  fab: varchar("fab", { length: 255 }),
+  position: integer("position").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
