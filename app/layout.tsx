@@ -79,6 +79,8 @@ export default async function RootLayout({
 
                       <Link href="/modules/safety">Safety</Link>
 
+                      <Link href="/modules/optimize">Opti</Link>
+
                       <Link
                         href="https://wiki.cse-portal.com"
                         target="_blank"
