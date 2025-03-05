@@ -5,7 +5,8 @@ import React, { useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Part } from "../types";
-import * as XLSX from "xlsx";
+// Replace xlsx with xlsx-js-style
+import * as XLSX from "xlsx-js-style";
 
 interface UploadExcelProps {
   onUpload: (parts: Part[]) => void;
@@ -24,6 +25,7 @@ export default function UploadExcel({ onUpload }: UploadExcelProps) {
     reader.onload = (event) => {
       try {
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        // The API for xlsx-js-style is compatible with xlsx
         const workbook = XLSX.read(data, { type: "array" });
 
         // Assume the first sheet contains our data
