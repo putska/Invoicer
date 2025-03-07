@@ -2,12 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Placement,
-  CutSheet,
-  debugPanelLayouts,
-  detectSuspiciousPlacementValues,
-} from "../components/panelOptimization";
+import { Placement, CutSheet } from "../components/panelOptimization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -41,39 +36,6 @@ export default function CuttingPatternVisualization({
   const [showDimensions, setShowDimensions] = useState<"feet" | "inches">(
     "feet"
   );
-
-  // Log the props for debugging
-  useEffect(() => {
-    console.log("CuttingPatternVisualization props:", {
-      sheets,
-      placements,
-      summary,
-    });
-    setDebugInfo(
-      JSON.stringify(
-        {
-          sheets: sheets.length,
-          placements: placements.length,
-          totalPanelsPlaced: summary?.totalPanelsPlaced || countPlacedPanels(),
-          currentSheet:
-            currentSheetIndex < sheets.length
-              ? sheets[currentSheetIndex]
-              : null,
-        },
-        null,
-        2
-      )
-    );
-  }, [sheets, placements, currentSheetIndex, summary]);
-
-  // After your optimization or when viewing your results:
-  const handleDebug = () => {
-    console.log("===== DEBUGGING PANEL LAYOUTS =====");
-    debugPanelLayouts(placements, sheets);
-
-    console.log("\n===== CHECKING PLACEMENT VALUES =====");
-    detectSuspiciousPlacementValues(placements);
-  };
 
   // Count total number of placed panels if not provided in summary
   const countPlacedPanels = (): number => {
@@ -294,10 +256,7 @@ export default function CuttingPatternVisualization({
               <Download className="h-4 w-4 mr-2" />
               Export SVG
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDebug}>
-              <Download className="h-4 w-4 mr-2" />
-              Debug Layout
-            </Button>
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"

@@ -1,7 +1,6 @@
 // app/api/panel-optimize/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
-  optimizePanels,
   optimizePanelsStrict,
   findBestSheetSize,
 } from "../../components/panelOptimization";
@@ -95,7 +94,7 @@ export async function POST(req: NextRequest) {
 
       // Run optimization with this sheet
       console.log("Running optimization with optimal sheet size");
-      result = optimizePanels(
+      result = optimizePanelsStrict(
         panels,
         [optimizedSheet],
         bladeWidth,

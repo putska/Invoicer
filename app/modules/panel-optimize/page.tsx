@@ -12,6 +12,7 @@ import PanelsTable from "../../components/PanelsTable";
 import SheetsTable from "../../components/SheetsTable";
 import PanelUploadExcel from "../../components/PanelUploadExcel";
 import CuttingPatternVisualization from "../../components/CuttingPatternVisualization";
+import SheetSummary from "../../components/SheetSummary";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,36 +104,131 @@ export default function PanelOptimizationPage() {
       csvContent += `Total Area (sq in),${results.summary.totalArea.toFixed(
         2
       )}\r\n`;
+      csvContent += `Total Area (sq ft),${(
+        results.summary.totalArea / 144
+      ).toFixed(2)}\r\n`;
       csvContent += `Used Area (sq in),${results.summary.usedArea.toFixed(
         2
       )}\r\n`;
+      csvContent += `Used Area (sq ft),${(
+        results.summary.usedArea / 144
+      ).toFixed(2)}\r\n`;
       csvContent += `Waste Percentage,${results.summary.wastePercentage.toFixed(
         2
-      )}%\r\n\r\n`;
+      )}%\r\n`;
+      csvContent += `Yield Percentage,${(
+        100 - results.summary.wastePercentage
+      ).toFixed(2)}%\r\n\r\n`;
 
-      // Sheets section
-      csvContent += "SHEETS USED\r\n";
+      // Group sheets by size
+      const sheetsBySize = results.sheets.reduce(
+        (
+          groups: {
+            [key: string]: {
+              width: number;
+              height: number;
+              count: number;
+              totalAreaSqFt: number;
+              usedAreaSqFt: number;
+              sheetIds: Set<string>;
+            };
+          },
+          sheet
+        ) => {
+          const sizeKey = `${sheet.width} x ${sheet.height}`;
+
+          if (!groups[sizeKey]) {
+            groups[sizeKey] = {
+              width: sheet.width,
+              height: sheet.height,
+              count: 0,
+              totalAreaSqFt: 0,
+              usedAreaSqFt: 0,
+              sheetIds: new Set(),
+            };
+          }
+
+          groups[sizeKey].count += 1;
+          groups[sizeKey].totalAreaSqFt += (sheet.width * sheet.height) / 144;
+          groups[sizeKey].usedAreaSqFt += sheet.usedArea / 144;
+          groups[sizeKey].sheetIds.add(sheet.sheetId.toString());
+
+          return groups;
+        },
+        {}
+      );
+
+      // Convert to array for sorting
+      const sheetGroups = Object.entries(sheetsBySize).map(
+        ([sizeKey, data]) => ({
+          sizeKey,
+          ...data,
+          yield: (data.usedAreaSqFt / data.totalAreaSqFt) * 100,
+          sheetIds: Array.from(data.sheetIds),
+        })
+      );
+
+      // Sort by size (largest first)
+      sheetGroups.sort((a, b) => b.width * b.height - a.width * a.height);
+
+      // Sheets section with grouped information
+      csvContent += "SHEETS USED BY SIZE\r\n";
       csvContent +=
-        "Sheet ID,Sheet No,Width,Height,Used Area,Waste Percentage\r\n";
+        "Sheet Size,Quantity,Sheet IDs,Total Area (sq ft),Used Area (sq ft),Yield Percentage\r\n";
+
+      // Calculate total area for all sheets
+      let totalSheetAreaSqFt = 0;
+      let totalUsedAreaSqFt = 0;
+      let totalSheets = 0;
+
+      sheetGroups.forEach((group) => {
+        totalSheetAreaSqFt += group.totalAreaSqFt;
+        totalUsedAreaSqFt += group.usedAreaSqFt;
+        totalSheets += group.count;
+
+        csvContent += `${group.width}" × ${group.height}",${
+          group.count
+        },${Array.from(group.sheetIds).join(
+          ", "
+        )},${group.totalAreaSqFt.toFixed(2)},${group.usedAreaSqFt.toFixed(
+          2
+        )},${group.yield.toFixed(2)}%\r\n`;
+      });
+
+      // Add totals row
+      const overallYield = (totalUsedAreaSqFt / totalSheetAreaSqFt) * 100;
+      csvContent += `TOTALS,${totalSheets},,${totalSheetAreaSqFt.toFixed(
+        2
+      )},${totalUsedAreaSqFt.toFixed(2)},${overallYield.toFixed(2)}%\r\n\r\n`;
+
+      // Also include detailed sheet information for reference
+      csvContent += "DETAILED SHEET LIST\r\n";
+      csvContent +=
+        "Sheet ID,Sheet No,Width,Height,Used Area (sq ft),Waste Percentage\r\n";
 
       results.sheets.forEach((sheet) => {
         csvContent += `${sheet.sheetId},${sheet.sheetNo},${sheet.width},${
           sheet.height
-        },${sheet.usedArea.toFixed(2)},${sheet.wastePercentage.toFixed(
+        },${(sheet.usedArea / 144).toFixed(2)},${sheet.wastePercentage.toFixed(
           2
         )}%\r\n`;
       });
+      csvContent += "\r\n";
 
-      csvContent += "\r\nPANEL PLACEMENTS\r\n";
+      // Panel placements section
+      csvContent += "PANEL PLACEMENTS\r\n";
       csvContent +=
-        "Sheet ID,Sheet No,Panel ID,Mark,Width,Height,X Position,Y Position,Rotated\r\n";
+        "Sheet ID,Sheet No,Panel ID,Mark,Width,Height,Area (sq ft),X Position,Y Position,Rotated\r\n";
 
       results.placements.forEach((placement) => {
+        const areaSqFt = (placement.width * placement.height) / 144;
         csvContent += `${placement.sheetId},${placement.sheetNo},${
           placement.panelId
-        },${placement.mark},${placement.width},${placement.height},${
-          placement.x
-        },${placement.y},${placement.rotated ? "Yes" : "No"}\r\n`;
+        },${placement.mark},${placement.width},${
+          placement.height
+        },${areaSqFt.toFixed(2)},${placement.x},${placement.y},${
+          placement.rotated ? "Yes" : "No"
+        }\r\n`;
       });
 
       // Create download link
@@ -162,7 +258,6 @@ export default function PanelOptimizationPage() {
             Results
           </TabsTrigger>
         </TabsList>
-
         <TabsContent value="panels">
           <Card>
             <CardHeader>
@@ -200,7 +295,6 @@ export default function PanelOptimizationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="sheets">
           <Card>
             <CardHeader>
@@ -232,7 +326,6 @@ export default function PanelOptimizationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="settings">
           <Card>
             <CardHeader>
@@ -347,7 +440,6 @@ export default function PanelOptimizationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="results">
           {results && (
             <div className="space-y-6">
@@ -419,10 +511,14 @@ export default function PanelOptimizationPage() {
                 </CardContent>
               </Card>
 
+              {/* Add the Sheet Summary component here */}
+              <SheetSummary sheets={results.sheets} />
+
               <CuttingPatternVisualization
                 placements={results.placements}
                 sheets={results.sheets}
                 bladeWidth={bladeWidth}
+                summary={results.summary}
               />
             </div>
           )}
