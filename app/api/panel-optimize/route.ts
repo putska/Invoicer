@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   optimizePanels,
+  optimizePanelsGuillotine,
   findBestSheetSize,
 } from "../../components/panelOptimization";
 import {
@@ -125,7 +126,12 @@ export async function POST(req: NextRequest) {
       }
 
       console.log("Running optimization with provided sheets");
-      result = optimizePanels(panels, sheets, bladeWidth, allowRotation);
+      result = optimizePanelsGuillotine(
+        panels,
+        sheets,
+        bladeWidth,
+        allowRotation
+      );
       console.log("Optimization complete");
 
       // Save the results to the database

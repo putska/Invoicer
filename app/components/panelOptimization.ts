@@ -95,7 +95,7 @@ export function optimizePanels(
   bladeWidth: number = 0.25,
   allowRotation: boolean = true
 ): PanelOptimizationResult {
-  // Clone input data
+  // Clone input data to avoid modifying the originals
   const panelsData = panels.map((p) => ({ ...p }));
   let sheetsData = sheets.map((s) => ({ ...s, maxQty: s.maxQty ?? s.qty }));
 
@@ -116,6 +116,10 @@ export function optimizePanels(
   let totalPlacedCount = 0;
   let iteration = 0;
   const maxIterations = 1000; // Safety limit to prevent infinite loops
+
+  // Map to track sheet usage by type - helps with sheet selection strategy
+  const sheetUsage = new Map<number, number>();
+  sheets.forEach((s) => sheetUsage.set(s.id, 0));
 
   while (
     remainingPanels.some((p) => p.qty > 0) &&
@@ -140,6 +144,10 @@ export function optimizePanels(
     const { sheetIndex, sheetPlacements, usedSheet, panelsPlaced } =
       bestSheetResult;
 
+    // Update sheet usage count for this sheet type
+    const sheetId = sheetsData[sheetIndex].id;
+    sheetUsage.set(sheetId, (sheetUsage.get(sheetId) || 0) + 1);
+
     // Update remaining panels
     remainingPanels = remainingPanels.map((p) => ({ ...p }));
     for (const placement of sheetPlacements) {
@@ -151,8 +159,15 @@ export function optimizePanels(
       }
     }
 
+    // Verify placements for guillotine pattern compliance
+    const verifiedPlacements = verifyGuillotinePlacements(
+      sheetPlacements,
+      usedSheet,
+      bladeWidth
+    );
+
     // Add placements and used sheet to results
-    placements.push(...sheetPlacements);
+    placements.push(...verifiedPlacements);
     usedSheets.push(usedSheet);
 
     // Update sheet quantity
@@ -182,6 +197,12 @@ export function optimizePanels(
     placedByType.set(p.panelId, (placedByType.get(p.panelId) || 0) + 1);
   });
 
+  // Advanced optimization: Calculate the most efficient single sheet size
+  // that could accommodate all panels (useful for future orders)
+  const optimalSheet = remainingPanels.some((p) => p.qty > 0)
+    ? findBestSheetSize(panels)
+    : undefined;
+
   return {
     placements,
     sheets: usedSheets,
@@ -194,11 +215,100 @@ export function optimizePanels(
       totalPanelsNeeded: totalPanelsToPlace,
       sheetTypesUsed: [...new Set(usedSheets.map((s) => s.sheetId))].length,
     },
+    optimalSheet,
   };
 }
 
 /**
+ * Verify and fix placements to ensure they comply with guillotine cutting pattern
+ */
+function verifyGuillotinePlacements(
+  placements: Placement[],
+  sheet: CutSheet,
+  bladeWidth: number
+): Placement[] {
+  // If there are no placements or just one, no verification needed
+  if (placements.length <= 1) return placements;
+
+  // Get all unique X and Y coordinates for cut lines
+  const xCuts = new Set<number>();
+  const yCuts = new Set<number>();
+
+  placements.forEach((p) => {
+    xCuts.add(p.x);
+    xCuts.add(p.x + p.width);
+    yCuts.add(p.y);
+    yCuts.add(p.y + p.height);
+  });
+
+  const sortedX = Array.from(xCuts).sort((a, b) => a - b);
+  const sortedY = Array.from(yCuts).sort((a, b) => a - b);
+
+  // Organize placements by column (vertical strips)
+  const columns = new Map<number, Placement[]>();
+
+  placements.forEach((p) => {
+    if (!columns.has(p.x)) {
+      columns.set(p.x, []);
+    }
+    columns.get(p.x)!.push({ ...p });
+  });
+
+  // For each column, sort placements by Y coordinate and ensure they align properly
+  const verifiedPlacements: Placement[] = [];
+
+  for (const [x, columnPlacements] of columns.entries()) {
+    // Sort by Y coordinate
+    columnPlacements.sort((a, b) => a.y - b.y);
+
+    let currentY = 0;
+    let columnWidth = 0;
+
+    // Find the column width (should be the same for all placements in the column)
+    if (columnPlacements.length > 0) {
+      columnWidth = columnPlacements[0].width;
+    }
+
+    // Process each placement, ensuring proper Y alignment
+    for (let i = 0; i < columnPlacements.length; i++) {
+      const p = columnPlacements[i];
+
+      // Ensure Y alignment
+      if (p.y !== currentY) {
+        p.y = currentY;
+      }
+
+      // Ensure consistent width in this column
+      if (p.width !== columnWidth) {
+        // If width is different, we need to adjust to maintain guillotine pattern
+        // This might result in some waste, but ensures manufacturability
+        p.width = columnWidth;
+      }
+
+      // Add to verified placements
+      verifiedPlacements.push(p);
+
+      // Update current Y for next placement
+      currentY += p.height + bladeWidth;
+    }
+  }
+
+  // Recalculate the used area
+  const usedArea = verifiedPlacements.reduce(
+    (sum, p) => sum + p.width * p.height,
+    0
+  );
+  sheet.usedArea = usedArea;
+  sheet.wastePercentage = 100 * (1 - usedArea / (sheet.width * sheet.height));
+
+  return verifiedPlacements;
+}
+
+/**
  * Finds the best sheet for the remaining panels based on efficiency
+ */
+/**
+ * Finds the best sheet for the remaining panels based on efficiency and optimization goals
  */
 function findBestSheetForRemainingPanels(
   remainingPanels: Panel[],
@@ -212,12 +322,18 @@ function findBestSheetForRemainingPanels(
   panelsPlaced: number;
   efficiency: number;
 } | null {
+  // Filter out panels with qty <= 0
+  const panelsToPlace = remainingPanels.filter((p) => p.qty > 0);
+
+  if (panelsToPlace.length === 0) return null;
+
   let bestResult: {
     sheetIndex: number;
     sheetPlacements: Placement[];
     usedSheet: CutSheet;
     panelsPlaced: number;
     efficiency: number;
+    score: number; // Combined score for better selection
   } | null = null;
 
   // Try each available sheet type
@@ -228,7 +344,7 @@ function findBestSheetForRemainingPanels(
     if (sheet.qty <= 0) continue;
 
     // Create initial free rectangle for this sheet
-    const freeRects = [
+    let freeRects = [
       {
         x: 0,
         y: 0,
@@ -243,11 +359,9 @@ function findBestSheetForRemainingPanels(
     const horizontalCuts = new Set<number>([0, sheet.height]);
 
     // Sort panels by area (largest first)
-    const panelsToFit = remainingPanels
-      .filter((p) => p.qty > 0)
-      .sort((a, b) => b.width * b.height - a.width * a.height);
-
-    if (panelsToFit.length === 0) continue;
+    const panelsToFit = [...panelsToPlace].sort(
+      (a, b) => b.width * b.height - a.width * a.height
+    );
 
     // Track placements for this sheet
     const sheetPlacements: Placement[] = [];
@@ -257,7 +371,9 @@ function findBestSheetForRemainingPanels(
     const panelsToFitCopy = panelsToFit.map((p) => ({ ...p }));
 
     while (panelsToFitCopy.some((p) => p.qty > 0) && freeRects.length > 0) {
-      // Sort free rectangles by level, position, and size
+      // Sort free rectangles by level first (to ensure proper guillotine cuts),
+      // then by position (top-to-bottom, left-to-right),
+      // and finally by size (prefer larger rectangles to minimize waste)
       freeRects.sort((a, b) => {
         if (a.level !== b.level) return a.level - b.level;
         if (a.y !== b.y) return a.y - b.y;
@@ -288,27 +404,33 @@ function findBestSheetForRemainingPanels(
 
         if (fitsDirect || fitsRotated) {
           // Calculate fit score - prefer panels that fit more efficiently
-          const widthDirect = fitsDirect
-            ? Math.abs(freeRect.width - panelsToFitCopy[j].width)
-            : Infinity;
-          const heightDirect = fitsDirect
-            ? Math.abs(freeRect.height - panelsToFitCopy[j].height)
+          // We want to minimize waste, so we'll calculate how much area is left unused
+          const panelWidth = panelsToFitCopy[j].width;
+          const panelHeight = panelsToFitCopy[j].height;
+
+          const directWaste = fitsDirect
+            ? (freeRect.width - panelWidth) * freeRect.height +
+              freeRect.width * (freeRect.height - panelHeight) -
+              (freeRect.width - panelWidth) * (freeRect.height - panelHeight)
             : Infinity;
 
-          const widthRotated = fitsRotated
-            ? Math.abs(freeRect.width - panelsToFitCopy[j].height)
-            : Infinity;
-          const heightRotated = fitsRotated
-            ? Math.abs(freeRect.height - panelsToFitCopy[j].width)
+          const rotatedWaste = fitsRotated
+            ? (freeRect.width - panelHeight) * freeRect.height +
+              freeRect.width * (freeRect.height - panelWidth) -
+              (freeRect.width - panelHeight) * (freeRect.height - panelWidth)
             : Infinity;
 
           // Determine best orientation
-          const bestDirectScore = widthDirect + heightDirect;
-          const bestRotatedScore = widthRotated + heightRotated;
-
           const useRotated =
-            fitsRotated && (!fitsDirect || bestRotatedScore < bestDirectScore);
-          const score = useRotated ? bestRotatedScore : bestDirectScore;
+            fitsRotated && (!fitsDirect || rotatedWaste < directWaste);
+          const waste = useRotated ? rotatedWaste : directWaste;
+
+          // We also want to prefer placing the largest panels first
+          const panelArea = panelWidth * panelHeight;
+
+          // Calculate overall score - lower is better
+          // This prioritizes fitting large panels and minimizing waste
+          const score = waste - panelArea;
 
           // Update best panel if this is better
           if (score < bestScore) {
@@ -346,43 +468,59 @@ function findBestSheetForRemainingPanels(
       panel.qty--;
       panelsPlaced++;
 
-      // Update cut lines
+      // Update cut lines - crucial for maintaining guillotine cutting pattern
       verticalCuts.add(freeRect.x + width);
       horizontalCuts.add(freeRect.y + height);
 
       // Create new free rectangles (guillotine style)
-      if (freeRect.x + width + bladeWidth < freeRect.x + freeRect.width) {
-        freeRects.push({
-          x: freeRect.x + width + bladeWidth,
-          y: freeRect.y,
-          width: freeRect.width - width - bladeWidth,
-          height: height,
-          level: freeRect.level,
-        });
+      // This is critical for maintaining the guillotine cutting pattern
+
+      // First, calculate the two sub-rectangles that result from the guillotine cuts
+      const rightRect = {
+        x: freeRect.x + width + bladeWidth,
+        y: freeRect.y,
+        width: freeRect.width - width - bladeWidth,
+        height: height,
+        level: freeRect.level,
+      };
+
+      const bottomRect = {
+        x: freeRect.x,
+        y: freeRect.y + height + bladeWidth,
+        width: freeRect.width,
+        height: freeRect.height - height - bladeWidth,
+        level: freeRect.level + 1, // Important: increment level for proper sorting
+      };
+
+      // Only add rectangles that are large enough to be useful
+      if (rightRect.width > 0 && rightRect.height > 0) {
+        freeRects.push(rightRect);
       }
 
-      if (freeRect.y + height + bladeWidth < freeRect.y + freeRect.height) {
-        freeRects.push({
-          x: freeRect.x,
-          y: freeRect.y + height + bladeWidth,
-          width: freeRect.width,
-          height: freeRect.height - height - bladeWidth,
-          level: freeRect.level + 1,
-        });
+      if (bottomRect.width > 0 && bottomRect.height > 0) {
+        freeRects.push(bottomRect);
       }
 
-      // Filter out tiny rectangles
-      const minDimension = Math.min(
-        ...panelsToFitCopy
-          .filter((p) => p.qty > 0)
-          .map((p) => Math.min(p.width, p.height))
-      );
-      if (minDimension > 0) {
-        const filteredRects = freeRects.filter(
-          (r) => r.width >= minDimension && r.height >= minDimension
+      // Filter out rectangles that are too small to fit any remaining panel
+      if (panelsToFitCopy.some((p) => p.qty > 0)) {
+        const minDimension = Math.min(
+          ...panelsToFitCopy
+            .filter((p) => p.qty > 0)
+            .map((p) =>
+              Math.min(
+                p.width,
+                p.height,
+                allowRotation ? p.width : Infinity,
+                allowRotation ? p.height : Infinity
+              )
+            )
         );
-        freeRects.length = 0;
-        freeRects.push(...filteredRects);
+
+        if (minDimension > 0) {
+          freeRects = freeRects.filter(
+            (r) => r.width >= minDimension && r.height >= minDimension
+          );
+        }
       }
     }
 
@@ -405,20 +543,35 @@ function findBestSheetForRemainingPanels(
         wastePercentage: 100 * (1 - efficiency),
       };
 
+      // Calculate a combined score that considers:
+      // 1. Number of panels placed
+      // 2. Efficiency (used area / total area)
+      // 3. Total area used (prefer smaller sheets if efficiency is similar)
+      // 4. Sheet scarcity (prefer to use abundant sheet types first)
+      const areaWeight = 0.2;
+      const efficiencyWeight = 0.4;
+      const panelCountWeight = 0.3;
+      const sheetScarcityWeight = 0.1;
+
+      const normalizedArea = 1 - (sheet.width * sheet.height) / (1000 * 1000); // Normalize relative to a 1000x1000 sheet
+      const normalizedPanelCount = panelsPlaced / panelsToPlace.length;
+      const normalizedSheetScarcity = sheet.qty / (sheet.maxQty || sheet.qty);
+
+      const score =
+        efficiencyWeight * efficiency +
+        panelCountWeight * normalizedPanelCount +
+        areaWeight * normalizedArea +
+        sheetScarcityWeight * normalizedSheetScarcity;
+
       // Check if this is the best sheet so far
-      // Criteria: primary - highest panel count, secondary - highest efficiency
-      if (
-        !bestResult ||
-        panelsPlaced > bestResult.panelsPlaced ||
-        (panelsPlaced === bestResult.panelsPlaced &&
-          efficiency > bestResult.efficiency)
-      ) {
+      if (!bestResult || score > bestResult.score) {
         bestResult = {
           sheetIndex: i,
           sheetPlacements,
           usedSheet,
           panelsPlaced,
           efficiency,
+          score,
         };
       }
     }
@@ -1126,4 +1279,358 @@ export function detectSuspiciousPlacementValues(placements: Placement[]) {
       console.log(`Panel ${p.mark} at (${p.x}, ${p.y})`);
     });
   }
+}
+
+// Enhanced Guillotine Cutting Algorithm
+
+/**
+ * This implements a more traditional guillotine cutting algorithm
+ * that closely follows the approach from the original VBA code
+ */
+
+/**
+ * Main function for optimizing panels using guillotine cutting algorithm
+ */
+export function optimizePanelsGuillotine(
+  panels: Panel[],
+  sheets: Sheet[],
+  bladeWidth: number = 0.25,
+  allowRotation: boolean = true
+): PanelOptimizationResult {
+  // Clone input data
+  const panelsData = panels.map((p) => ({ ...p }));
+  let sheetsData = sheets.map((s) => ({ ...s, maxQty: s.maxQty ?? s.qty }));
+
+  // Initialize results
+  const placements: Placement[] = [];
+  const usedSheets: CutSheet[] = [];
+
+  // Sort panels by area (largest first) - this is a common strategy
+  const sortedPanels = [...panelsData].sort(
+    (a, b) => b.width * b.height - a.width * a.height
+  );
+
+  // Sort sheets by area (largest first) to try larger sheets first
+  // This can be adjusted based on your business needs
+  const sortedSheets = [...sheetsData].sort(
+    (a, b) => b.width * b.height - a.width * b.height
+  );
+
+  // Track total panels to place
+  const totalPanelsToPlace = sortedPanels.reduce((sum, p) => sum + p.qty, 0);
+  let panelsPlaced = 0;
+
+  // Keep track of sheet consumption
+  const sheetCounts = new Map<number, number>();
+  sortedSheets.forEach((s) => sheetCounts.set(s.id, 0));
+
+  // Main optimization loop
+  while (
+    sortedPanels.some((p) => p.qty > 0) &&
+    panelsPlaced < totalPanelsToPlace
+  ) {
+    // Find the best sheet for the current set of panels
+    let bestSheetIndex = -1;
+    let bestEfficacy = -1;
+    let bestPlacements: Placement[] = [];
+    let bestUsedSheet: CutSheet | null = null;
+    let bestPanelsPlaced = 0;
+
+    // Try each sheet type
+    for (let i = 0; i < sortedSheets.length; i++) {
+      const sheet = sortedSheets[i];
+
+      // Skip sheets with no remaining quantity
+      if (sheet.qty <= 0) continue;
+
+      // Test place panels on this sheet
+      const testResult = placeOnSheet(
+        sortedPanels,
+        sheet,
+        bladeWidth,
+        allowRotation
+      );
+
+      // Calculate efficacy - we want to maximize: number of panels placed and utilization
+      const efficacyScore =
+        testResult.panelsPlaced * 0.6 +
+        (1 - testResult.sheet.wastePercentage / 100) * 0.4;
+
+      // Update best sheet if this is better
+      if (
+        testResult.panelsPlaced > 0 &&
+        (bestSheetIndex === -1 || efficacyScore > bestEfficacy)
+      ) {
+        bestSheetIndex = i;
+        bestEfficacy = efficacyScore;
+        bestPlacements = testResult.placements;
+        bestUsedSheet = testResult.sheet;
+        bestPanelsPlaced = testResult.panelsPlaced;
+      }
+    }
+
+    // If we couldn't place any panels, break
+    if (bestSheetIndex === -1) break;
+
+    // Use the best sheet
+    const selectedSheet = sortedSheets[bestSheetIndex];
+
+    // Update sheet tracking
+    const sheetId = selectedSheet.id;
+    const usageCount = (sheetCounts.get(sheetId) || 0) + 1;
+    sheetCounts.set(sheetId, usageCount);
+
+    // Update sheet number in placements
+    bestPlacements.forEach((p) => {
+      p.sheetNo = usageCount;
+    });
+    if (bestUsedSheet) {
+      bestUsedSheet.sheetNo = usageCount;
+    }
+
+    // Add to results
+    placements.push(...bestPlacements);
+    if (bestUsedSheet) {
+      usedSheets.push(bestUsedSheet);
+    }
+
+    // Update panel quantities
+    bestPlacements.forEach((p) => {
+      const panelIndex = sortedPanels.findIndex(
+        (panel) => panel.id === p.panelId
+      );
+      if (panelIndex >= 0) {
+        sortedPanels[panelIndex].qty--;
+      }
+    });
+
+    // Update sheet quantities
+    selectedSheet.qty--;
+
+    // Remove sheets with zero quantity
+    sortedSheets.filter((s) => s.qty > 0);
+
+    // Update panels placed count
+    panelsPlaced += bestPanelsPlaced;
+  }
+
+  // Calculate summary statistics
+  const totalArea = usedSheets.reduce((sum, s) => sum + s.width * s.height, 0);
+  const usedArea = usedSheets.reduce((sum, s) => sum + s.usedArea, 0);
+  const wastePercentage = totalArea ? 100 * (1 - usedArea / totalArea) : 0;
+
+  return {
+    placements,
+    sheets: usedSheets,
+    summary: {
+      totalSheets: usedSheets.length,
+      totalArea,
+      usedArea,
+      wastePercentage,
+      totalPanelsPlaced: panelsPlaced,
+      totalPanelsNeeded: totalPanelsToPlace,
+      sheetTypesUsed: [...sheetCounts.entries()].filter(
+        ([_, count]) => count > 0
+      ).length,
+    },
+  };
+}
+
+/**
+ * Place panels on a single sheet using guillotine algorithm
+ */
+function placeOnSheet(
+  panels: Panel[],
+  sheet: Sheet,
+  bladeWidth: number,
+  allowRotation: boolean
+): {
+  placements: Placement[];
+  sheet: CutSheet;
+  panelsPlaced: number;
+} {
+  const placements: Placement[] = [];
+  let panelsPlaced = 0;
+
+  // Make a copy of panels with remaining quantity
+  const panelsToBePlaced = panels
+    .filter((p) => p.qty > 0)
+    .map((p) => ({ ...p }));
+
+  // Initial state - the entire sheet is free
+  let state = {
+    freeAreas: [
+      {
+        x: 0,
+        y: 0,
+        width: sheet.width,
+        height: sheet.height,
+        level: 0,
+      },
+    ],
+    placedPanels: [] as Placement[],
+  };
+
+  // While we have free areas and panels to place
+  while (
+    state.freeAreas.length > 0 &&
+    panelsToBePlaced.some((p) => p.qty > 0)
+  ) {
+    // Sort free areas - levels first (for guillotine pattern),
+    // then by position (top-to-bottom, left-to-right), then by area (largest first)
+    state.freeAreas.sort((a, b) => {
+      if (a.level !== b.level) return a.level - b.level;
+      if (a.y !== b.y) return a.y - b.y;
+      if (a.x !== b.x) return a.x - b.x;
+      return b.width * b.height - a.width * a.height;
+    });
+
+    // Get the next free area to consider
+    const area = state.freeAreas.shift()!;
+
+    // Find the best panel for this area
+    const bestFit = findBestFitPanel(
+      panelsToBePlaced,
+      area,
+      bladeWidth,
+      allowRotation
+    );
+
+    if (bestFit) {
+      const { panel, width, height, rotated } = bestFit;
+
+      // Place the panel
+      const placement: Placement = {
+        panelId: panel.id,
+        sheetId: sheet.id,
+        sheetNo: 1, // Will be updated later
+        x: area.x,
+        y: area.y,
+        width,
+        height,
+        rotated,
+        mark: panel.mark_no,
+      };
+
+      state.placedPanels.push(placement);
+      panelsPlaced++;
+
+      // Decrement the panel quantity
+      const idx = panelsToBePlaced.findIndex((p) => p.id === panel.id);
+      if (idx >= 0) {
+        panelsToBePlaced[idx].qty--;
+      }
+
+      // Create new free areas using guillotine cuts
+      // This is the key to ensuring proper guillotine cutting pattern
+
+      // Right cut - area to the right of the placed panel
+      if (area.x + width + bladeWidth < area.x + area.width) {
+        state.freeAreas.push({
+          x: area.x + width + bladeWidth,
+          y: area.y,
+          width: area.width - width - bladeWidth,
+          height: height,
+          level: area.level,
+        });
+      }
+
+      // Bottom cut - area below the placed panel
+      if (area.y + height + bladeWidth < area.y + area.height) {
+        state.freeAreas.push({
+          x: area.x,
+          y: area.y + height + bladeWidth,
+          width: area.width,
+          height: area.height - height - bladeWidth,
+          level: area.level + 1,
+        });
+      }
+    }
+  }
+
+  // Calculate used area
+  const usedArea = state.placedPanels.reduce(
+    (sum, p) => sum + p.width * p.height,
+    0
+  );
+
+  // Create sheet record
+  const usedSheet: CutSheet = {
+    sheetId: sheet.id,
+    sheetNo: 1, // Will be updated later
+    width: sheet.width,
+    height: sheet.height,
+    usedArea,
+    wastePercentage: 100 * (1 - usedArea / (sheet.width * sheet.height)),
+  };
+
+  return {
+    placements: state.placedPanels,
+    sheet: usedSheet,
+    panelsPlaced,
+  };
+}
+
+/**
+ * Find the best fitting panel for a given area
+ */
+function findBestFitPanel(
+  panels: Panel[],
+  area: { x: number; y: number; width: number; height: number },
+  bladeWidth: number,
+  allowRotation: boolean
+): { panel: Panel; width: number; height: number; rotated: boolean } | null {
+  let bestPanel: Panel | null = null;
+  let bestScore = Infinity;
+  let bestRotated = false;
+
+  for (const panel of panels) {
+    // Skip panels with no remaining quantity
+    if (panel.qty <= 0) continue;
+
+    // Check if panel fits directly
+    const fitsDirect = panel.width <= area.width && panel.height <= area.height;
+
+    // Check if panel fits rotated
+    const fitsRotated =
+      allowRotation && panel.height <= area.width && panel.width <= area.height;
+
+    if (!fitsDirect && !fitsRotated) continue;
+
+    // Calculate waste for each orientation
+    const directWaste = fitsDirect
+      ? area.width * area.height - panel.width * panel.height
+      : Infinity;
+
+    const rotatedWaste = fitsRotated
+      ? area.width * area.height - panel.height * panel.width
+      : Infinity;
+
+    // Determine best orientation
+    const useRotated =
+      fitsRotated && (!fitsDirect || rotatedWaste < directWaste);
+    const waste = useRotated ? rotatedWaste : directWaste;
+
+    // Calculate overall score - lower is better
+    // We prioritize panels that result in less waste
+    // but also prefer to place larger panels first
+    const panelArea = panel.width * panel.height;
+    const score = waste - panelArea * 0.1;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestPanel = panel;
+      bestRotated = useRotated;
+    }
+  }
+
+  if (!bestPanel) return null;
+
+  // Return the best panel with its dimensions
+  return {
+    panel: bestPanel,
+    width: bestRotated ? bestPanel.height : bestPanel.width,
+    height: bestRotated ? bestPanel.width : bestPanel.height,
+    rotated: bestRotated,
+  };
 }
