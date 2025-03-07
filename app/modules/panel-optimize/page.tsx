@@ -375,7 +375,10 @@ export default function PanelOptimizationPage() {
                         Total Area
                       </p>
                       <p className="text-2xl font-bold">
-                        {results.summary.totalArea.toFixed(2)} sq in
+                        {(
+                          Number(results.summary.totalArea.toFixed(2)) / 144
+                        ).toFixed(2)}{" "}
+                        sq ft
                       </p>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-lg">
@@ -383,7 +386,10 @@ export default function PanelOptimizationPage() {
                         Used Area
                       </p>
                       <p className="text-2xl font-bold">
-                        {results.summary.usedArea.toFixed(2)} sq in
+                        {(
+                          Number(results.summary.usedArea.toFixed(2)) / 144
+                        ).toFixed(2)}{" "}
+                        sq ft
                       </p>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-lg">

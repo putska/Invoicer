@@ -27,6 +27,9 @@ interface CuttingPatternVisualizationProps {
   };
 }
 
+// Helper function to convert square inches to square feet
+const sqInToSqFt = (sqIn: number): number => sqIn / 144;
+
 export default function CuttingPatternVisualization({
   placements,
   sheets,
@@ -35,6 +38,9 @@ export default function CuttingPatternVisualization({
 }: CuttingPatternVisualizationProps) {
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [showDimensions, setShowDimensions] = useState<"feet" | "inches">(
+    "feet"
+  );
 
   // Log the props for debugging
   useEffect(() => {
@@ -92,6 +98,26 @@ export default function CuttingPatternVisualization({
     });
 
     return Array.from(uniqueMap.values());
+  };
+
+  // Format dimension based on current display mode
+  const formatDimension = (inches: number): string => {
+    if (showDimensions === "inches") {
+      return `${inches.toFixed(2)}"`;
+    } else {
+      const feet = inches / 12;
+      return `${feet.toFixed(2)}'`;
+    }
+  };
+
+  // Format area based on current display mode
+  const formatArea = (squareInches: number): string => {
+    if (showDimensions === "inches") {
+      return `${squareInches.toFixed(2)} sq.in.`;
+    } else {
+      const squareFeet = sqInToSqFt(squareInches);
+      return `${squareFeet.toFixed(2)} sq.ft.`;
+    }
   };
 
   // Group placements by sheet
@@ -243,18 +269,9 @@ export default function CuttingPatternVisualization({
     );
   }
 
-  // Group current sheet placements by panel ID to show quantity
-  const panelGroups = currentPlacements.reduce((groups, placement) => {
-    if (!groups[placement.panelId]) {
-      groups[placement.panelId] = {
-        ...placement,
-        count: 1,
-      };
-    } else {
-      groups[placement.panelId].count++;
-    }
-    return groups;
-  }, {} as Record<number, Placement & { count: number }>);
+  // Get total area values in square feet
+  const totalAreaSqFt = sqInToSqFt(summary?.totalArea || 0);
+  const usedAreaSqFt = sqInToSqFt(summary?.usedArea || 0);
 
   return (
     <Card className="mt-4">
@@ -262,6 +279,17 @@ export default function CuttingPatternVisualization({
         <div className="flex justify-between items-center">
           <CardTitle>Cutting Pattern Visualization</CardTitle>
           <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setShowDimensions(
+                  showDimensions === "inches" ? "feet" : "inches"
+                )
+              }
+            >
+              Show in {showDimensions === "inches" ? "Feet" : "Inches"}
+            </Button>
             <Button variant="outline" size="sm" onClick={exportAsSVG}>
               <Download className="h-4 w-4 mr-2" />
               Export SVG
@@ -312,6 +340,18 @@ export default function CuttingPatternVisualization({
               </div>
             </div>
             <div>
+              <div className="text-sm text-gray-500">Total Area</div>
+              <div className="text-xl font-semibold">
+                {formatArea(summary?.totalArea || 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Used Area</div>
+              <div className="text-xl font-semibold">
+                {formatArea(summary?.usedArea || 0)}
+              </div>
+            </div>
+            <div>
               <div className="text-sm text-gray-500">Total Waste</div>
               <div className="text-xl font-semibold">
                 {summary?.wastePercentage !== undefined &&
@@ -343,7 +383,8 @@ export default function CuttingPatternVisualization({
             <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
               <div>
                 <span className="font-medium">Sheet Size:</span>{" "}
-                {currentSheet.width}" × {currentSheet.height}"
+                {formatDimension(currentSheet.width)} ×{" "}
+                {formatDimension(currentSheet.height)}
               </div>
               <div>
                 <span className="font-medium">Sheet Number:</span>{" "}
@@ -351,7 +392,7 @@ export default function CuttingPatternVisualization({
               </div>
               <div>
                 <span className="font-medium">Used Area:</span>{" "}
-                {currentSheet.usedArea.toFixed(2)} sq. in.
+                {formatArea(currentSheet.usedArea)}
               </div>
               <div>
                 <span className="font-medium">Waste:</span>{" "}
@@ -395,7 +436,13 @@ export default function CuttingPatternVisualization({
                     <div className="truncate px-1">
                       {placement.mark}
                       <br />
-                      {placement.width}×{placement.height}
+                      {showDimensions === "inches"
+                        ? `${placement.width.toFixed(
+                            1
+                          )}×${placement.height.toFixed(1)}`
+                        : `${(placement.width / 12).toFixed(1)}×${(
+                            placement.height / 12
+                          ).toFixed(1)}`}
                     </div>
                   </div>
                 ))}
@@ -458,30 +505,31 @@ export default function CuttingPatternVisualization({
                     Rotated
                   </th>
                   <th className="px-4 py-2 border border-gray-300 text-left">
-                    Quantity
+                    Area
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {Object.values(panelGroups).map((panel, index) => (
+                {/* Show each panel placement individually, no grouping */}
+                {currentPlacements.map((placement, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-4 py-2 border border-gray-300">
-                      {panel.mark}
+                      {placement.mark}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {panel.width.toFixed(2)}"
+                      {placement.width}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {panel.height.toFixed(2)}"
+                      {placement.height}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      ({panel.x.toFixed(2)}", {panel.y.toFixed(2)}")
+                      ({placement.x}, {placement.y})
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {panel.rotated ? "Yes" : "No"}
+                      {placement.rotated ? "Yes" : "No"}
                     </td>
                     <td className="px-4 py-2 border border-gray-300 font-medium">
-                      {panel.count}
+                      {formatArea(placement.width * placement.height)}
                     </td>
                   </tr>
                 ))}
