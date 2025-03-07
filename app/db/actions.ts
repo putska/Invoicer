@@ -23,6 +23,11 @@ import {
   optimizationJobs,
   cutPatterns,
   cuts,
+  panels,
+  panelSheets,
+  panelJobs,
+  panelPlacements,
+  usedSheets,
 } from "./schema";
 import {
   Customer,
@@ -48,6 +53,12 @@ import { desc, eq, and, inArray, sql, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Dropbox } from "dropbox";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
+import {
+  Panel,
+  Sheet,
+  PanelOptimizationResult,
+} from "../components/panelOptimization";
+
 //import fetch from "node-fetch";
 
 //import { v4 as uuidv4 } from "uuid";
@@ -2258,5 +2269,375 @@ export async function getOptimizationResults(
     summary: JSON.parse(job.resultsJson),
     cutPattern,
     stockLengthsNeeded: Array.from(stockLengthsMap.values()),
+  };
+}
+
+// End Opti
+
+// Begin Panel Optimization
+
+// Panel actions
+export async function getPanels(userId: string) {
+  return await db.select().from(panels).where(eq(panels.userId, userId));
+}
+
+export async function getPanelsByJob(jobId: number) {
+  return await db.select().from(panels).where(eq(panels.jobId, jobId));
+}
+
+export async function addPanel(
+  panel: Omit<typeof panels.$inferInsert, "id" | "createdAt" | "updatedAt">
+) {
+  const result = await db.insert(panels).values(panel).returning();
+  revalidatePath("/panel-optimize");
+  return result[0];
+}
+
+export async function deletePanel(id: number) {
+  await db.delete(panels).where(eq(panels.id, id));
+  revalidatePath("/panel-optimize");
+}
+
+// Sheet actions
+export async function getPanelSheets(userId: string) {
+  return await db
+    .select()
+    .from(panelSheets)
+    .where(eq(panelSheets.userId, userId));
+}
+
+export async function addPanelSheet(
+  sheet: Omit<typeof panelSheets.$inferInsert, "id" | "createdAt" | "updatedAt">
+) {
+  const result = await db.insert(panelSheets).values(sheet).returning();
+  revalidatePath("/panel-optimize");
+  return result[0];
+}
+
+export async function updatePanelSheet(
+  id: number,
+  data: Partial<typeof panelSheets.$inferInsert>
+) {
+  const result = await db
+    .update(panelSheets)
+    .set(data)
+    .where(eq(panelSheets.id, id))
+    .returning();
+
+  revalidatePath("/panel-optimize");
+  return result[0];
+}
+
+export async function deletePanelSheet(id: number) {
+  await db.delete(panelSheets).where(eq(panelSheets.id, id));
+  revalidatePath("/panel-optimize");
+}
+
+// Job actions
+export async function createPanelJob(
+  userId: string,
+  name: string,
+  bladeWidth: number,
+  allowRotation: boolean = true
+) {
+  const result = await db
+    .insert(panelJobs)
+    .values({
+      userId,
+      name,
+      status: "pending",
+      bladeWidth: bladeWidth.toString(), // Convert to string for decimal field
+      allowRotation,
+    })
+    .returning();
+
+  revalidatePath("/panel-optimize");
+  return result[0];
+}
+
+export async function updatePanelJob(
+  id: number,
+  data: Partial<typeof panelJobs.$inferInsert>
+) {
+  const result = await db
+    .update(panelJobs)
+    .set(data)
+    .where(eq(panelJobs.id, id))
+    .returning();
+
+  revalidatePath("/panel-optimize");
+  return result[0];
+}
+
+export async function getPanelJobs(userId: string) {
+  return await db
+    .select()
+    .from(panelJobs)
+    .where(eq(panelJobs.userId, userId))
+    .orderBy(panelJobs.createdAt);
+}
+
+export async function getPanelJobById(id: number) {
+  const jobData = await db
+    .select()
+    .from(panelJobs)
+    .where(eq(panelJobs.id, id))
+    .limit(1);
+
+  if (jobData.length === 0) {
+    return null;
+  }
+
+  return jobData[0];
+}
+
+// Updated savePanelOptimizationResults function in panel-actions.ts
+
+export async function savePanelOptimizationResults(
+  jobId: number,
+  results: PanelOptimizationResult,
+  inputPanels: Panel[],
+  inputSheets: Sheet[]
+) {
+  try {
+    // First, get the job data to retrieve userId
+    const job = await getPanelJobById(jobId);
+    if (!job) {
+      throw new Error(`Job with ID ${jobId} not found`);
+    }
+
+    const userId = job.userId;
+
+    // Update the job with summary data
+    await db
+      .update(panelJobs)
+      .set({
+        resultsJson: JSON.stringify(results.summary),
+        status: "completed",
+        completedAt: new Date(),
+      })
+      .where(eq(panelJobs.id, jobId));
+
+    // Map to track original sheet IDs to database IDs
+    const sheetIdMap = new Map<number, number>();
+
+    // Save all sheets to the database first
+    for (const sheet of inputSheets) {
+      const originalId = sheet.id;
+
+      // Check if this sheet already exists in the database
+      let dbSheet;
+      if (sheet.id && sheet.id > 0) {
+        const existingSheets = await db
+          .select()
+          .from(panelSheets)
+          .where(eq(panelSheets.id, sheet.id));
+
+        if (existingSheets.length > 0) {
+          dbSheet = existingSheets[0];
+          sheetIdMap.set(originalId, dbSheet.id);
+          continue; // Sheet already exists, skip to next
+        }
+      }
+
+      // Sheet doesn't exist, insert it
+      const result = await db
+        .insert(panelSheets)
+        .values({
+          userId,
+          width: sheet.width.toString(),
+          height: sheet.height.toString(),
+          qty: sheet.qty,
+          material: "", // Add default or actual value if available
+          thickness: "0", // Add default or actual value if available
+        })
+        .returning();
+
+      // Map original ID to database ID
+      sheetIdMap.set(originalId, result[0].id);
+    }
+
+    // Map to track original panel IDs to database IDs
+    const panelIdMap = new Map<number, number>();
+
+    // Save all panels to the database
+    for (const panel of inputPanels) {
+      const originalId = panel.id;
+
+      // Skip if panel already has a positive ID (assuming it exists in DB)
+      if (panel.id && panel.id > 0) {
+        const existingPanels = await db
+          .select()
+          .from(panels)
+          .where(eq(panels.id, panel.id));
+
+        if (existingPanels.length > 0) {
+          panelIdMap.set(originalId, panel.id);
+          continue; // Panel already exists, skip to next
+        }
+      }
+
+      // Insert new panel
+      const result = await db
+        .insert(panels)
+        .values({
+          userId,
+          jobId,
+          width: panel.width.toString(),
+          height: panel.height.toString(),
+          qty: panel.qty,
+          mark_no: panel.mark_no,
+          finish: panel.finish || "",
+          material: "", // Add default or actual value if available
+          allowRotation: true,
+        })
+        .returning();
+
+      // Map original ID to database ID
+      panelIdMap.set(originalId, result[0].id);
+    }
+
+    // Track sheets we've already saved to avoid duplicates
+    const savedSheetNumbers = new Set<number>();
+
+    // Now save used sheets with correct IDs
+    for (const sheet of results.sheets) {
+      // Skip if we've already saved this sheet number
+      if (savedSheetNumbers.has(sheet.sheetNo)) {
+        continue;
+      }
+
+      // Use the mapped database ID instead of the original
+      const dbSheetId = sheetIdMap.get(sheet.sheetId);
+
+      if (!dbSheetId) {
+        console.error(`Missing database ID for sheet ${sheet.sheetId}`);
+        continue; // Skip this sheet if we don't have a database ID
+      }
+
+      await db.insert(usedSheets).values({
+        jobId,
+        sheetId: dbSheetId, // Use the database ID
+        sheetNo: sheet.sheetNo,
+        usedArea: sheet.usedArea.toString(),
+        wastePercentage: sheet.wastePercentage.toString(),
+      });
+
+      // Mark this sheet number as saved
+      savedSheetNumbers.add(sheet.sheetNo);
+    }
+
+    // Save placements with correct IDs
+    for (const placement of results.placements) {
+      // Use the mapped database IDs
+      const dbPanelId = panelIdMap.get(placement.panelId);
+      const dbSheetId = sheetIdMap.get(placement.sheetId);
+
+      if (!dbPanelId || !dbSheetId) {
+        console.error(
+          `Missing database ID for panel ${placement.panelId} or sheet ${placement.sheetId}`
+        );
+        continue; // Skip this placement if IDs are missing
+      }
+
+      await db.insert(panelPlacements).values({
+        jobId,
+        panelId: dbPanelId,
+        sheetId: dbSheetId,
+        sheetNo: placement.sheetNo,
+        x: placement.x.toString(),
+        y: placement.y.toString(),
+        width: placement.width.toString(),
+        height: placement.height.toString(),
+        rotated: placement.rotated,
+      });
+    }
+
+    revalidatePath("/panel-optimize");
+    return true;
+  } catch (error) {
+    console.error("Error saving panel optimization results:", error);
+    throw error;
+  }
+}
+
+// Load optimization results
+export async function getPanelOptimizationResults(
+  jobId: number
+): Promise<PanelOptimizationResult | null> {
+  // First get the job data
+  const job = await getPanelJobById(jobId);
+
+  if (!job || !job.resultsJson) {
+    return null;
+  }
+
+  // Get all used sheets for this job with their dimensions
+  const usedSheetsData = await db
+    .select({
+      id: usedSheets.id,
+      jobId: usedSheets.jobId,
+      sheetId: usedSheets.sheetId,
+      sheetNo: usedSheets.sheetNo,
+      usedArea: usedSheets.usedArea,
+      wastePercentage: usedSheets.wastePercentage,
+      width: panelSheets.width,
+      height: panelSheets.height,
+    })
+    .from(usedSheets)
+    .leftJoin(panelSheets, eq(usedSheets.sheetId, panelSheets.id))
+    .where(eq(usedSheets.jobId, jobId));
+
+  // Get all placements for this job with panel details
+  const placementsData = await db
+    .select({
+      id: panelPlacements.id,
+      jobId: panelPlacements.jobId,
+      panelId: panelPlacements.panelId,
+      sheetId: panelPlacements.sheetId,
+      sheetNo: panelPlacements.sheetNo,
+      x: panelPlacements.x,
+      y: panelPlacements.y,
+      width: panelPlacements.width,
+      height: panelPlacements.height,
+      rotated: panelPlacements.rotated,
+      mark_no: panels.mark_no,
+    })
+    .from(panelPlacements)
+    .leftJoin(panels, eq(panelPlacements.panelId, panels.id))
+    .where(eq(panelPlacements.jobId, jobId));
+
+  // Convert database records to the format expected by the UI
+  const sheets = usedSheetsData
+    .filter((sheet) => sheet.sheetId !== null) // Filter out records with null sheetId
+    .map((sheet) => ({
+      sheetId: sheet.sheetId as number, // Type assertion since we filtered out nulls
+      sheetNo: sheet.sheetNo,
+      width: Number(sheet.width || 0),
+      height: Number(sheet.height || 0),
+      usedArea: Number(sheet.usedArea),
+      wastePercentage: Number(sheet.wastePercentage),
+    }));
+
+  const placements = placementsData
+    .filter(
+      (placement) => placement.panelId !== null && placement.sheetId !== null
+    ) // Filter out records with null IDs
+    .map((placement) => ({
+      panelId: placement.panelId as number, // Type assertion since we filtered out nulls
+      sheetId: placement.sheetId as number, // Type assertion since we filtered out nulls
+      sheetNo: placement.sheetNo,
+      x: Number(placement.x),
+      y: Number(placement.y),
+      width: Number(placement.width),
+      height: Number(placement.height),
+      rotated: placement.rotated || false, // Default to false if null
+      mark: placement.mark_no || "",
+    }));
+
+  return {
+    sheets,
+    placements,
+    summary: JSON.parse(job.resultsJson),
   };
 }

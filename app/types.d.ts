@@ -326,7 +326,7 @@ export interface FormSubmission {
   deletedAt: Date | null;
 }
 
-// Opti
+// begin Opti
 
 export interface Part {
   qty: number;
@@ -400,4 +400,59 @@ export interface OptimizationSummary {
   totalCutLength: number;
   wastePercentage: number;
   totalStockPieces: number;
+}
+
+// Begin Panel Optimization
+
+// Panel representing a part to be cut
+interface Panel {
+  id?: number;
+  qty: number;
+  width: number;
+  height: number;
+  mark_no: string; // Identifier/label
+  finish?: string;
+  location?: number; // Used during optimization
+}
+
+// Sheet representing stock material
+interface Sheet {
+  id?: number;
+  width: number;
+  height: number;
+  qty: number;
+  maxQty?: number;
+  sheetNo?: number;
+  sheetSize?: string;
+}
+
+// Placement representing a panel positioned on a sheet
+interface Placement {
+  panelId: number;
+  sheetId: number;
+  sheetNo: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotated: boolean;
+  mark: string;
+}
+
+// Optimization result
+interface PanelOptimizationResult {
+  placements: Placement[];
+  sheets: {
+    sheetId: number;
+    width: number;
+    height: number;
+    usedArea: number;
+    wastePercentage: number;
+  }[];
+  panelsummary: {
+    totalSheets: number;
+    totalArea: number;
+    usedArea: number;
+    wastePercentage: number;
+  };
 }

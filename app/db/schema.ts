@@ -336,3 +336,80 @@ export const cuts = pgTable("cuts", {
   position: integer("position").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// End Opti
+
+// Begin Panel Optimization
+
+// Table for stock sheet sizes
+export const panelSheets = pgTable("panel_sheets", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id), // Reference to user
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(),
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(),
+  qty: integer("qty").notNull(),
+  material: varchar("material", { length: 100 }),
+  thickness: decimal("thickness", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Table for panels to be cut
+export const panels = pgTable("panels", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id), // Reference to user
+  jobId: integer("job_id").references(() => panelJobs.id), // Reference to job
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(),
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(),
+  qty: integer("qty").notNull(),
+  mark_no: varchar("mark_no", { length: 100 }),
+  finish: varchar("finish", { length: 100 }),
+  material: varchar("material", { length: 100 }),
+  allowRotation: boolean("allow_rotation").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Table for optimization jobs
+export const panelJobs = pgTable("panel_jobs", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").references(() => users.id), // Reference to user
+  name: varchar("name", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  bladeWidth: decimal("blade_width", { precision: 10, scale: 2 }).default(
+    "0.25"
+  ),
+  allowRotation: boolean("allow_rotation").default(true),
+  resultsJson: text("results_json"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Table for panel placements on sheets
+export const panelPlacements = pgTable("panel_placements", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => panelJobs.id), // Reference to job
+  panelId: integer("panel_id").references(() => panels.id), // Reference to panel
+  sheetId: integer("sheet_id").references(() => panelSheets.id), // Reference to sheet
+  sheetNo: integer("sheet_no").notNull(),
+  x: decimal("x", { precision: 10, scale: 2 }).notNull(),
+  y: decimal("y", { precision: 10, scale: 2 }).notNull(),
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(),
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(),
+  rotated: boolean("rotated").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Table for used sheets in cutting patterns
+export const usedSheets = pgTable("used_sheets", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => panelJobs.id), // Reference to job
+  sheetId: integer("sheet_id").references(() => panelSheets.id), // Reference to sheet
+  sheetNo: integer("sheet_no").notNull(),
+  usedArea: decimal("used_area", { precision: 10, scale: 2 }).notNull(),
+  wastePercentage: decimal("waste_percentage", {
+    precision: 10,
+    scale: 2,
+  }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
