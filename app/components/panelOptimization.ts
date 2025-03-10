@@ -170,7 +170,7 @@ export function findBestSheetSize(
       maxQty: 1000,
     };
 
-    const result = optimizePanelsStrict(
+    const result = optimizePanelsRecursive(
       panels,
       [testSheet],
       bladeWidth,
@@ -243,349 +243,34 @@ function calculateDimensionScore(
  * Place panels on a sheet using a strict column-first approach
  * that closely matches the VBA algorithm's behavior
  */
-function placeOnSheetStrict(
-  panels: Panel[],
-  sheet: Sheet,
-  bladeWidth: number,
-  allowRotation: boolean
-): {
-  placements: Placement[];
-  sheet: CutSheet;
-  panelsPlaced: number;
-} {
-  const placements: Placement[] = [];
-  let panelsPlaced = 0;
-
-  // Clone panels and sort by area (largest first)
-  const panelsToBePlaced = panels
-    .filter((p) => p.qty > 0)
-    .map((p) => ({ ...p }))
-    .sort((a, b) => b.width * b.height - a.width * a.height);
-
-  // Track cut lines
-  const cutLines = {
-    x: new Set<number>([0, sheet.width]),
-    y: new Set<number>([0, sheet.height]),
-  };
-
-  // Initialize with the entire sheet
-  let currentX = 0;
-  const startingColumnWidth = startStrictColumn(
-    panelsToBePlaced,
-    placements,
-    sheet,
-    currentX,
-    bladeWidth,
-    allowRotation,
-    cutLines
-  );
-
-  if (startingColumnWidth > 0) {
-    // Process additional columns until we run out of space or panels
-    currentX = startingColumnWidth + bladeWidth;
-    while (currentX < sheet.width && panelsToBePlaced.some((p) => p.qty > 0)) {
-      const columnWidth = startStrictColumn(
-        panelsToBePlaced,
-        placements,
-        sheet,
-        currentX,
-        bladeWidth,
-        allowRotation,
-        cutLines
-      );
-
-      if (columnWidth <= 0) break; // Couldn't place any panels in this column
-      currentX += columnWidth + bladeWidth;
-    }
-
-    // Count total panels placed
-    panelsPlaced = placements.length;
-  }
-
-  // Calculate used area
-  const usedArea = placements.reduce((sum, p) => sum + p.width * p.height, 0);
-
-  // Create sheet record
-  const usedSheet: CutSheet = {
-    sheetId: sheet.id,
-    sheetNo: 1, // Will be updated later
-    width: sheet.width,
-    height: sheet.height,
-    usedArea,
-    wastePercentage: 100 * (1 - usedArea / (sheet.width * sheet.height)),
-  };
-
-  return {
-    placements,
-    sheet: usedSheet,
-    panelsPlaced,
-  };
-}
-
 /**
- * Start a new column in the strict placement algorithm
- * Returns the width of the column that was started, or 0 if no panels could be placed
+ * Optimizes panels using a recursive guillotine cutting approach that maximizes
+ * the usage of both drops and balances after each cut
  */
-function startStrictColumn(
-  panelsToBePlaced: Panel[],
-  placements: Placement[],
-  sheet: Sheet,
-  startX: number,
-  bladeWidth: number,
-  allowRotation: boolean,
-  cutLines: { x: Set<number>; y: Set<number> }
-): number {
-  const remainingWidth = sheet.width - startX;
-  if (remainingWidth <= 0) return 0;
-
-  // Find the first panel that fits (largest area first)
-  let firstPanelIndex = -1;
-  let firstPanelWidth = 0;
-  let firstPanelHeight = 0;
-  let firstPanelRotated = false;
-
-  for (let i = 0; i < panelsToBePlaced.length; i++) {
-    const panel = panelsToBePlaced[i];
-    if (panel.qty <= 0) continue;
-
-    // Try direct fit
-    const fitsDirect =
-      panel.width <= remainingWidth && panel.height <= sheet.height;
-
-    // Try rotated fit if allowed
-    const fitsRotated =
-      allowRotation &&
-      panel.height <= remainingWidth &&
-      panel.width <= sheet.height;
-
-    if (fitsDirect || fitsRotated) {
-      // We found a panel that fits in this column
-      firstPanelIndex = i;
-
-      // Choose orientation (prefer the one that yields smaller width)
-      if (fitsDirect && (!fitsRotated || panel.width <= panel.height)) {
-        firstPanelWidth = panel.width;
-        firstPanelHeight = panel.height;
-        firstPanelRotated = false;
-      } else {
-        firstPanelWidth = panel.height;
-        firstPanelHeight = panel.width;
-        firstPanelRotated = true;
-      }
-
-      break;
-    }
-  }
-
-  if (firstPanelIndex < 0) return 0; // No panel fits
-
-  // Place the first panel at the top of the column
-  const firstPanel = panelsToBePlaced[firstPanelIndex];
-
-  placements.push({
-    panelId: firstPanel.id,
-    sheetId: sheet.id,
-    sheetNo: 1, // Will be updated later
-    x: startX,
-    y: 0,
-    width: firstPanelWidth,
-    height: firstPanelHeight,
-    rotated: firstPanelRotated,
-    mark: firstPanel.mark_no,
-  });
-
-  // Update cut lines
-  cutLines.x.add(startX + firstPanelWidth);
-  cutLines.y.add(firstPanelHeight);
-
-  // Decrement panel quantity
-  panelsToBePlaced[firstPanelIndex].qty--;
-
-  // Now fill below the first panel with other panels
-  let currentY = firstPanelHeight + bladeWidth;
-
-  while (currentY < sheet.height && panelsToBePlaced.some((p) => p.qty > 0)) {
-    // Find the best panel to place below
-    const nextPanelInfo = findBestColumnFit(
-      panelsToBePlaced,
-      firstPanelWidth,
-      sheet.height - currentY,
-      allowRotation
-    );
-
-    if (!nextPanelInfo) break; // No more panels fit
-
-    const { panel, width, height, rotated } = nextPanelInfo;
-
-    // Place the panel
-    placements.push({
-      panelId: panel.id,
-      sheetId: sheet.id,
-      sheetNo: 1,
-      x: startX,
-      y: currentY,
-      width,
-      height,
-      rotated,
-      mark: panel.mark_no,
-    });
-
-    // Update cut lines
-    cutLines.y.add(currentY + height);
-
-    // Decrement panel quantity
-    const panelIdx = panelsToBePlaced.findIndex((p) => p.id === panel.id);
-    if (panelIdx >= 0) {
-      panelsToBePlaced[panelIdx].qty--;
-    }
-
-    // Update Y position for next panel
-    currentY += height + bladeWidth;
-  }
-
-  return firstPanelWidth;
-}
-
-/**
- * Find the best panel to fit in a column given max width and height
- */
-function findBestColumnFit(
-  panels: Panel[],
-  maxWidth: number,
-  maxHeight: number,
-  allowRotation: boolean
-): { panel: Panel; width: number; height: number; rotated: boolean } | null {
-  // First, try to find a panel that fits the exact width
-  // This maximizes column utilization
-  let bestExactMatch: {
-    panel: Panel;
-    width: number;
-    height: number;
-    rotated: boolean;
-    score: number;
-  } | null = null;
-
-  let bestApproxMatch: {
-    panel: Panel;
-    width: number;
-    height: number;
-    rotated: boolean;
-    score: number;
-  } | null = null;
-
-  for (const panel of panels) {
-    if (panel.qty <= 0) continue;
-
-    // Try direct fit
-    const fitsDirect = panel.width <= maxWidth && panel.height <= maxHeight;
-
-    // Try rotated fit
-    const fitsRotated =
-      allowRotation && panel.height <= maxWidth && panel.width <= maxHeight;
-
-    if (!fitsDirect && !fitsRotated) continue;
-
-    // Calculate fit scores - we prefer panels that:
-    // 1. Maximize the width usage (closer to maxWidth)
-    // 2. Maximize height (to use more vertical space)
-    // 3. Have larger area overall
-
-    let directScore = Infinity;
-    if (fitsDirect) {
-      // Width utilization (closer to 1 is better)
-      const widthUtil = panel.width / maxWidth;
-      // Height bonus (taller panels preferred)
-      const heightBonus = panel.height / maxHeight;
-      // Overall score (lower is better)
-      directScore = (1 - widthUtil) * 10 - heightBonus;
-    }
-
-    let rotatedScore = Infinity;
-    if (fitsRotated) {
-      // Width utilization for rotated panel
-      const widthUtil = panel.height / maxWidth;
-      // Height bonus for rotated panel
-      const heightBonus = panel.width / maxHeight;
-      // Overall score
-      rotatedScore = (1 - widthUtil) * 10 - heightBonus;
-    }
-
-    // Determine best orientation
-    const useRotated =
-      fitsRotated && (!fitsDirect || rotatedScore < directScore);
-    const bestScore = useRotated ? rotatedScore : directScore;
-
-    // Get dimensions for this orientation
-    const width = useRotated ? panel.height : panel.width;
-    const height = useRotated ? panel.width : panel.height;
-
-    // Check if this is an exact width match
-    const isExactMatch = Math.abs(width - maxWidth) < 0.001;
-
-    if (isExactMatch) {
-      // This is an exact width match - prefer these
-      if (!bestExactMatch || bestScore < bestExactMatch.score) {
-        bestExactMatch = {
-          panel,
-          width,
-          height,
-          rotated: useRotated,
-          score: bestScore,
-        };
-      }
-    } else {
-      // This is an approximate match
-      if (!bestApproxMatch || bestScore < bestApproxMatch.score) {
-        bestApproxMatch = {
-          panel,
-          width,
-          height,
-          rotated: useRotated,
-          score: bestScore,
-        };
-      }
-    }
-  }
-
-  // Prefer exact matches if available
-  const bestMatch = bestExactMatch || bestApproxMatch;
-  if (!bestMatch) return null;
-
-  return {
-    panel: bestMatch.panel,
-    width: bestMatch.width,
-    height: bestMatch.height,
-    rotated: bestMatch.rotated,
-  };
-}
-
-/**
- * Main optimization function using strict column-first approach
- */
-export function optimizePanelsStrict(
+export function optimizePanelsRecursive(
   panels: Panel[],
   sheets: Sheet[],
   bladeWidth: number = 0.25,
   allowRotation: boolean = true
 ): PanelOptimizationResult {
-  // Clone input data
+  // Clone input data to avoid modifying originals
   const panelsData = panels.map((p) => ({ ...p }));
   let sheetsData = sheets.map((s) => ({ ...s, maxQty: s.maxQty ?? s.qty }));
+
+  // Sort panels by area (largest first)
+  const sortedPanels = [...panelsData].sort(
+    (a, b) => b.width * b.height - a.width * a.height
+  );
 
   // Initialize results
   const placements: Placement[] = [];
   const usedSheets: CutSheet[] = [];
 
-  // Sort panels by area (largest first) - this is critical for this algorithm
-  const sortedPanels = [...panelsData].sort(
-    (a, b) => b.width * b.height - a.width * a.height
-  );
-
   // Track total panels to place
   const totalPanelsToPlace = sortedPanels.reduce((sum, p) => sum + p.qty, 0);
   let panelsPlaced = 0;
 
-  // Keep track of sheet usage
+  // Keep track of sheet consumption
   const sheetCounts = new Map<number, number>();
   sheetsData.forEach((s) => sheetCounts.set(s.id, 0));
 
@@ -596,43 +281,57 @@ export function optimizePanelsStrict(
   ) {
     // Find the best sheet for the current set of panels
     let bestSheetIndex = -1;
-    let bestPlacements: Placement[] = [];
-    let bestUsedSheet: CutSheet | null = null;
-    let bestPanelsPlaced = 0;
-    let bestEfficacy = -1;
+    let bestPlacementResult: {
+      placements: Placement[];
+      usedArea: number;
+      panelsPlaced: number;
+    } | null = null;
 
-    // Try all available sheet types
+    // Try each available sheet
     for (let i = 0; i < sheetsData.length; i++) {
       const sheet = sheetsData[i];
       if (sheet.qty <= 0) continue;
 
-      // Try to place panels on this sheet
-      const result = placeOnSheetStrict(
+      // Try to place panels on this sheet using recursive approach
+      const result = placeRecursive(
         sortedPanels,
-        sheet,
+        {
+          sheetId: sheet.id,
+          width: sheet.width,
+          height: sheet.height,
+          x: 0,
+          y: 0,
+        },
         bladeWidth,
         allowRotation
       );
 
-      if (result.panelsPlaced > 0) {
-        // Calculate efficacy score
-        // We want to maximize panels placed AND minimize waste
-        const efficacy =
-          result.panelsPlaced * 0.6 + // Panels placed has higher weight
-          (1 - result.sheet.wastePercentage / 100) * 0.4; // Waste has lower weight
+      // Calculate efficiency score based on area utilization and panels placed
+      const areaEfficiency = result.usedArea / (sheet.width * sheet.height);
+      const panelEfficiency = result.panelsPlaced / sortedPanels.length;
+      const score = areaEfficiency * 0.7 + panelEfficiency * 0.3;
 
-        if (bestSheetIndex === -1 || efficacy > bestEfficacy) {
-          bestSheetIndex = i;
-          bestPlacements = result.placements;
-          bestUsedSheet = result.sheet;
-          bestPanelsPlaced = result.panelsPlaced;
-          bestEfficacy = efficacy;
-        }
+      if (
+        result.panelsPlaced > 0 &&
+        (bestSheetIndex === -1 ||
+          (bestPlacementResult &&
+            (result.panelsPlaced > bestPlacementResult.panelsPlaced ||
+              (result.panelsPlaced === bestPlacementResult.panelsPlaced &&
+                score >
+                  (bestPlacementResult.usedArea /
+                    (sheetsData[bestSheetIndex].width *
+                      sheetsData[bestSheetIndex].height)) *
+                    0.7 +
+                    (bestPlacementResult.panelsPlaced / sortedPanels.length) *
+                      0.3))))
+      ) {
+        bestSheetIndex = i;
+        bestPlacementResult = result;
       }
     }
 
-    // If we couldn't find a suitable sheet, break
-    if (bestSheetIndex === -1) break;
+    // If no suitable sheet is found, break
+    if (bestSheetIndex === -1 || !bestPlacementResult) break;
 
     // Use the selected sheet
     const selectedSheet = sheetsData[bestSheetIndex];
@@ -641,34 +340,44 @@ export function optimizePanelsStrict(
     const usageCount = (sheetCounts.get(selectedSheet.id) || 0) + 1;
     sheetCounts.set(selectedSheet.id, usageCount);
 
-    // Update sheet numbers
-    bestPlacements.forEach((p) => {
+    // Update sheet numbers in placements
+    bestPlacementResult.placements.forEach((p) => {
       p.sheetNo = usageCount;
     });
 
-    if (bestUsedSheet) {
-      bestUsedSheet.sheetNo = usageCount;
-      usedSheets.push(bestUsedSheet);
-    }
-
     // Add placements to results
-    placements.push(...bestPlacements);
+    placements.push(...bestPlacementResult.placements);
 
-    // Update panel quantities
-    for (const placement of bestPlacements) {
-      const panelIndex = sortedPanels.findIndex(
-        (p) => p.id === placement.panelId
-      );
-      if (panelIndex >= 0) {
+    // Add sheet to used sheets
+    usedSheets.push({
+      sheetId: selectedSheet.id,
+      sheetNo: usageCount,
+      width: selectedSheet.width,
+      height: selectedSheet.height,
+      usedArea: bestPlacementResult.usedArea,
+      wastePercentage:
+        100 *
+        (1 -
+          bestPlacementResult.usedArea /
+            (selectedSheet.width * selectedSheet.height)),
+    });
+
+    // Update panel quantities based on what was placed
+    // We keep track of placed panels by ID and decrement their quantities
+    const placedPanelIds = bestPlacementResult.placements.map((p) => p.panelId);
+    for (const panelId of placedPanelIds) {
+      const panelIndex = sortedPanels.findIndex((p) => p.id === panelId);
+      if (panelIndex >= 0 && sortedPanels[panelIndex].qty > 0) {
         sortedPanels[panelIndex].qty--;
       }
     }
 
     // Update sheet quantity
     sheetsData[bestSheetIndex].qty--;
+    sheetsData = sheetsData.filter((s) => s.qty > 0);
 
     // Update panels placed count
-    panelsPlaced += bestPanelsPlaced;
+    panelsPlaced += bestPlacementResult.panelsPlaced;
   }
 
   // Calculate summary statistics
@@ -691,4 +400,251 @@ export function optimizePanelsStrict(
       ).length,
     },
   };
+}
+
+/**
+ * Recursively place panels on a sheet, maximizing usage of drops and balances
+ */
+function placeRecursive(
+  panels: Panel[],
+  sheet: {
+    sheetId: number;
+    width: number;
+    height: number;
+    x: number;
+    y: number;
+  },
+  bladeWidth: number,
+  allowRotation: boolean
+): {
+  placements: Placement[];
+  usedArea: number;
+  panelsPlaced: number;
+} {
+  // If sheet is too small to place any panel, return empty result
+  if (sheet.width <= 0 || sheet.height <= 0) {
+    return { placements: [], usedArea: 0, panelsPlaced: 0 };
+  }
+
+  // Find the best panel to place on this sheet
+  const panelFit = findBestPanelFit(
+    panels,
+    sheet.width,
+    sheet.height,
+    allowRotation
+  );
+
+  // If no panel fits, return empty result
+  if (!panelFit) {
+    return { placements: [], usedArea: 0, panelsPlaced: 0 };
+  }
+
+  const { panel, width, height, rotated } = panelFit;
+
+  // Place this panel
+  const placement: Placement = {
+    panelId: panel.id,
+    sheetId: sheet.sheetId,
+    sheetNo: 1, // Will be updated later
+    x: sheet.x,
+    y: sheet.y,
+    width,
+    height,
+    rotated,
+    mark: panel.mark_no,
+  };
+
+  // Calculate used area for this panel
+  const panelArea = width * height;
+
+  // Create a new set of panels without the one we just placed
+  const remainingPanels = panels.map((p) => {
+    if (p.id === panel.id && p.qty > 0) {
+      return { ...p, qty: p.qty - 1 };
+    }
+    return { ...p };
+  });
+
+  // Now we have two options for the next cut:
+  // 1. Cut horizontally (create a bottom drop)
+  // 2. Cut vertically (create a right drop)
+
+  // Try horizontal cut first (panel on top, free space below)
+  const horizontalResult = {
+    // Right side drop (same height as panel)
+    right: placeRecursive(
+      remainingPanels,
+      {
+        sheetId: sheet.sheetId,
+        width: sheet.width - width - bladeWidth,
+        height: height,
+        x: sheet.x + width + bladeWidth,
+        y: sheet.y,
+      },
+      bladeWidth,
+      allowRotation
+    ),
+    // Bottom drop (full width of original sheet)
+    bottom: placeRecursive(
+      remainingPanels,
+      {
+        sheetId: sheet.sheetId,
+        width: sheet.width,
+        height: sheet.height - height - bladeWidth,
+        x: sheet.x,
+        y: sheet.y + height + bladeWidth,
+      },
+      bladeWidth,
+      allowRotation
+    ),
+  };
+
+  // Try vertical cut (panel on left, free space to right)
+  const verticalResult = {
+    // Right side drop (full height of original sheet)
+    right: placeRecursive(
+      remainingPanels,
+      {
+        sheetId: sheet.sheetId,
+        width: sheet.width - width - bladeWidth,
+        height: sheet.height,
+        x: sheet.x + width + bladeWidth,
+        y: sheet.y,
+      },
+      bladeWidth,
+      allowRotation
+    ),
+    // Bottom drop (same width as panel)
+    bottom: placeRecursive(
+      remainingPanels,
+      {
+        sheetId: sheet.sheetId,
+        width: width,
+        height: sheet.height - height - bladeWidth,
+        x: sheet.x,
+        y: sheet.y + height + bladeWidth,
+      },
+      bladeWidth,
+      allowRotation
+    ),
+  };
+
+  // Choose the better cut direction based on total panels placed and area utilization
+  const horizontalScore =
+    horizontalResult.right.panelsPlaced + horizontalResult.bottom.panelsPlaced;
+  const verticalScore =
+    verticalResult.right.panelsPlaced + verticalResult.bottom.panelsPlaced;
+
+  let rightResult, bottomResult;
+  if (horizontalScore > verticalScore) {
+    rightResult = horizontalResult.right;
+    bottomResult = horizontalResult.bottom;
+  } else if (verticalScore > horizontalScore) {
+    rightResult = verticalResult.right;
+    bottomResult = verticalResult.bottom;
+  } else {
+    // If they place the same number of panels, choose based on area utilization
+    const horizontalArea =
+      horizontalResult.right.usedArea + horizontalResult.bottom.usedArea;
+    const verticalArea =
+      verticalResult.right.usedArea + verticalResult.bottom.usedArea;
+
+    if (horizontalArea >= verticalArea) {
+      rightResult = horizontalResult.right;
+      bottomResult = horizontalResult.bottom;
+    } else {
+      rightResult = verticalResult.right;
+      bottomResult = verticalResult.bottom;
+    }
+  }
+
+  // Combine results
+  const combinedPlacements = [
+    placement,
+    ...rightResult.placements,
+    ...bottomResult.placements,
+  ];
+
+  const totalUsedArea =
+    panelArea + rightResult.usedArea + bottomResult.usedArea;
+  const totalPanelsPlaced =
+    1 + rightResult.panelsPlaced + bottomResult.panelsPlaced;
+
+  return {
+    placements: combinedPlacements,
+    usedArea: totalUsedArea,
+    panelsPlaced: totalPanelsPlaced,
+  };
+}
+
+/**
+ * Find the best panel to fit in a given space
+ */
+function findBestPanelFit(
+  panels: Panel[],
+  maxWidth: number,
+  maxHeight: number,
+  allowRotation: boolean
+): { panel: Panel; width: number; height: number; rotated: boolean } | null {
+  // Find all panels that fit
+  const fittingPanels = [];
+
+  for (const panel of panels) {
+    if (panel.qty <= 0) continue;
+
+    // Check if panel fits directly
+    const fitsDirect = panel.width <= maxWidth && panel.height <= maxHeight;
+
+    // Check if panel fits when rotated
+    const fitsRotated =
+      allowRotation && panel.height <= maxWidth && panel.width <= maxHeight;
+
+    if (fitsDirect || fitsRotated) {
+      // Calculate score - prioritize panels by:
+      // 1. Area (larger is better)
+      // 2. Edge fit (closer to sheet edge is better)
+      // We want to place the largest panels first, with preference to those
+      // that fit well along at least one edge
+
+      let width, height, rotated;
+      if (
+        fitsDirect &&
+        (!fitsRotated ||
+          panel.width * panel.height >= panel.height * panel.width)
+      ) {
+        width = panel.width;
+        height = panel.height;
+        rotated = false;
+      } else {
+        width = panel.height;
+        height = panel.width;
+        rotated = true;
+      }
+
+      // Calculate how well the panel fits along edges
+      const widthFit = width / maxWidth;
+      const heightFit = height / maxHeight;
+      const edgeFit = Math.max(widthFit, heightFit);
+
+      // Calculate area as percentage of maximum area
+      const areaPercentage = (width * height) / (maxWidth * maxHeight);
+
+      // Combined score (higher is better)
+      const score = areaPercentage * 0.7 + edgeFit * 0.3;
+
+      fittingPanels.push({
+        panel,
+        width,
+        height,
+        rotated,
+        score,
+      });
+    }
+  }
+
+  // Sort by score (highest first)
+  fittingPanels.sort((a, b) => b.score - a.score);
+
+  // Return the best panel, or null if none fits
+  return fittingPanels.length > 0 ? fittingPanels[0] : null;
 }

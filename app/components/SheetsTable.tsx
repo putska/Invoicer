@@ -22,10 +22,10 @@ interface SheetsTableProps {
 }
 
 const COMMON_SHEET_SIZES = [
-  { width: 48, height: 96, name: "4' x 8'" },
-  { width: 48, height: 120, name: "4' x 10'" },
-  { width: 60, height: 120, name: "5' x 10'" },
-  { width: 60, height: 144, name: "5' x 12'" },
+  { width: 96, height: 50, name: "8' x 4'-2''" },
+  { width: 120, height: 50, name: "10' x 4'-2''" },
+  { width: 120, height: 62, name: "10' x 5'-2''" },
+  { width: 144, height: 62, name: "12' x 5'-2''" },
 ];
 
 export default function SheetsTable({
@@ -35,9 +35,9 @@ export default function SheetsTable({
 }: SheetsTableProps) {
   const [newSheet, setNewSheet] = useState<Sheet>({
     id: 0,
-    width: 48,
-    height: 96,
-    qty: 10,
+    width: 96,
+    height: 48,
+    qty: 1000,
   });
 
   const handleAddSheet = () => {
@@ -60,9 +60,9 @@ export default function SheetsTable({
     // Reset form to defaults
     setNewSheet({
       id: 0,
-      width: 48,
-      height: 96,
-      qty: 10,
+      width: 96,
+      height: 48,
+      qty: 1000,
     });
   };
 
@@ -97,7 +97,7 @@ export default function SheetsTable({
           id: tempId,
           width,
           height,
-          qty: 10,
+          qty: 1000,
         },
       ]);
     }

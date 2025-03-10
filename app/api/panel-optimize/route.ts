@@ -1,7 +1,7 @@
 // app/api/panel-optimize/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
-  optimizePanelsStrict,
+  optimizePanelsRecursive,
   findBestSheetSize,
 } from "../../components/panelOptimization";
 import {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
       // Run optimization with this sheet
       console.log("Running optimization with optimal sheet size");
-      result = optimizePanelsStrict(
+      result = optimizePanelsRecursive(
         panels,
         [optimizedSheet],
         bladeWidth,
@@ -103,9 +103,10 @@ export async function POST(req: NextRequest) {
       console.log("Optimization complete");
 
       // Save the results to the database
-      await savePanelOptimizationResults(newJob.id, result, panels, [
-        optimizedSheet,
-      ]);
+      //await savePanelOptimizationResults(newJob.id, result, panels, [
+      //  optimizedSheet,
+      //]);
+      //console.log("Results saved to database");
 
       return NextResponse.json({
         jobId: newJob.id,
@@ -125,12 +126,17 @@ export async function POST(req: NextRequest) {
       }
 
       console.log("Running optimization with provided sheets");
-      result = optimizePanelsStrict(panels, sheets, bladeWidth, allowRotation);
+      result = optimizePanelsRecursive(
+        panels,
+        sheets,
+        bladeWidth,
+        allowRotation
+      );
       console.log("Optimization complete");
 
       // Save the results to the database
-      await savePanelOptimizationResults(newJob.id, result, panels, sheets);
-
+      //await savePanelOptimizationResults(newJob.id, result, panels, sheets);
+      //console.log("Results saved to database");
       return NextResponse.json({
         jobId: newJob.id,
         ...result,

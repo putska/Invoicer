@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Placement, CutSheet } from "../components/panelOptimization";
+import ExportPdfPatterns from "./ExportPdfPatterns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -256,6 +257,11 @@ export default function CuttingPatternVisualization({
               <Download className="h-4 w-4 mr-2" />
               Export SVG
             </Button>
+            <ExportPdfPatterns
+              sheets={sheets}
+              placements={placements}
+              jobName="Panel Optimization"
+            />
 
             <div className="flex items-center space-x-2">
               <Button
