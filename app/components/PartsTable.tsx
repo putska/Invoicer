@@ -21,29 +21,37 @@ interface PartsTableProps {
 }
 
 export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
-  const [newPart, setNewPart] = useState<Part>({
+  const [newPart, setNewPart] = useState<Partial<Part>>({
     qty: 1,
-    part_no: "",
+    partNo: "",
     length: 0,
-    mark_no: "",
+    markNo: "",
     finish: "",
     fab: "",
   });
 
   const handleAddPart = () => {
-    if (!newPart.part_no || newPart.length <= 0) {
+    if (!newPart.partNo || (newPart.length ?? 0) <= 0) {
       alert("Please enter a part number and valid length");
       return;
     }
 
-    onPartsChange([...parts, { ...newPart }]);
+    onPartsChange([
+      ...parts,
+      {
+        ...newPart,
+        id: newPart.id ?? 0,
+        userId: newPart.userId ?? "",
+        createdAt: newPart.createdAt ?? new Date(),
+      } as Part,
+    ]);
 
     // Reset form except for part_no and finish to make adding multiple similar parts easier
     setNewPart({
       ...newPart,
       qty: 1,
       length: 0,
-      mark_no: "",
+      markNo: "",
       fab: "",
     });
   };
@@ -83,9 +91,9 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
               {parts.map((part, index) => (
                 <TableRow key={index}>
                   <TableCell>{part.qty}</TableCell>
-                  <TableCell>{part.part_no}</TableCell>
+                  <TableCell>{part.partNo}</TableCell>
                   <TableCell>{part.length}</TableCell>
-                  <TableCell>{part.mark_no}</TableCell>
+                  <TableCell>{part.markNo}</TableCell>
                   <TableCell>{part.finish}</TableCell>
                   <TableCell>{part.fab}</TableCell>
                   <TableCell>
@@ -116,7 +124,7 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
                   <input
                     type="text"
                     name="part_no"
-                    value={newPart.part_no}
+                    value={newPart.partNo}
                     onChange={handleInputChange}
                     className="w-full p-1 border rounded"
                   />
@@ -136,7 +144,7 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
                   <input
                     type="text"
                     name="mark_no"
-                    value={newPart.mark_no}
+                    value={newPart.markNo}
                     onChange={handleInputChange}
                     className="w-full p-1 border rounded"
                   />

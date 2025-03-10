@@ -310,8 +310,8 @@ export interface Requisition {
   updatedAt: string; // Timestamp when the requisition was last updated
 }
 
-// Safety forms
-export interface FormSubmission {
+// Shared type definitions for safety forms
+export type FormSubmission = {
   id: number;
   formName: string;
   pdfName: string;
@@ -324,110 +324,101 @@ export interface FormSubmission {
   updatedAt: Date;
   isDeleted: boolean;
   deletedAt: Date | null;
-}
+};
 
-// begin Opti
+// Begin Opti
 
 export interface Part {
+  id: number;
+  userId?: string;
+  partNo: string;
+  length: number;
+  markNo: string;
+  finish?: string;
+  fab?: string;
+  createdAt?: Date;
+  qty?: number; // For handling multiple quantities of the same part
+}
+
+export interface Bar {
+  id: number;
+  length: number;
   qty: number;
-  part_no: string;
+  maxQty?: number; // For tracking original quantities
+  partNo?: string; // Associate bar with specific part number
+  description?: string; // Optional description of the bar (material type, etc.)
+}
+
+export interface BarCut {
+  partId: number;
+  barId: number;
+  barNo: number;
+  position: number;
   length: number;
-  mark_no: string;
-  finish: string;
-  fab: string;
-  release?: string;
-  stklensize?: number;
-  tblname?: string;
+  markNo: string;
+  finish?: string;
+  fab?: string;
+  partNo: string;
 }
 
-export interface ExtCutlistItem {
-  item: number;
-  part_no: string;
+export interface CutBar {
+  barId: number;
+  barNo: number;
   length: number;
-  mark: string;
-  qty: number;
-  fab: string;
-  release?: string;
-  tempqty: number;
-  stklen: number;
-  drops: number;
-  usedropsfor: string;
-  stklensize: number;
-  finish: string;
-  tblname?: string;
-}
-
-export interface ExtListItem {
-  part_no: string;
-  finish: string;
-  length1: number;
-  length2: number;
-  qty1: number;
-  qty2: number;
-}
-
-export interface OptimizationResult {
-  cutPattern: CutPatternItem[];
-  stockLengthsNeeded: StockLengthNeeded[];
-  summary: OptimizationSummary;
-}
-
-export interface CutPatternItem {
-  stockLength: number;
-  stockId: number;
-  cuts: Cut[];
-  remainingLength: number;
-}
-
-export interface Cut {
-  part_no: string;
-  length: number;
-  mark: string;
-  finish: string;
-  fab: string;
-  release?: string;
-}
-
-export interface StockLengthNeeded {
-  part_no: string;
-  finish: string;
-  stockLength: number;
-  quantity: number;
-}
-
-export interface OptimizationSummary {
-  totalStockLength: number;
-  totalCutLength: number;
+  usedLength: number;
   wastePercentage: number;
-  totalStockPieces: number;
+  cuts: BarCut[];
+  partNo?: string; // Add part number to tracking
+  description?: string; // Add description for reference
+}
+
+export interface BarOptimizationResult {
+  cuts: BarCut[];
+  bars: CutBar[];
+  summary: {
+    totalBars: number;
+    totalLength: number;
+    usedLength: number;
+    wastePercentage: number;
+    totalPartsPlaced: number;
+    totalPartsNeeded: number;
+    barTypesUsed: number;
+  };
+  optimalBar?: {
+    length: number;
+  };
 }
 
 // Begin Panel Optimization
 
-// Panel representing a part to be cut
-interface Panel {
-  id?: number;
+export interface Panel {
+  id: number;
   qty: number;
+  part_no?: string;
   width: number;
   height: number;
-  mark_no: string; // Identifier/label
+  mark_no: string;
   finish?: string;
-  location?: number; // Used during optimization
 }
 
-// Sheet representing stock material
-interface Sheet {
-  id?: number;
+export interface Sheet {
+  id: number;
   width: number;
   height: number;
   qty: number;
   maxQty?: number;
-  sheetNo?: number;
-  sheetSize?: string;
 }
 
-// Placement representing a panel positioned on a sheet
-interface Placement {
+export interface PanelCutPatternItem {
+  stockId: number;
+  sheetId: number;
+  sheetNo: number;
+  stockLength: number;
+  cuts: Cut[];
+  remainingLength: number;
+}
+
+export interface Placement {
   panelId: number;
   sheetId: number;
   sheetNo: number;
@@ -439,20 +430,38 @@ interface Placement {
   mark: string;
 }
 
-// Optimization result
-interface PanelOptimizationResult {
+export interface Cut {
+  part_no: string;
+  length: number;
+  height: number;
+  mark: string;
+  finish: string;
+  fab: string;
+}
+
+export interface CutSheet {
+  sheetId: number;
+  sheetNo: number;
+  width: number;
+  height: number;
+  usedArea: number;
+  wastePercentage: number;
+}
+
+export interface PanelOptimizationResult {
   placements: Placement[];
-  sheets: {
-    sheetId: number;
-    width: number;
-    height: number;
-    usedArea: number;
-    wastePercentage: number;
-  }[];
-  panelsummary: {
+  sheets: CutSheet[];
+  summary: {
     totalSheets: number;
     totalArea: number;
     usedArea: number;
     wastePercentage: number;
+    totalPanelsPlaced: number;
+    totalPanelsNeeded: number;
+    sheetTypesUsed: number;
+  };
+  optimalSheet?: {
+    width: number;
+    height: number;
   };
 }

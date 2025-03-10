@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Panel } from "../components/panelOptimization";
+import { Panel } from "../types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {

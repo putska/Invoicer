@@ -3,7 +3,7 @@ import React from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { Placement, CutSheet } from "../components/panelOptimization";
+import { Placement, CutSheet } from "../types";
 
 interface ExportPdfPatternsProps {
   sheets: CutSheet[];

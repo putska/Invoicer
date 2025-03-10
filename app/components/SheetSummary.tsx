@@ -1,6 +1,6 @@
 // components/SheetSummary.tsx
 import React from "react";
-import { CutSheet } from "../components/panelOptimization";
+import { CutSheet } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SheetSummaryProps {

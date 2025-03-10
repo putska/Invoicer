@@ -1,3 +1,5 @@
+import "server-only";
+
 import { db } from "./lib/drizzle";
 import {
   invoicesTable,
@@ -44,27 +46,14 @@ import {
   Material,
   Requisition,
   FormSubmission,
-  Part,
-  CutPatternItem,
   OptimizationResult,
-  ExtListItem,
-} from "../types";
-import { desc, eq, and, inArray, sql, max } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { Dropbox } from "dropbox";
-import { getDropboxClient } from "../modules/dropbox/dropboxClient";
-import {
   Panel,
   Sheet,
   PanelOptimizationResult,
-} from "../components/panelOptimization";
-
-//import fetch from "node-fetch";
-
-//import { v4 as uuidv4 } from "uuid";
-
-import { act } from "react";
-import { access } from "fs";
+} from "../types";
+import { desc, eq, and, inArray, sql, max, not, or, ilike } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
@@ -2037,6 +2026,44 @@ export async function deleteFormSubmission(id: number): Promise<boolean> {
   return !!result;
 }
 
+export async function searchSafetyForms(query: string) {
+  if (!query || query.trim() === "") {
+    // If no query provided, return all forms that aren't deleted
+    const allForms = await db
+      .select()
+      .from(forms)
+      .where(not(forms.isDeleted))
+      .orderBy(forms.id);
+
+    return { submissions: allForms };
+  }
+
+  // Format the search term for SQL LIKE/ILIKE
+  const searchTerm = `%${query.trim()}%`;
+
+  // Search in regular fields and inside jsonb data
+  const results = await db
+    .select()
+    .from(forms)
+    .where(
+      and(
+        not(forms.isDeleted),
+        or(
+          ilike(forms.formName, searchTerm),
+          ilike(forms.pdfName, searchTerm),
+          ilike(forms.jobName, searchTerm),
+          ilike(forms.userName, searchTerm),
+          ilike(forms.dateCreated, searchTerm),
+          // Search inside the jsonb field using Postgres's jsonb operators
+          sql`${forms.formData}::text ILIKE ${searchTerm}`
+        )
+      )
+    )
+    .orderBy(forms.id);
+
+  return { submissions: results };
+}
+
 // End Safety form Actions
 
 // Begin Opti
@@ -2234,6 +2261,7 @@ export async function getOptimizationResults(
           finish: cut.finish || "", // Convert null to empty string
           fab: cut.fab || "", // Convert null to empty string
           release: undefined,
+          //height: cut.height || 0, // Ensure height is included
         })),
       };
     })
@@ -2267,7 +2295,13 @@ export async function getOptimizationResults(
 
   return {
     summary: JSON.parse(job.resultsJson),
-    cutPattern,
+    cutPattern: cutPattern.map((pattern) => ({
+      ...pattern,
+      cuts: pattern.cuts.map((cut) => ({
+        ...cut,
+        height: cut.height || 0, // Ensure height is included
+      })),
+    })),
     stockLengthsNeeded: Array.from(stockLengthsMap.values()),
   };
 }

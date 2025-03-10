@@ -1,112 +1,149 @@
-// app/optimize/page.tsx
+// app/bar-optimize/page.tsx
 "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-// Import only the UI components initially
-import { Part, ExtListItem, OptimizationResult } from "../../types";
-import OptimizationResults from "../../components/OptimizationResults";
-import UploadExcel from "../../components/UploadExcel";
+import {
+  optimizeBarsWithPartMatching,
+  findOptimalBarsByPartNo,
+  createBarsFromOptimalResults,
+  findBestBarLength,
+} from "../../components/barOptimization";
+import { Part, Bar, BarOptimizationResult } from "../../types";
 import PartsTable from "../../components/PartsTable";
-import StockLengthsTable from "../../components/StockLengthsTable";
-import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../components/ui/tabs";
+import BarsTable from "../../components/BarsTable";
+import PartsUploadExcel from "../../components/PartsUploadExcel";
+import BarCuttingVisualization from "../../components/BarCuttingVisualization";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-export default function OptimizationPage() {
+export default function BarOptimizationPage() {
   const router = useRouter();
   const [parts, setParts] = useState<Part[]>([]);
-  const [stockLengths, setStockLengths] = useState<ExtListItem[]>([]);
-  const [bladeWidth, setBladeWidth] = useState(0.25);
-  const [findOptimalLength, setFindOptimalLength] = useState(true);
-  const [minLength, setMinLength] = useState(180);
+  const [bars, setBars] = useState<Bar[]>([]);
+  const [kerf, setKerf] = useState(0.1875);
+  const [findOptimalBar, setFindOptimalBar] = useState(true);
+  const [minLength, setMinLength] = useState(156);
   const [maxLength, setMaxLength] = useState(300);
+  const [stepSize, setStepSize] = useState(3);
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<OptimizationResult | null>(null);
+  const [results, setResults] = useState<BarOptimizationResult | null>(null);
   const [activeTab, setActiveTab] = useState("parts");
+  const [jobName, setJobName] = useState("Bar Optimization");
+  const [findOptimalBarByPart, setFindOptimalBarByPart] = useState(true);
 
-  const handlePartsUpload = (uploadedParts: Part[]) => {
-    setParts(uploadedParts);
-
-    // Extract unique part numbers and finishes for stock length setup
-    const uniqueParts = uploadedParts.reduce(
-      (acc: { part_no: string; finish: string }[], part) => {
-        const exists = acc.some(
-          (p) => p.part_no === part.part_no && p.finish === part.finish
-        );
-        if (!exists) {
-          acc.push({ part_no: part.part_no, finish: part.finish });
-        }
-        return acc;
-      },
-      []
-    );
-
-    // Create initial stock lengths if none exist
-    if (stockLengths.length === 0) {
-      setStockLengths(
-        uniqueParts.map((p) => ({
-          part_no: p.part_no,
-          finish: p.finish,
-          length1: 240, // Default stock length
-          length2: 0,
-          qty1: 1000,
-          qty2: 0,
-        }))
-      );
-    }
-
-    // Move to stock lengths tab after upload
-    setActiveTab("stockLengths");
-  };
+  // Modify the handleOptimize function to update the state after optimization
 
   const handleOptimize = async () => {
     if (parts.length === 0) {
-      alert("Please upload or add parts first");
+      alert("Please add parts first");
       return;
     }
 
-    if (!findOptimalLength && stockLengths.length === 0) {
-      alert("Please add stock lengths or enable automatic optimization");
+    if (!findOptimalBar && bars.length === 0) {
+      alert("Please add bar sizes or enable automatic optimization");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/optimize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          parts,
-          stockLengths,
-          bladeWidth,
-          findOptimalLength,
-          minLength,
-          maxLength,
-        }),
-      });
+      // If we should find optimal bar length, do that first
+      let barsToUse = [...bars];
+      let optimizedBars: Bar[] = [];
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Optimization failed");
+      if (findOptimalBar) {
+        if (findOptimalBarByPart) {
+          // Find optimal bar length for each part number
+          const optimalBars = findOptimalBarsByPartNo(
+            parts,
+            minLength,
+            maxLength,
+            stepSize,
+            kerf
+          );
+
+          console.log("Optimal bars by part number:", optimalBars);
+
+          // Create bars from optimal results, including any manually defined bars
+          barsToUse = createBarsFromOptimalResults(optimalBars, barsToUse);
+
+          // Save the optimized bars for later use
+          optimizedBars = [...barsToUse];
+        } else {
+          // Find a single optimal bar length for all parts
+          // Use the same function but just create one "generic" part number
+          const optimalBars = findOptimalBarsByPartNo(
+            parts.map((p) => ({ ...p, partNo: "ALL_PARTS" })),
+            minLength,
+            maxLength,
+            stepSize,
+            kerf
+          );
+
+          console.log("Optimal bar length determined:", optimalBars[0]);
+
+          // Create a bar with the optimal length
+          barsToUse = [
+            {
+              id: 1,
+              length: optimalBars[0].length,
+              qty: 1000, // Set a high quantity for optimization
+              description: `Optimal ${optimalBars[0].length}" bar`,
+            },
+          ];
+
+          // Save the optimized bars for later use
+          optimizedBars = [...barsToUse];
+        }
       }
 
-      const optimizationResults = await response.json();
+      // Run optimization with the prepared bars
+      console.log("Running optimization with bars:", barsToUse);
+      const result = optimizeBarsWithPartMatching(parts, barsToUse, kerf);
+      console.log("Optimization complete:", result);
 
-      setResults(optimizationResults);
+      // Add cuts to each bar for visualization
+      const barsWithCuts = result.bars.map((bar) => {
+        return {
+          ...bar,
+          cuts: result.cuts.filter(
+            (cut) => cut.barId === bar.barId && cut.barNo === bar.barNo
+          ),
+        };
+      });
+
+      // Update the results with bars containing cuts
+      setResults({
+        ...result,
+        bars: barsWithCuts,
+        // Include the optimal bar info if relevant
+        optimalBar:
+          findOptimalBar && !findOptimalBarByPart
+            ? { length: barsToUse[0].length }
+            : undefined,
+      });
+
+      // After optimization is completed:
+      // 1. Turn off the auto-optimization flags
+      // 2. Update the bars state with the optimized bars
+      if (findOptimalBar) {
+        // This will be executed after optimization is done
+        // We need to use setTimeout to avoid state updates during an existing render cycle
+        setTimeout(() => {
+          // Update the bars with the optimized ones
+          setBars(optimizedBars);
+
+          // Turn off the automatic optimization
+          setFindOptimalBar(false);
+          setFindOptimalBarByPart(false);
+        }, 0);
+      }
+
       setActiveTab("results");
     } catch (error) {
       console.error("Optimization error:", error);
@@ -120,52 +157,72 @@ export default function OptimizationPage() {
     }
   };
 
-  const handleSaveToDropbox = async () => {
+  const handleExportResults = async () => {
     if (!results) {
-      alert("No results to save");
+      alert("No results to export");
       return;
     }
 
     try {
-      const response = await fetch("/api/dropbox", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          path: "/Optimization Results.xlsx",
-          data: {
-            summary: results.summary,
-            stockLengthsNeeded: results.stockLengthsNeeded,
-            cutPatterns: results.cutPattern.map((pattern) => ({
-              stockLength: pattern.stockLength,
-              stockId: pattern.stockId,
-              remainingLength: pattern.remainingLength,
-              cuts: pattern.cuts.map((cut) => ({
-                partNo: cut.part_no,
-                length: cut.length,
-                mark: cut.mark,
-                finish: cut.finish,
-                fab: cut.fab,
-              })),
-            })),
-          },
-        }),
+      // Create CSV content
+      let csvContent = "data:text/csv;charset=utf-8,";
+
+      // Summary section
+      csvContent += "BAR OPTIMIZATION SUMMARY\r\n";
+      csvContent += `Job Name,${jobName}\r\n`;
+      csvContent += `Total Bars,${results.summary.totalBars}\r\n`;
+      csvContent += `Total Length (in),${results.summary.totalLength.toFixed(
+        2
+      )}\r\n`;
+      csvContent += `Total Length (ft),${(
+        results.summary.totalLength / 12
+      ).toFixed(2)}\r\n`;
+      csvContent += `Used Length (in),${results.summary.usedLength.toFixed(
+        2
+      )}\r\n`;
+      csvContent += `Used Length (ft),${(
+        results.summary.usedLength / 12
+      ).toFixed(2)}\r\n`;
+      csvContent += `Waste Percentage,${results.summary.wastePercentage.toFixed(
+        2
+      )}%\r\n\r\n`;
+
+      // Bars section
+      csvContent += "BARS USED\r\n";
+      csvContent +=
+        "Bar ID,Bar No,Length (in),Length (ft),Used Length (in),Used Length (ft),Waste Percentage\r\n";
+
+      results.bars.forEach((bar) => {
+        csvContent += `${bar.barId},${bar.barNo},${bar.length},${(
+          bar.length / 12
+        ).toFixed(2)},${bar.usedLength.toFixed(2)},${(
+          bar.usedLength / 12
+        ).toFixed(2)},${bar.wastePercentage.toFixed(2)}%\r\n`;
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save to Dropbox");
-      }
+      csvContent += "\r\nCUT LIST\r\n";
+      csvContent +=
+        "Bar ID,Bar No,Part ID,Mark No,Part No,Length (in),Length (ft),Position (in),Position (ft),Finish,Fabrication\r\n";
 
-      alert("Results saved to Dropbox successfully");
+      results.cuts.forEach((cut) => {
+        csvContent += `${cut.barId},${cut.barNo},${cut.partId},${cut.markNo},${
+          cut.partNo
+        },${cut.length},${(cut.length / 12).toFixed(2)},${cut.position},${(
+          cut.position / 12
+        ).toFixed(2)},${cut.finish || ""},${cut.fab || ""}\r\n`;
+      });
+
+      // Create download link
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "bar_optimization_results.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error("Dropbox save error:", error);
-      alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Failed to save to Dropbox"
-        }`
-      );
+      console.error("Export error:", error);
+      alert("Failed to export results");
     }
   };
 
@@ -173,10 +230,21 @@ export default function OptimizationPage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Extrusion Optimization</h1>
 
+      <div className="mb-4">
+        <Label htmlFor="jobName">Job Name</Label>
+        <Input
+          id="jobName"
+          value={jobName}
+          onChange={(e) => setJobName(e.target.value)}
+          placeholder="Enter job name"
+          className="max-w-md"
+        />
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="parts">Parts</TabsTrigger>
-          <TabsTrigger value="stockLengths">Stock Lengths</TabsTrigger>
+          <TabsTrigger value="bars">Bars</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="results" disabled={!results}>
             Results
@@ -186,40 +254,49 @@ export default function OptimizationPage() {
         <TabsContent value="parts">
           <Card>
             <CardHeader>
-              <CardTitle>Parts Data</CardTitle>
+              <CardTitle>Part Data</CardTitle>
             </CardHeader>
             <CardContent>
-              <UploadExcel onUpload={handlePartsUpload} />
-              <div className="mt-4">
-                <PartsTable parts={parts} onPartsChange={setParts} />
+              <div className="mb-6">
+                <h3 className="text-sm font-medium mb-2">
+                  Upload Part Data from Excel
+                </h3>
+                <PartsUploadExcel onUpload={setParts} />
               </div>
+
+              <PartsTable parts={parts} onPartsChange={setParts} />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="stockLengths">
+        <TabsContent value="bars">
           <Card>
             <CardHeader>
-              <CardTitle>Stock Lengths</CardTitle>
+              <CardTitle>Extrusion Sizes</CardTitle>
             </CardHeader>
             <CardContent>
-              <StockLengthsTable
-                stockLengths={stockLengths}
-                onStockLengthsChange={setStockLengths}
-                disabled={findOptimalLength}
-              />
-              <div className="mt-4 flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="findOptimalLength"
-                  checked={findOptimalLength}
-                  onChange={(e) => setFindOptimalLength(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <label htmlFor="findOptimalLength">
-                  Automatically find optimal stock length
-                </label>
+              <div className="mb-4">
+                <div className="flex items-center space-x-2 mt-2 mb-4">
+                  <Checkbox
+                    id="findOptimalBar"
+                    checked={findOptimalBar}
+                    onCheckedChange={(checked) =>
+                      setFindOptimalBar(checked as boolean)
+                    }
+                  />
+                  <label htmlFor="findOptimalBar" className="text-sm">
+                    Automatically find optimal extrusion length
+                    {findOptimalBarByPart && " for each part number"}
+                  </label>
+                </div>
               </div>
+              <BarsTable
+                bars={bars}
+                onBarsChange={setBars}
+                disabled={findOptimalBar}
+                parts={parts}
+                findOptimalBarByPart={findOptimalBarByPart}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -233,52 +310,113 @@ export default function OptimizationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium">
-                    Blade Width (inches)
+                    Kerf (Blade Width in inches)
                   </label>
-                  <input
+                  <Input
                     type="number"
-                    value={bladeWidth}
-                    onChange={(e) => setBladeWidth(parseFloat(e.target.value))}
-                    step="0.01"
+                    value={kerf}
+                    onChange={(e) => setKerf(parseFloat(e.target.value))}
+                    step="0.015625"
                     min="0"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    Material lost during each cut
+                    Typical values: 1/8" (0.125), 3/16" (0.1875), 1/4" (0.25)
                   </p>
                 </div>
 
-                {findOptimalLength && (
+                <div className="flex flex-col space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="findOptimalBar"
+                      checked={findOptimalBar}
+                      onCheckedChange={(checked) => {
+                        const isChecked = checked as boolean;
+                        setFindOptimalBar(isChecked);
+                        // If turning off optimal bar, also turn off per-part optimization
+                        if (!isChecked) {
+                          setFindOptimalBarByPart(false);
+                        }
+                      }}
+                    />
+                    <label htmlFor="findOptimalBar" className="text-sm">
+                      Automatically find optimal bar length
+                    </label>
+                  </div>
+
+                  {findOptimalBar && (
+                    <div className="flex items-center space-x-2 ml-6">
+                      <Checkbox
+                        id="findOptimalBarByPart"
+                        checked={findOptimalBarByPart}
+                        onCheckedChange={(checked) =>
+                          setFindOptimalBarByPart(checked as boolean)
+                        }
+                      />
+                      <label htmlFor="findOptimalBarByPart" className="text-sm">
+                        Find optimal length for each part number
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {findOptimalBar && (
                   <>
                     <div>
                       <label className="block text-sm font-medium">
-                        Minimum Stock Length
+                        Step Size (inches)
                       </label>
-                      <input
+                      <Input
+                        type="number"
+                        value={stepSize}
+                        onChange={(e) =>
+                          setStepSize(parseFloat(e.target.value))
+                        }
+                        step="1"
+                        min="1"
+                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Increment for testing bar lengths (typically 12")
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium">
+                        Minimum Length (inches)
+                      </label>
+                      <Input
                         type="number"
                         value={minLength}
                         onChange={(e) =>
                           setMinLength(parseFloat(e.target.value))
                         }
-                        step="1"
+                        step="12"
                         min="1"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                       />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Shortest bar to consider (e.g., 156" = 13')
+                      </p>
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium">
-                        Maximum Stock Length
+                        Maximum Length (inches)
                       </label>
-                      <input
+                      <Input
                         type="number"
                         value={maxLength}
                         onChange={(e) =>
                           setMaxLength(parseFloat(e.target.value))
                         }
-                        step="1"
+                        step="12"
                         min="1"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
                       />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Longest bar to consider (e.g., 300" = 25')
+                      </p>
                     </div>
                   </>
                 )}
@@ -289,10 +427,86 @@ export default function OptimizationPage() {
 
         <TabsContent value="results">
           {results && (
-            <OptimizationResults
-              results={results}
-              onSaveToDropbox={handleSaveToDropbox}
-            />
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Optimization Results</CardTitle>
+                    <Button size="sm" onClick={handleExportResults}>
+                      Export CSV
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-500">
+                        Total Bars Used
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {results.summary.totalBars}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-500">
+                        Total Length
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {(results.summary.totalLength / 12).toFixed(2)} ft
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-500">
+                        Used Length
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {(results.summary.usedLength / 12).toFixed(2)} ft
+                      </p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-500">
+                        Waste Percentage
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {results.summary.wastePercentage.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                  {results && results.bars.some((b) => b.partNo) && (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h3 className="text-lg font-medium text-blue-800 mb-2">
+                        Part-Specific Bar Lengths
+                      </h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        {Array.from(
+                          new Set(
+                            results.bars
+                              .filter((b) => b.partNo) // Ensure we only consider bars with partNo
+                              .map((b) => `${b.partNo}|${b.length}`)
+                          )
+                        ).map((key) => {
+                          const [partNo, length] = key.split("|");
+                          return (
+                            <div key={key} className="text-blue-700">
+                              <strong>{partNo}:</strong> {length}" (
+                              {(Number(length) / 12).toFixed(1)}')
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <BarCuttingVisualization
+                cuts={results.cuts}
+                bars={results.bars}
+                kerf={kerf}
+                summary={results.summary}
+                jobName={jobName}
+              />
+            </div>
           )}
         </TabsContent>
       </Tabs>

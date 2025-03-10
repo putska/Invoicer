@@ -1,84 +1,14 @@
 // lib/panelOptimization.ts
-
+import {
+  Panel,
+  Sheet,
+  Placement,
+  CutSheet,
+  PanelOptimizationResult,
+} from "../types";
 /**
  * Core functions for optimizing 2D panel placement on sheets
  */
-
-// Update the Interfaces to match the new functionality
-export interface Panel {
-  id: number;
-  qty: number;
-  part_no?: string;
-  width: number;
-  height: number;
-  mark_no: string;
-  finish?: string;
-}
-
-export interface Sheet {
-  id: number;
-  width: number;
-  height: number;
-  qty: number;
-  maxQty?: number;
-}
-
-export interface CutPatternItem {
-  stockId: number;
-  sheetId: number;
-  sheetNo: number;
-  stockLength: number;
-  cuts: Cut[];
-  remainingLength: number;
-}
-
-export interface Placement {
-  panelId: number;
-  sheetId: number;
-  sheetNo: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotated: boolean;
-  mark: string;
-}
-
-export interface Cut {
-  part_no: string;
-  length: number;
-  height: number;
-  mark: string;
-  finish: string;
-  fab: string;
-}
-
-export interface CutSheet {
-  sheetId: number;
-  sheetNo: number;
-  width: number;
-  height: number;
-  usedArea: number;
-  wastePercentage: number;
-}
-
-export interface PanelOptimizationResult {
-  placements: Placement[];
-  sheets: CutSheet[];
-  summary: {
-    totalSheets: number;
-    totalArea: number;
-    usedArea: number;
-    wastePercentage: number;
-    totalPanelsPlaced: number;
-    totalPanelsNeeded: number;
-    sheetTypesUsed: number;
-  };
-  optimalSheet?: {
-    width: number;
-    height: number;
-  };
-}
 
 /**
  * Find the best sheet size for a given set of panels

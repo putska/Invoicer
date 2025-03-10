@@ -3,11 +3,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Panel,
-  Sheet,
-  PanelOptimizationResult,
-} from "../../components/panelOptimization";
+import { Panel, Sheet, PanelOptimizationResult } from "../../types";
 import PanelsTable from "../../components/PanelsTable";
 import SheetsTable from "../../components/SheetsTable";
 import PanelUploadExcel from "../../components/PanelUploadExcel";

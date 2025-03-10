@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Placement, CutSheet } from "../components/panelOptimization";
+import { Placement, CutSheet } from "../types";
 import ExportPdfPatterns from "./ExportPdfPatterns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

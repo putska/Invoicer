@@ -13,11 +13,13 @@ import Image from "next/image";
 import "./globals.css";
 import { PermissionProvider } from "./context/PermissionContext";
 import { SocketProvider } from "./context/SocketContext";
-import AuthHandler from "./components/AuthHandler"; // Move AuthHandler to a separate file
+import AuthHandler from "./components/AuthHandler";
+
+// No need for shadcn navigation menu components as we're using custom dropdowns
 
 const ptSans = PT_Sans({
-  subsets: ["latin"], // Specify the font subset
-  weight: ["400", "700"], // Add specific weights if needed
+  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata = {
@@ -34,11 +36,8 @@ export default async function RootLayout({
     <html lang="en">
       <body className={ptSans.className}>
         <ClerkProvider
-          afterSignOutUrl="/modules/welcome" // Redirect to unauthorized page after sign out
-          // Override Clerk’s localization strings here.
+          afterSignOutUrl="/modules/welcome"
           localization={{
-            // This key might differ depending on your Clerk version.
-            // For many setups, the initial sign in page title is under "signIn.start.title"
             signIn: {
               start: {
                 title: "Sign into CSE-Portal",
@@ -49,7 +48,7 @@ export default async function RootLayout({
           <SocketProvider>
             <AuthHandler>
               <PermissionProvider>
-                <nav className="flex justify-between items-center h-[10vh] px-8 border-b-[1p]">
+                <nav className="flex justify-between items-center h-[10vh] px-8 border-b">
                   <Link href="/">
                     <Image
                       src="/CSE_LOGO_blue-transparent-web.webp"
@@ -67,27 +66,180 @@ export default async function RootLayout({
                     </SignedOut>
                     {/*-- if user is signed in --*/}
                     <SignedIn>
-                      <Link href="/modules/summary">Dashboard</Link>
+                      {/* Override shadcn's default navigation styles for better control */}
+                      <div className="flex items-center space-x-4">
+                        {/* Regular link */}
+                        <Link
+                          href="/modules/summary"
+                          className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium"
+                        >
+                          Dashboard
+                        </Link>
 
-                      <Link href="/modules/projects">Projects</Link>
+                        {/* Projects dropdown */}
+                        <div className="relative group">
+                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                            Projects
+                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-[200px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <ul className="grid gap-2">
+                              <li>
+                                <Link
+                                  href="/modules/projects"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  All Projects
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/projects/active"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Active Projects
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/projects/archived"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Archived Projects
+                                </Link>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
 
-                      <Link href="/modules/purchasing">Purchase Orders</Link>
+                        {/* Purchasing dropdown */}
+                        <div className="relative group">
+                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                            Purchasing
+                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-[220px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <ul className="grid gap-2">
+                              <li>
+                                <Link
+                                  href="/modules/purchasing"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  All Purchase Orders
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/purchasing/new"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Create New PO
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/purchasing/reports"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Purchasing Reports
+                                </Link>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
 
-                      <Link href="/modules/vendors">Vendors</Link>
+                        {/* Regular links */}
+                        <Link
+                          href="/modules/vendors"
+                          className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium"
+                        >
+                          Vendors
+                        </Link>
 
-                      <Link href="/modules/materials">Shop Materials</Link>
+                        <Link
+                          href="/modules/materials"
+                          className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium"
+                        >
+                          Shop Materials
+                        </Link>
 
-                      <Link href="/modules/safety">Safety</Link>
+                        {/* Safety dropdown */}
+                        <div className="relative group">
+                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                            Safety
+                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-[200px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <ul className="grid gap-2">
+                              <li>
+                                <Link
+                                  href="/modules/safety"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Overview
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/safety/incidents"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Incident Reports
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/safety/training"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Training Materials
+                                </Link>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
 
-                      <Link href="/modules/optimize">Opti</Link>
+                        {/* Engineering dropdown */}
+                        <div className="relative group">
+                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                            Engineering
+                          </button>
+                          <div className="absolute left-0 top-full mt-1 w-[200px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                            <ul className="grid gap-2">
+                              <li>
+                                <Link
+                                  href="/modules/optimize"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Extrusions Opti
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/panel-optimize"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Panels Opti
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/modules/engineering/training"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Training Materials
+                                </Link>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
 
-                      <Link
-                        href="https://wiki.cse-portal.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Wiki
-                      </Link>
+                        <Link
+                          href="https://wiki.cse-portal.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium"
+                        >
+                          Wiki
+                        </Link>
+                      </div>
 
                       <UserButton showName />
                     </SignedIn>

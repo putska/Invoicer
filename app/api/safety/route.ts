@@ -1,7 +1,11 @@
 //app/api/safety/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { createFormSubmission, getAllFormSubmissions } from "../../db/actions";
+import {
+  createFormSubmission,
+  getAllFormSubmissions,
+  searchSafetyForms, // Import the search function
+} from "../../db/actions";
 import { authenticate, authorize } from "@/app/api/admin/helpers";
 import { z } from "zod";
 
@@ -30,13 +34,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const includeDeleted = req.nextUrl.searchParams.get("deleted") === "true";
-    const submissions = await getAllFormSubmissions(includeDeleted);
+    // Check if there's a search query parameter
+    const searchQuery = req.nextUrl.searchParams.get("q");
+    console.log("Search query received in API route:", searchQuery);
 
-    return NextResponse.json({
-      message: "Safety forms retrieved successfully!",
-      submissions,
-    });
+    if (searchQuery && searchQuery.trim() !== "") {
+      // If there's a search query, use the search function
+      console.log("Executing search with query:", searchQuery);
+      const searchResults = await searchSafetyForms(searchQuery);
+      return NextResponse.json({
+        message: "Search results retrieved successfully!",
+        submissions: searchResults.submissions,
+      });
+    } else {
+      // If no search query, get all forms (existing behavior)
+      const includeDeleted = req.nextUrl.searchParams.get("deleted") === "true";
+      const submissions = await getAllFormSubmissions(includeDeleted);
+
+      return NextResponse.json({
+        message: "Safety forms retrieved successfully!",
+        submissions,
+      });
+    }
   } catch (err) {
     console.error("Error fetching safety forms:", err);
     return NextResponse.json(
