@@ -1,9 +1,8 @@
-// components/barOptimization.ts
-
 import { Part, Bar, BarCut, BarOptimizationResult, CutBar } from "../types";
 
 /**
  * First-fit algorithm for 1D bin packing (bar cutting optimization)
+ * Rewritten to more closely match the original VBA algorithm
  */
 export function optimizeBars(
   parts: Part[],
@@ -12,80 +11,109 @@ export function optimizeBars(
 ): BarOptimizationResult {
   // Clone input data
   const partsData = parts.map((p) => ({ ...p, qty: p.qty || 1 }));
-  let barsData = bars.map((b) => ({ ...b, maxQty: b.maxQty ?? b.qty }));
 
-  // Sort parts by length (longest first)
-  const sortedParts = [...partsData].sort((a, b) => b.length - a.length);
+  // Create a pool of bars with sufficient quantity
+  // Using a new interface internally that includes barNo
+  interface BarWithNumber extends Bar {
+    barNo?: number;
+  }
+
+  let barPool: BarWithNumber[] = [];
+  bars.forEach((bar) => {
+    // Add each bar with its quantity
+    for (let i = 0; i < bar.qty; i++) {
+      barPool.push({
+        ...bar,
+        qty: 1, // Each bar instance has qty of 1
+        barNo: i + 1, // Assign a unique bar number within this bar type
+      });
+    }
+  });
+
+  // Sort parts by partNo, finish, and then length (descending)
+  const sortedParts = [...partsData].sort((a, b) => {
+    // First sort by partNo
+    if ((a.partNo || "") < (b.partNo || "")) return -1;
+    if ((a.partNo || "") > (b.partNo || "")) return 1;
+
+    // Then by finish
+    if ((a.finish || "") < (b.finish || "")) return -1;
+    if ((a.finish || "") > (b.finish || "")) return 1;
+
+    // Finally by length (descending)
+    return b.length - a.length;
+  });
 
   // Initialize results
   const cuts: BarCut[] = [];
   const usedBars: CutBar[] = [];
 
-  // Track total parts to place
+  // Track total parts to place and parts placed
   const totalPartsToPlace = sortedParts.reduce((sum, p) => sum + p.qty!, 0);
   let partsPlaced = 0;
 
-  // Track bar usage
-  const barCounts = new Map<number, number>();
-  barsData.forEach((b) => barCounts.set(b.id, 0));
-
-  // Group parts by part number and finish
-  const partsByGroup: Record<string, Part[]> = {};
-
-  // Special marker for parts with no finish or partNo
-  const NO_FINISH = "__NO_FINISH__";
-  const NO_PART_NO = "__NO_PART_NO__";
-
+  // Group parts by partNo and finish
+  const partGroups: Record<string, Part[]> = {};
   sortedParts.forEach((part) => {
-    const finishKey = part.finish || NO_FINISH;
-    const partNoKey = part.partNo || NO_PART_NO;
-    const groupKey = `${partNoKey}|${finishKey}`;
-
-    if (!partsByGroup[groupKey]) {
-      partsByGroup[groupKey] = [];
+    const groupKey = `${part.partNo || "NO_PART_NO"}|${
+      part.finish || "NO_FINISH"
+    }`;
+    if (!partGroups[groupKey]) {
+      partGroups[groupKey] = [];
     }
-    partsByGroup[groupKey].push(part);
+    partGroups[groupKey].push({ ...part });
   });
 
-  // Process each group separately
-  for (const [groupKey, groupParts] of Object.entries(partsByGroup)) {
-    // Extract the finish from the group key
+  // Process each part group
+  for (const [groupKey, groupParts] of Object.entries(partGroups)) {
+    // Extract partNo and finish from group key
     const [partNoValue, finishValue] = groupKey.split("|");
-    const finish = finishValue !== NO_FINISH ? finishValue : undefined;
+    const partNo = partNoValue !== "NO_PART_NO" ? partNoValue : undefined;
+    const finish = finishValue !== "NO_FINISH" ? finishValue : undefined;
+
+    // Sort parts by length (descending) within the group
+    const sortedGroupParts = [...groupParts].sort(
+      (a, b) => b.length - a.length
+    );
+
+    // Create a remaining parts queue for this group
+    const remainingParts: Part[] = [];
+    sortedGroupParts.forEach((part) => {
+      // Add each part instance based on its quantity
+      for (let i = 0; i < part.qty!; i++) {
+        remainingParts.push({
+          ...part,
+          qty: 1, // Each part instance has qty of 1
+        });
+      }
+    });
 
     // Continue placing parts until all are placed or we run out of bars
-    let remainingParts = [...groupParts];
-
-    while (remainingParts.some((p) => p.qty! > 0) && barsData.length > 0) {
-      // Find the best bar for the current set of parts
+    while (remainingParts.length > 0 && barPool.length > 0) {
+      // Find the best bar for the next part
+      const nextPart = remainingParts[0];
       let bestBarIndex = -1;
-      let bestBarUsage = -1;
-      let bestBarCuts: BarCut[] = [];
 
-      // Try each available bar type
-      for (let i = 0; i < barsData.length; i++) {
-        const bar = barsData[i];
-        if (bar.qty <= 0) continue;
+      // Filter bars that can fit the part
+      // First, prefer bars that match the part number
+      const matchingBars = barPool.filter(
+        (b) => b.length >= nextPart.length && (!b.partNo || b.partNo === partNo)
+      );
 
-        // Try to place parts on this bar
-        const result = placePartsOnBar(
-          remainingParts,
-          bar,
-          kerf,
-          finish // Now using the extracted finish value
-        );
+      if (matchingBars.length > 0) {
+        // Find the best matching bar (prefer exact matches first, then smallest waste)
+        for (let i = 0; i < matchingBars.length; i++) {
+          const bar = matchingBars[i];
+          const isExactMatch = bar.partNo === partNo;
 
-        // Calculate usage efficiency
-        const efficiency = result.usedLength / bar.length;
-
-        // If this bar has better usage or places more parts, select it
-        if (
-          result.cuts.length > 0 &&
-          (bestBarIndex === -1 || efficiency > bestBarUsage)
-        ) {
-          bestBarIndex = i;
-          bestBarUsage = efficiency;
-          bestBarCuts = result.cuts;
+          if (
+            bestBarIndex === -1 ||
+            (isExactMatch && barPool[bestBarIndex].partNo !== partNo) ||
+            (isExactMatch === (barPool[bestBarIndex].partNo === partNo) &&
+              bar.length < barPool[bestBarIndex].length)
+          ) {
+            bestBarIndex = barPool.indexOf(bar);
+          }
         }
       }
 
@@ -93,51 +121,85 @@ export function optimizeBars(
       if (bestBarIndex === -1) break;
 
       // Use the selected bar
-      const selectedBar = barsData[bestBarIndex];
+      const selectedBar = barPool[bestBarIndex];
+      const barCuts: BarCut[] = [];
+      let remainingLength = selectedBar.length;
 
-      // Update bar usage count
-      const usageCount = (barCounts.get(selectedBar.id) || 0) + 1;
-      barCounts.set(selectedBar.id, usageCount);
+      // Keep track of parts placed on this bar
+      const placedPartsIndices: number[] = [];
 
-      // Update bar number in cuts
-      bestBarCuts.forEach((c) => {
-        c.barNo = usageCount;
+      // Place first part
+      barCuts.push({
+        partId: nextPart.id,
+        barId: selectedBar.id,
+        barNo: selectedBar.barNo || 1, // Use barNo if available, otherwise default to 1
+        position: 0,
+        length: nextPart.length,
+        markNo: nextPart.markNo,
+        finish: nextPart.finish,
+        fab: nextPart.fab,
+        partNo: nextPart.partNo,
       });
 
+      placedPartsIndices.push(0);
+      remainingLength -= nextPart.length;
+
+      // Try to fit more parts on this bar
+      let position = nextPart.length + kerf;
+
+      // Look for more parts that fit
+      for (let i = 1; i < remainingParts.length; i++) {
+        const part = remainingParts[i];
+
+        // Check if part fits in remaining space
+        if (remainingLength >= part.length + kerf) {
+          barCuts.push({
+            partId: part.id,
+            barId: selectedBar.id,
+            barNo: selectedBar.barNo || 1, // Use barNo if available, otherwise default to 1
+            position: position,
+            length: part.length,
+            markNo: part.markNo,
+            finish: part.finish,
+            fab: part.fab,
+            partNo: part.partNo,
+          });
+
+          placedPartsIndices.push(i);
+          position += part.length + kerf;
+          remainingLength -= part.length + kerf;
+        }
+      }
+
       // Calculate used length and waste
-      const usedLength =
-        bestBarCuts.reduce((total, cut) => total + cut.length, 0) +
-        (bestBarCuts.length - 1) * kerf;
+      const usedLength = selectedBar.length - remainingLength;
 
       // Add bar to used bars
       usedBars.push({
         barId: selectedBar.id,
-        barNo: usageCount,
+        barNo: selectedBar.barNo || 1, // Use barNo if available, otherwise default to 1
         length: selectedBar.length,
         usedLength,
-        wastePercentage: 100 * (1 - usedLength / selectedBar.length),
-        cuts: bestBarCuts,
-        partNo: selectedBar.partNo, // Include the part number
-        description: selectedBar.description, // Include the description
+        wastePercentage: 100 * (remainingLength / selectedBar.length),
+        cuts: barCuts,
+        partNo: selectedBar.partNo,
+        description: selectedBar.description,
       });
 
       // Add cuts to results
-      cuts.push(...bestBarCuts);
+      cuts.push(...barCuts);
 
-      // Update part quantities based on what was placed
-      bestBarCuts.forEach((cut) => {
-        const partIndex = remainingParts.findIndex((p) => p.id === cut.partId);
-        if (partIndex >= 0 && remainingParts[partIndex].qty! > 0) {
-          remainingParts[partIndex].qty!--;
+      // Remove the placed parts from the remaining parts
+      // Remove in reverse order to not affect indices
+      placedPartsIndices
+        .sort((a, b) => b - a)
+        .forEach((index) => {
+          remainingParts.splice(index, 1);
           partsPlaced++;
-        }
-      });
+        });
 
-      // Update bar quantity
-      barsData[bestBarIndex].qty--;
-
-      // Filter out bars with zero quantity
-      barsData = barsData.filter((b) => b.qty > 0);
+      // Remove the used bar from the pool
+      barPool.splice(bestBarIndex, 1);
     }
   }
 
@@ -158,96 +220,15 @@ export function optimizeBars(
       wastePercentage,
       totalPartsPlaced: partsPlaced,
       totalPartsNeeded: totalPartsToPlace,
-      barTypesUsed: [...barCounts.entries()].filter(([_, count]) => count > 0)
+      barTypesUsed: bars.filter((b) => usedBars.some((ub) => ub.barId === b.id))
         .length,
     },
   };
 }
 
 /**
- * Place parts on a single bar using first-fit algorithm
- */
-function placePartsOnBar(
-  parts: Part[],
-  bar: Bar,
-  kerf: number,
-  finish?: string
-): { cuts: BarCut[]; usedLength: number } {
-  // Filter parts by finish if specified
-  const eligibleParts = finish
-    ? parts.filter((p) => (p.finish || "") === finish && p.qty! > 0)
-    : parts.filter((p) => p.qty! > 0);
-
-  if (eligibleParts.length === 0) {
-    return { cuts: [], usedLength: 0 };
-  }
-
-  // Current position on the bar
-  let position = 0;
-
-  // List of cuts
-  const cuts: BarCut[] = [];
-
-  // Copy of parts to track remaining quantities
-  const remainingParts = [...eligibleParts];
-
-  // Keep placing parts until we run out of space or parts
-  while (position < bar.length && remainingParts.some((p) => p.qty! > 0)) {
-    // Find the longest part that fits in the remaining space
-    let bestPartIndex = -1;
-    let bestPartLength = 0;
-
-    for (let i = 0; i < remainingParts.length; i++) {
-      const part = remainingParts[i];
-      if (part.qty! <= 0) continue;
-
-      // Check if part fits in remaining space
-      if (
-        position + part.length <= bar.length &&
-        (bestPartIndex === -1 || part.length > bestPartLength)
-      ) {
-        bestPartIndex = i;
-        bestPartLength = part.length;
-      }
-    }
-
-    // If no part fits, we're done with this bar
-    if (bestPartIndex === -1) break;
-
-    // Place the part
-    const part = remainingParts[bestPartIndex];
-
-    cuts.push({
-      partId: part.id,
-      barId: bar.id,
-      barNo: 1, // Will be updated later
-      position,
-      length: part.length,
-      markNo: part.markNo,
-      finish: part.finish,
-      fab: part.fab,
-      partNo: part.partNo,
-    });
-
-    // Decrement part quantity
-    part.qty!--;
-
-    // Move position, accounting for the kerf (blade width)
-    position += part.length + kerf;
-  }
-
-  // Calculate total used length
-  const usedLength =
-    cuts.length > 0
-      ? cuts.reduce((total, cut) => total + cut.length, 0) +
-        (cuts.length - 1) * kerf
-      : 0;
-
-  return { cuts, usedLength };
-}
-
-/**
  * Find the optimal bar length for a given set of parts
+ * Enhanced to ensure it can fit the longest part
  */
 export function findBestBarLength(
   parts: Part[],
@@ -256,26 +237,28 @@ export function findBestBarLength(
   stepSize: number = 12,
   kerf: number = 0.125
 ): { length: number } {
-  // Clone parts and calculate their total length
+  // Clone parts and find the longest part length
   const partsData = parts.map((p) => ({ ...p, qty: p.qty || 1 }));
+  const longestPartLength = Math.max(...partsData.map((p) => p.length));
+
+  // Ensure minLength is at least the longest part length
+  minLength = Math.max(minLength, longestPartLength);
+
+  // Calculate total part length and estimate kerf waste
   const totalPartLength = partsData.reduce(
     (sum, part) => sum + part.length * part.qty!,
     0
   );
-
-  // Add an estimate for kerf waste
   const totalParts = partsData.reduce((sum, part) => sum + part.qty!, 0);
-  const estimatedKerfWaste = (totalParts - partsData.length) * kerf;
+  const estimatedKerfWaste = (totalParts - 1) * kerf; // -1 because last part doesn't need kerf
 
-  const requiredLength = totalPartLength + estimatedKerfWaste;
-
-  // Generate candidate bar lengths to test
+  // Generate candidate lengths
   const candidateLengths: number[] = [];
   for (let length = minLength; length <= maxLength; length += stepSize) {
     candidateLengths.push(length);
   }
 
-  // If standard lengths are preferred, add them to candidates
+  // Add standard lengths if not already included
   const standardLengths = [120, 144, 192, 240, 288, 360, 480];
   for (const length of standardLengths) {
     if (
@@ -293,10 +276,14 @@ export function findBestBarLength(
   // Track best results
   let bestLength = maxLength;
   let bestWaste = Infinity;
+  let bestBarsNeeded = Infinity;
 
   // Test each candidate length
   for (const length of candidateLengths) {
-    // Create a bar with this length
+    // Skip if length can't fit the longest part
+    if (length < longestPartLength) continue;
+
+    // Create a test bar
     const bar: Bar = {
       id: 1,
       length,
@@ -306,13 +293,19 @@ export function findBestBarLength(
     // Run optimization with this bar
     const result = optimizeBars(partsData, [bar], kerf);
 
-    // Calculate waste
+    // Calculate waste and efficiency
     const barsNeeded = result.summary.totalBars;
     const totalMaterial = barsNeeded * length;
     const waste = totalMaterial - result.summary.usedLength;
+    const efficiency = result.summary.usedLength / totalMaterial;
 
-    // If this produces less waste, it's our new best
-    if (waste < bestWaste) {
+    // Check if this length is better
+    // Prioritize: (1) Fewer bars, (2) Less waste
+    if (
+      barsNeeded < bestBarsNeeded ||
+      (barsNeeded === bestBarsNeeded && waste < bestWaste)
+    ) {
+      bestBarsNeeded = barsNeeded;
       bestWaste = waste;
       bestLength = length;
     }
@@ -323,6 +316,7 @@ export function findBestBarLength(
 
 /**
  * Find optimal bar lengths for each part number
+ * Enhanced to ensure it can fit the longest part in each group
  */
 export function findOptimalBarsByPartNo(
   parts: Part[],
@@ -347,7 +341,7 @@ export function findOptimalBarsByPartNo(
   const results: { partNo: string; length: number }[] = [];
 
   for (const [partNo, groupParts] of Object.entries(partsByPartNo)) {
-    // Skip determining for "NO_PART_NO" as it's a fallback
+    // Skip determining for "NO_PART_NO" if it's a fallback
     if (partNo === "NO_PART_NO" && Object.keys(partsByPartNo).length > 1) {
       continue;
     }
@@ -398,7 +392,7 @@ export function createBarsFromOptimalResults(
         }`,
       });
     } else {
-      // Just ensure there's enough quantity
+      // Ensure there's enough quantity
       existingBar.qty = Math.max(existingBar.qty, 1000);
     }
   });
@@ -407,184 +401,13 @@ export function createBarsFromOptimalResults(
 }
 
 /**
- * Modified optimize function to respect part number specific bars
+ * Main optimization function that handles part-specific bars
  */
 export function optimizeBarsWithPartMatching(
   parts: Part[],
   bars: Bar[],
   kerf: number = 0.125
 ): BarOptimizationResult {
-  // Clone input data
-  const partsData = parts.map((p) => ({ ...p, qty: p.qty || 1 }));
-  let barsData = bars.map((b) => ({ ...b, maxQty: b.maxQty ?? b.qty }));
-
-  // Sort parts by length (longest first)
-  const sortedParts = [...partsData].sort((a, b) => b.length - a.length);
-
-  // Initialize results
-  const cuts: BarCut[] = [];
-  const usedBars: CutBar[] = [];
-
-  // Track total parts to place
-  const totalPartsToPlace = sortedParts.reduce((sum, p) => sum + p.qty!, 0);
-  let partsPlaced = 0;
-
-  // Track bar usage
-  const barCounts = new Map<number, number>();
-  barsData.forEach((b) => barCounts.set(b.id, 0));
-
-  // Group parts by part number and finish
-  const partsByGroup: Record<string, Part[]> = {};
-
-  // Special marker for parts with no finish or partNo
-  const NO_FINISH = "__NO_FINISH__";
-  const NO_PART_NO = "__NO_PART_NO__";
-
-  sortedParts.forEach((part) => {
-    const finishKey = part.finish || NO_FINISH;
-    const partNoKey = part.partNo || NO_PART_NO;
-    const groupKey = `${partNoKey}|${finishKey}`;
-
-    if (!partsByGroup[groupKey]) {
-      partsByGroup[groupKey] = [];
-    }
-    partsByGroup[groupKey].push(part);
-  });
-
-  // Process each group separately
-  for (const [groupKey, groupParts] of Object.entries(partsByGroup)) {
-    // Extract partNo and finish from the group key
-    const [partNoValue, finishValue] = groupKey.split("|");
-    const partNo = partNoValue !== NO_PART_NO ? partNoValue : undefined;
-    const finish = finishValue !== NO_FINISH ? finishValue : undefined;
-
-    // Continue placing parts until all are placed or we run out of bars
-    let remainingParts = [...groupParts];
-
-    while (remainingParts.some((p) => p.qty! > 0) && barsData.length > 0) {
-      // Find the best bar for the current set of parts
-      let bestBarIndex = -1;
-      let bestBarUsage = -1;
-      let bestBarCuts: BarCut[] = [];
-
-      // First, try bars that match the part number
-      const matchingBars = barsData.filter(
-        (b) =>
-          // Either the bar has no partNo restriction, or it matches this part's partNo
-          !b.partNo || b.partNo === partNo
-      );
-
-      if (matchingBars.length === 0) {
-        console.warn(
-          `No matching bars available for part ${partNo || "unknown"}`
-        );
-        break;
-      }
-
-      // Try each available bar type
-      for (let i = 0; i < matchingBars.length; i++) {
-        const bar = matchingBars[i];
-        if (bar.qty <= 0) continue;
-
-        // Try to place parts on this bar
-        const result = placePartsOnBar(remainingParts, bar, kerf, finish);
-
-        // Calculate usage efficiency
-        const efficiency = result.usedLength / bar.length;
-
-        // Prefer exact-match bars first, then consider efficiency
-        const isExactMatch = bar.partNo === partNo;
-        const currentBestIsExactMatch =
-          bestBarIndex >= 0 && barsData[bestBarIndex].partNo === partNo;
-
-        // If both are exact matches or both are general-purpose, use efficiency
-        // If one is exact match and other isn't, prefer exact match
-        if (
-          result.cuts.length > 0 &&
-          (bestBarIndex === -1 ||
-            (isExactMatch && !currentBestIsExactMatch) ||
-            (isExactMatch === currentBestIsExactMatch &&
-              efficiency > bestBarUsage))
-        ) {
-          // Find the actual index in the original barsData array
-          const originalIndex = barsData.findIndex((b) => b.id === bar.id);
-          if (originalIndex >= 0) {
-            bestBarIndex = originalIndex;
-            bestBarUsage = efficiency;
-            bestBarCuts = result.cuts;
-          }
-        }
-      }
-
-      // If no suitable bar is found, break
-      if (bestBarIndex === -1) break;
-
-      // Use the selected bar
-      const selectedBar = barsData[bestBarIndex];
-
-      // Update bar usage count
-      const usageCount = (barCounts.get(selectedBar.id) || 0) + 1;
-      barCounts.set(selectedBar.id, usageCount);
-
-      // Update bar number in cuts
-      bestBarCuts.forEach((c) => {
-        c.barNo = usageCount;
-      });
-
-      // Calculate used length and waste
-      const usedLength =
-        bestBarCuts.reduce((total, cut) => total + cut.length, 0) +
-        (bestBarCuts.length - 1) * kerf;
-
-      // Add bar to used bars
-      usedBars.push({
-        barId: selectedBar.id,
-        barNo: usageCount,
-        length: selectedBar.length,
-        usedLength,
-        wastePercentage: 100 * (1 - usedLength / selectedBar.length),
-        cuts: bestBarCuts,
-      });
-
-      // Add cuts to results
-      cuts.push(...bestBarCuts);
-
-      // Update part quantities based on what was placed
-      bestBarCuts.forEach((cut) => {
-        const partIndex = remainingParts.findIndex((p) => p.id === cut.partId);
-        if (partIndex >= 0 && remainingParts[partIndex].qty! > 0) {
-          remainingParts[partIndex].qty!--;
-          partsPlaced++;
-        }
-      });
-
-      // Update bar quantity
-      barsData[bestBarIndex].qty--;
-
-      // Filter out bars with zero quantity
-      barsData = barsData.filter((b) => b.qty > 0);
-    }
-  }
-
-  // Calculate summary statistics
-  const totalLength = usedBars.reduce((sum, b) => sum + b.length, 0);
-  const usedLength = usedBars.reduce((sum, b) => sum + b.usedLength, 0);
-  const wastePercentage = totalLength
-    ? 100 * (1 - usedLength / totalLength)
-    : 0;
-
-  return {
-    cuts,
-    bars: usedBars,
-    summary: {
-      totalBars: usedBars.length,
-      totalLength,
-      usedLength,
-      wastePercentage,
-      totalPartsPlaced: partsPlaced,
-      totalPartsNeeded: totalPartsToPlace,
-      barTypesUsed: [...barCounts.entries()].filter(([_, count]) => count > 0)
-        .length,
-    },
-  };
+  // The rewritten optimizeBars function already handles part matching
+  return optimizeBars(parts, bars, kerf);
 }

@@ -472,30 +472,6 @@ export default function BarOptimizationPage() {
                       </p>
                     </div>
                   </div>
-                  {results && results.bars.some((b) => b.partNo) && (
-                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h3 className="text-lg font-medium text-blue-800 mb-2">
-                        Part-Specific Bar Lengths
-                      </h3>
-                      <div className="grid grid-cols-3 gap-4">
-                        {Array.from(
-                          new Set(
-                            results.bars
-                              .filter((b) => b.partNo) // Ensure we only consider bars with partNo
-                              .map((b) => `${b.partNo}|${b.length}`)
-                          )
-                        ).map((key) => {
-                          const [partNo, length] = key.split("|");
-                          return (
-                            <div key={key} className="text-blue-700">
-                              <strong>{partNo}:</strong> {length}" (
-                              {(Number(length) / 12).toFixed(1)}')
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 

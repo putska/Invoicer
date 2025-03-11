@@ -1,4 +1,3 @@
-// components/BarCuttingVisualization.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -28,6 +27,9 @@ export default function BarCuttingVisualization({
 }: BarCuttingVisualizationProps) {
   const [currentBarIndex, setCurrentBarIndex] = useState(0);
   const [groupByFinish, setGroupByFinish] = useState(true);
+
+  // Scaling factor for visualization
+  const SCALE_FACTOR = 4.5; // Double the size
 
   // Group bars by barId and barNo
   const barsBySize = groupByFinish
@@ -283,11 +285,23 @@ export default function BarCuttingVisualization({
         {/* Summary Information */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-medium mb-2">Optimization Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
               <div className="text-sm text-gray-500">Total Bars</div>
               <div className="text-xl font-semibold">
                 {summary?.totalBars || bars.length}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Total Parts</div>
+              <div className="text-xl font-semibold">
+                {summary?.totalPartsNeeded || 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Parts Placed</div>
+              <div className="text-xl font-semibold">
+                {summary?.totalPartsPlaced || 0}
               </div>
             </div>
             <div>
@@ -298,17 +312,6 @@ export default function BarCuttingVisualization({
                   : inToFt(bars.reduce((sum, b) => sum + b.length, 0)).toFixed(
                       2
                     )}{" "}
-                ft
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Used Length</div>
-              <div className="text-xl font-semibold">
-                {summary
-                  ? inToFt(summary.usedLength).toFixed(2)
-                  : inToFt(
-                      bars.reduce((sum, b) => sum + b.usedLength, 0)
-                    ).toFixed(2)}{" "}
                 ft
               </div>
             </div>
@@ -331,22 +334,41 @@ export default function BarCuttingVisualization({
           {barsByFinish.length > 1 && (
             <div className="mt-4 border-t border-gray-200 pt-4">
               <h4 className="text-sm font-medium mb-2">Breakdown by Finish</h4>
-              <div className="grid grid-cols-5 gap-2 text-sm">
+              <div className="grid grid-cols-6 gap-2 text-sm">
                 <div className="font-medium">Finish</div>
                 <div className="font-medium">Bars</div>
+                <div className="font-medium">Bar Length</div>
                 <div className="font-medium">Total Length</div>
                 <div className="font-medium">Used Length</div>
                 <div className="font-medium">Waste %</div>
 
-                {barsByFinish.map((finish, index) => (
-                  <React.Fragment key={index}>
-                    <div>{finish.finish}</div>
-                    <div>{finish.barCount}</div>
-                    <div>{inToFt(finish.totalLength).toFixed(2)} ft</div>
-                    <div>{inToFt(finish.usedLength).toFixed(2)} ft</div>
-                    <div>{finish.wastePercentage.toFixed(1)}%</div>
-                  </React.Fragment>
-                ))}
+                {barsByFinish.map((finish, index) => {
+                  // Find all bar lengths for this finish group
+                  const barsInGroup = barsBySize[index]?.bars || [];
+
+                  // Get unique bar lengths
+                  const uniqueBarLengths = Array.from(
+                    new Set(barsInGroup.map((bar) => bar.length))
+                  ).sort((a, b) => b - a); // Sort descending
+
+                  // Format the bar lengths for display
+                  const barLengthsDisplay = uniqueBarLengths
+                    .map(
+                      (length) => `${length}" (${inToFt(length).toFixed(2)} ft)`
+                    )
+                    .join(", ");
+
+                  return (
+                    <React.Fragment key={index}>
+                      <div>{finish.finish}</div>
+                      <div>{finish.barCount}</div>
+                      <div>{barLengthsDisplay || "N/A"}</div>
+                      <div>{inToFt(finish.totalLength).toFixed(2)} ft</div>
+                      <div>{inToFt(finish.usedLength).toFixed(2)} ft</div>
+                      <div>{finish.wastePercentage.toFixed(1)}%</div>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -371,14 +393,19 @@ export default function BarCuttingVisualization({
                 </div>
               </div>
 
-              {/* Bar visualization */}
+              {/* Bar visualization - SCALED by factor of 2 */}
               <div className="rounded-lg border overflow-x-auto">
-                <div className="min-w-full" style={{ padding: "1rem" }}>
+                <div className="min-w-full p-4">
                   <div
-                    className="relative h-10 bg-gray-100 border border-gray-300"
-                    style={{ width: `${currentBar.length + 2}px` }}
+                    className="w-full relative h-20 bg-gray-100 border border-gray-300"
+                    style={{
+                      minWidth: `${Math.max(
+                        currentBar.length * SCALE_FACTOR + 4,
+                        500
+                      )}px`,
+                    }}
                   >
-                    {/* Draw each cut */}
+                    {/* Draw each cut - SCALED */}
                     {cuts
                       .filter(
                         (c) =>
@@ -391,14 +418,15 @@ export default function BarCuttingVisualization({
                         const hue = (cut.markNo.charCodeAt(0) * 10) % 360;
                         const color = `hsl(${hue}, 70%, 60%)`;
 
-                        // Calculate position including all previous cuts and kerfs
+                        // Calculate position including all previous cuts and kerfs - SCALED
                         const prevCuts = array.slice(0, index);
                         const prevLength = prevCuts.reduce(
                           (sum, c) => sum + c.length,
                           0
                         );
                         const prevKerfs = index * kerf;
-                        const position = prevLength + prevKerfs;
+                        const position =
+                          (prevLength + prevKerfs) * SCALE_FACTOR;
 
                         return (
                           <React.Fragment key={index}>
@@ -406,7 +434,7 @@ export default function BarCuttingVisualization({
                               className="absolute top-0 h-full border-r border-gray-400 flex items-center justify-center text-xs font-medium"
                               style={{
                                 left: `${position}px`,
-                                width: `${cut.length}px`,
+                                width: `${cut.length * SCALE_FACTOR}px`,
                                 backgroundColor: color,
                                 color: "white",
                                 zIndex: 1,
@@ -419,13 +447,15 @@ export default function BarCuttingVisualization({
                               </div>
                             </div>
 
-                            {/* Add kerf marker if not the last cut */}
+                            {/* Add kerf marker if not the last cut - SCALED */}
                             {index < array.length - 1 && (
                               <div
                                 className="absolute top-0 h-full bg-gray-800"
                                 style={{
-                                  left: `${position + cut.length}px`,
-                                  width: `${kerf}px`,
+                                  left: `${
+                                    position + cut.length * SCALE_FACTOR
+                                  }px`,
+                                  width: `${kerf * SCALE_FACTOR}px`,
                                   zIndex: 2,
                                 }}
                                 title={`Kerf: ${kerf}"`}
@@ -435,7 +465,7 @@ export default function BarCuttingVisualization({
                         );
                       })}
 
-                    {/* Measurement scale */}
+                    {/* Measurement scale - SCALED */}
                     <div className="absolute top-full left-0 right-0 h-6 flex">
                       {Array.from({
                         length: Math.ceil(currentBar.length / 12) + 1,
@@ -443,12 +473,12 @@ export default function BarCuttingVisualization({
                         <div key={i} className="relative">
                           <div
                             className="absolute top-0 w-px h-2 bg-gray-500"
-                            style={{ left: `${i * 12}px` }}
+                            style={{ left: `${i * 12 * SCALE_FACTOR}px` }}
                           ></div>
                           <div
                             className="absolute top-2 text-xs text-gray-600"
                             style={{
-                              left: `${i * 12}px`,
+                              left: `${i * 12 * SCALE_FACTOR}px`,
                               transform: "translateX(-50%)",
                             }}
                           >
