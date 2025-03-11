@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Panel } from "./panelOptimization";
+import { Panel } from "../types";
 import * as XLSX from "xlsx-js-style";
 
 interface PanelUploadExcelProps {

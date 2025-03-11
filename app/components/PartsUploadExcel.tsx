@@ -5,7 +5,7 @@ import React, { useCallback } from "react";
 import * as XLSX from "xlsx-js-style";
 import { Button } from "@/components/ui/button";
 import { UploadCloud } from "lucide-react";
-import { Part } from "./barOptimization";
+import { Part } from "../types";
 
 interface PartsUploadExcelProps {
   onUpload: (parts: Part[]) => void;
