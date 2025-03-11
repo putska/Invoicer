@@ -56,6 +56,9 @@ export const generatePDF = async (data: any) => {
       case "Telehandler":
         pdfPath = "/Telehandler.pdf";
         break;
+      case "Swing-Stage":
+        pdfPath = "/SwingStage.pdf";
+        break;
       case "MEWP":
         pdfPath = "/MEWP.pdf";
         break;
@@ -2431,6 +2434,878 @@ export const generatePDF = async (data: any) => {
               const commentField = `Text${baseField + 1}`;
 
               safeSetTextField(form, itemNumberField, item.itemNumber || "");
+              safeSetTextField(form, commentField, item.comment || "");
+            }
+          }
+        );
+      }
+    } else if (data.formName === "Swing-Stage") {
+      // Basic Information
+      safeSetTextField(form, "Text1", data.formData.jobName || "");
+      safeSetTextField(form, "Text2", data.formData.jobNumber || "");
+      safeSetTextField(form, "Text3", data.formData.jobsiteAddress || "");
+      safeSetTextField(form, "Text4", formatDate(data.formData.date));
+      safeSetTextField(form, "Text5", data.formData.superintendent || "");
+      safeSetTextField(form, "Text6", data.formData.weather || "");
+
+      // General Checks
+      if (data.formData.generalChecks) {
+        // Any Damage to Equipment
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          !!data.formData.generalChecks.damageToEquipment?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          !!data.formData.generalChecks.damageToEquipment?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          !!data.formData.generalChecks.damageToEquipment?.na
+        );
+
+        // Equipment Overloaded
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          !!data.formData.generalChecks.equipmentOverloaded?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          !!data.formData.generalChecks.equipmentOverloaded?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          !!data.formData.generalChecks.equipmentOverloaded?.na
+        );
+
+        // Competent Person Qualified
+        safeSetCheckBox(
+          form,
+          "Check Box7",
+          !!data.formData.generalChecks.competentPersonQualified?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box8",
+          !!data.formData.generalChecks.competentPersonQualified?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box9",
+          !!data.formData.generalChecks.competentPersonQualified?.na
+        );
+
+        // Equipment Used Correctly
+        safeSetCheckBox(
+          form,
+          "Check Box10",
+          !!data.formData.generalChecks.equipmentUsedCorrectly?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box11",
+          !!data.formData.generalChecks.equipmentUsedCorrectly?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box12",
+          !!data.formData.generalChecks.equipmentUsedCorrectly?.na
+        );
+
+        // Communication Available
+        safeSetCheckBox(
+          form,
+          "Check Box13",
+          !!data.formData.generalChecks.communicationAvailable?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box14",
+          !!data.formData.generalChecks.communicationAvailable?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box15",
+          !!data.formData.generalChecks.communicationAvailable?.na
+        );
+
+        // Connection Hardware Good
+        safeSetCheckBox(
+          form,
+          "Check Box16",
+          !!data.formData.generalChecks.connectionHardwareGood?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box17",
+          !!data.formData.generalChecks.connectionHardwareGood?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box18",
+          !!data.formData.generalChecks.connectionHardwareGood?.na
+        );
+
+        // Unattended Platforms Secured
+        safeSetCheckBox(
+          form,
+          "Check Box19",
+          !!data.formData.generalChecks.unattendedPlatformsSecured?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box20",
+          !!data.formData.generalChecks.unattendedPlatformsSecured?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box21",
+          !!data.formData.generalChecks.unattendedPlatformsSecured?.na
+        );
+
+        // Required Labels Present
+        safeSetCheckBox(
+          form,
+          "Check Box22",
+          !!data.formData.generalChecks.requiredLabelsPresent?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box23",
+          !!data.formData.generalChecks.requiredLabelsPresent?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box24",
+          !!data.formData.generalChecks.requiredLabelsPresent?.na
+        );
+      }
+
+      // Rigging Equipment
+      if (data.formData.riggingEquipment) {
+        // Structure Supports Loads
+        safeSetCheckBox(
+          form,
+          "Check Box25",
+          !!data.formData.riggingEquipment.structureSupportsLoads?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box26",
+          !!data.formData.riggingEquipment.structureSupportsLoads?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box27",
+          !!data.formData.riggingEquipment.structureSupportsLoads?.na
+        );
+
+        // Rigging Equipment Designed
+        safeSetCheckBox(
+          form,
+          "Check Box28",
+          !!data.formData.riggingEquipment.riggingEquipmentDesigned?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box29",
+          !!data.formData.riggingEquipment.riggingEquipmentDesigned?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box30",
+          !!data.formData.riggingEquipment.riggingEquipmentDesigned?.na
+        );
+
+        // Additional Welding Safety
+        safeSetCheckBox(
+          form,
+          "Check Box31",
+          !!data.formData.riggingEquipment.additionalWeldingSafety?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box32",
+          !!data.formData.riggingEquipment.additionalWeldingSafety?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box33",
+          !!data.formData.riggingEquipment.additionalWeldingSafety?.na
+        );
+
+        // Davits Sockets Installed
+        safeSetCheckBox(
+          form,
+          "Check Box34",
+          !!data.formData.riggingEquipment.davitsSocketsInstalled?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box35",
+          !!data.formData.riggingEquipment.davitsSocketsInstalled?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box36",
+          !!data.formData.riggingEquipment.davitsSocketsInstalled?.na
+        );
+
+        // Counterweights Match
+        safeSetCheckBox(
+          form,
+          "Check Box37",
+          !!data.formData.riggingEquipment.counterweightsMatch?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box38",
+          !!data.formData.riggingEquipment.counterweightsMatch?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box39",
+          !!data.formData.riggingEquipment.counterweightsMatch?.na
+        );
+
+        // Tested Anchorage Supports
+        safeSetCheckBox(
+          form,
+          "Check Box40",
+          !!data.formData.riggingEquipment.testedAnchorageSupports?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box41",
+          !!data.formData.riggingEquipment.testedAnchorageSupports?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box42",
+          !!data.formData.riggingEquipment.testedAnchorageSupports?.na
+        );
+
+        // Welds In Good Condition
+        safeSetCheckBox(
+          form,
+          "Check Box43",
+          !!data.formData.riggingEquipment.weldsInGoodCondition?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box44",
+          !!data.formData.riggingEquipment.weldsInGoodCondition?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box45",
+          !!data.formData.riggingEquipment.weldsInGoodCondition?.na
+        );
+
+        // Components Undamaged
+        safeSetCheckBox(
+          form,
+          "Check Box46",
+          !!data.formData.riggingEquipment.componentsUndamaged?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box47",
+          !!data.formData.riggingEquipment.componentsUndamaged?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box48",
+          !!data.formData.riggingEquipment.componentsUndamaged?.na
+        );
+
+        // Steel Parts No Penetrating Rust
+        safeSetCheckBox(
+          form,
+          "Check Box49",
+          !!data.formData.riggingEquipment.steelPartsNoPenetRust?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box50",
+          !!data.formData.riggingEquipment.steelPartsNoPenetRust?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box51",
+          !!data.formData.riggingEquipment.steelPartsNoPenetRust?.na
+        );
+      }
+
+      // Suspended Platform
+      if (data.formData.suspendedPlatform) {
+        // Platform Stirrups In Line
+        safeSetCheckBox(
+          form,
+          "Check Box52",
+          !!data.formData.suspendedPlatform.platformStirrupsInLine?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box53",
+          !!data.formData.suspendedPlatform.platformStirrupsInLine?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box54",
+          !!data.formData.suspendedPlatform.platformStirrupsInLine?.na
+        );
+
+        // Live Load Not Exceed
+        safeSetCheckBox(
+          form,
+          "Check Box55",
+          !!data.formData.suspendedPlatform.liveLoadNotExceed?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box56",
+          !!data.formData.suspendedPlatform.liveLoadNotExceed?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box57",
+          !!data.formData.suspendedPlatform.liveLoadNotExceed?.na
+        );
+
+        // Platform Properly Designed
+        safeSetCheckBox(
+          form,
+          "Check Box58",
+          !!data.formData.suspendedPlatform.platformPropDesigned?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box59",
+          !!data.formData.suspendedPlatform.platformPropDesigned?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box60",
+          !!data.formData.suspendedPlatform.platformPropDesigned?.na
+        );
+
+        // Components In Good Order
+        safeSetCheckBox(
+          form,
+          "Check Box61",
+          !!data.formData.suspendedPlatform.componentsInGoodOrder?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box62",
+          !!data.formData.suspendedPlatform.componentsInGoodOrder?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box63",
+          !!data.formData.suspendedPlatform.componentsInGoodOrder?.na
+        );
+
+        // Visible Welds Good
+        safeSetCheckBox(
+          form,
+          "Check Box64",
+          !!data.formData.suspendedPlatform.visibleWeldsGood?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box65",
+          !!data.formData.suspendedPlatform.visibleWeldsGood?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box66",
+          !!data.formData.suspendedPlatform.visibleWeldsGood?.na
+        );
+
+        // Wire Rope Properly Reeved
+        safeSetCheckBox(
+          form,
+          "Check Box67",
+          !!data.formData.suspendedPlatform.wireRopePropReeved?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box68",
+          !!data.formData.suspendedPlatform.wireRopePropReeved?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box69",
+          !!data.formData.suspendedPlatform.wireRopePropReeved?.na
+        );
+
+        // Mounting Holes Free
+        safeSetCheckBox(
+          form,
+          "Check Box70",
+          !!data.formData.suspendedPlatform.mountingHolesFree?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box71",
+          !!data.formData.suspendedPlatform.mountingHolesFree?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box72",
+          !!data.formData.suspendedPlatform.mountingHolesFree?.na
+        );
+
+        // Hardware Grade 5
+        safeSetCheckBox(
+          form,
+          "Check Box73",
+          !!data.formData.suspendedPlatform.hardwareGrade5?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box74",
+          !!data.formData.suspendedPlatform.hardwareGrade5?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box75",
+          !!data.formData.suspendedPlatform.hardwareGrade5?.na
+        );
+
+        // Stirrup Sheaves Good
+        safeSetCheckBox(
+          form,
+          "Check Box76",
+          !!data.formData.suspendedPlatform.stirrupSheavesGood?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box77",
+          !!data.formData.suspendedPlatform.stirrupSheavesGood?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box78",
+          !!data.formData.suspendedPlatform.stirrupSheavesGood?.na
+        );
+
+        // Platform Free Corrosion 1
+        safeSetCheckBox(
+          form,
+          "Check Box79",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion1?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box80",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion1?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box81",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion1?.na
+        );
+
+        // Deck Free Debris
+        safeSetCheckBox(
+          form,
+          "Check Box82",
+          !!data.formData.suspendedPlatform.deckFreeDebris?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box83",
+          !!data.formData.suspendedPlatform.deckFreeDebris?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box84",
+          !!data.formData.suspendedPlatform.deckFreeDebris?.na
+        );
+
+        // Platform Free Corrosion 2
+        safeSetCheckBox(
+          form,
+          "Check Box85",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion2?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box86",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion2?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box87",
+          !!data.formData.suspendedPlatform.platformFreeCorrosion2?.na
+        );
+
+        // Safe Distance Power Lines
+        safeSetCheckBox(
+          form,
+          "Check Box88",
+          !!data.formData.suspendedPlatform.safeDistancePowerLines?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box89",
+          !!data.formData.suspendedPlatform.safeDistancePowerLines?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box90",
+          !!data.formData.suspendedPlatform.safeDistancePowerLines?.na
+        );
+
+        // Weather Conditions Acceptable
+        safeSetCheckBox(
+          form,
+          "Check Box91",
+          !!data.formData.suspendedPlatform.weatherConditionsAcceptable?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box92",
+          !!data.formData.suspendedPlatform.weatherConditionsAcceptable?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box93",
+          !!data.formData.suspendedPlatform.weatherConditionsAcceptable?.na
+        );
+
+        // Power Company Contacted
+        safeSetCheckBox(
+          form,
+          "Check Box94",
+          !!data.formData.suspendedPlatform.powerCompanyContacted?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box95",
+          !!data.formData.suspendedPlatform.powerCompanyContacted?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box96",
+          !!data.formData.suspendedPlatform.powerCompanyContacted?.na
+        );
+      }
+
+      // Hoist, Wire Rope & Power
+      if (data.formData.hoistWireRopePower) {
+        // Hoists Properly Selected
+        safeSetCheckBox(
+          form,
+          "Check Box97",
+          !!data.formData.hoistWireRopePower.hoistsProperlySelected?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box98",
+          !!data.formData.hoistWireRopePower.hoistsProperlySelected?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box99",
+          !!data.formData.hoistWireRopePower.hoistsProperlySelected?.na
+        );
+
+        // Manufacturer Instructions
+        safeSetCheckBox(
+          form,
+          "Check Box100",
+          !!data.formData.hoistWireRopePower.manufacturerInstructions?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box101",
+          !!data.formData.hoistWireRopePower.manufacturerInstructions?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box102",
+          !!data.formData.hoistWireRopePower.manufacturerInstructions?.na
+        );
+
+        // Daily Tests Performed
+        safeSetCheckBox(
+          form,
+          "Check Box103",
+          !!data.formData.hoistWireRopePower.dailyTestsPerformed?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box104",
+          !!data.formData.hoistWireRopePower.dailyTestsPerformed?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box105",
+          !!data.formData.hoistWireRopePower.dailyTestsPerformed?.na
+        );
+
+        // Hoists Proper Working
+        safeSetCheckBox(
+          form,
+          "Check Box106",
+          !!data.formData.hoistWireRopePower.hoistsProperWorking?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box107",
+          !!data.formData.hoistWireRopePower.hoistsProperWorking?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box108",
+          !!data.formData.hoistWireRopePower.hoistsProperWorking?.na
+        );
+
+        // Cable Connections
+        safeSetCheckBox(
+          form,
+          "Check Box109",
+          !!data.formData.hoistWireRopePower.cableConnections?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box110",
+          !!data.formData.hoistWireRopePower.cableConnections?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box111",
+          !!data.formData.hoistWireRopePower.cableConnections?.na
+        );
+
+        // Power Supply Adequate
+        safeSetCheckBox(
+          form,
+          "Check Box112",
+          !!data.formData.hoistWireRopePower.powerSupplyAdequate?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box113",
+          !!data.formData.hoistWireRopePower.powerSupplyAdequate?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box114",
+          !!data.formData.hoistWireRopePower.powerSupplyAdequate?.na
+        );
+
+        // Wire Rope Inspected
+        safeSetCheckBox(
+          form,
+          "Check Box115",
+          !!data.formData.hoistWireRopePower.wireRopeInspected?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box116",
+          !!data.formData.hoistWireRopePower.wireRopeInspected?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box117",
+          !!data.formData.hoistWireRopePower.wireRopeInspected?.na
+        );
+
+        // Wire Rope Length
+        safeSetCheckBox(
+          form,
+          "Check Box118",
+          !!data.formData.hoistWireRopePower.wireRopeLength?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box119",
+          !!data.formData.hoistWireRopePower.wireRopeLength?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box120",
+          !!data.formData.hoistWireRopePower.wireRopeLength?.na
+        );
+
+        // Emergency Stop Works
+        safeSetCheckBox(
+          form,
+          "Check Box121",
+          !!data.formData.hoistWireRopePower.emergencyStopWorks?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box122",
+          !!data.formData.hoistWireRopePower.emergencyStopWorks?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box123",
+          !!data.formData.hoistWireRopePower.emergencyStopWorks?.na
+        );
+
+        // Controlled Descent Test
+        safeSetCheckBox(
+          form,
+          "Check Box124",
+          !!data.formData.hoistWireRopePower.controlledDescentTest?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box125",
+          !!data.formData.hoistWireRopePower.controlledDescentTest?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box126",
+          !!data.formData.hoistWireRopePower.controlledDescentTest?.na
+        );
+      }
+
+      // Fall Protection System
+      if (data.formData.fallProtectionSystem) {
+        // Workers Use Fall Arrest
+        safeSetCheckBox(
+          form,
+          "Check Box127",
+          !!data.formData.fallProtectionSystem.workersUseFallArrest?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box128",
+          !!data.formData.fallProtectionSystem.workersUseFallArrest?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box129",
+          !!data.formData.fallProtectionSystem.workersUseFallArrest?.na
+        );
+
+        // Rope Grab Installed
+        safeSetCheckBox(
+          form,
+          "Check Box130",
+          !!data.formData.fallProtectionSystem.ropeGrabInstalled?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box131",
+          !!data.formData.fallProtectionSystem.ropeGrabInstalled?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box132",
+          !!data.formData.fallProtectionSystem.ropeGrabInstalled?.na
+        );
+
+        // Shock Absorbing Lanyard
+        safeSetCheckBox(
+          form,
+          "Check Box133",
+          !!data.formData.fallProtectionSystem.shockAbsorbingLanyard?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box134",
+          !!data.formData.fallProtectionSystem.shockAbsorbingLanyard?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box135",
+          !!data.formData.fallProtectionSystem.shockAbsorbingLanyard?.na
+        );
+
+        // Full Body Harness
+        safeSetCheckBox(
+          form,
+          "Check Box136",
+          !!data.formData.fallProtectionSystem.fullBodyHarness?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box137",
+          !!data.formData.fallProtectionSystem.fullBodyHarness?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box138",
+          !!data.formData.fallProtectionSystem.fullBodyHarness?.na
+        );
+
+        // Vertical Lifeline
+        safeSetCheckBox(
+          form,
+          "Check Box139",
+          !!data.formData.fallProtectionSystem.verticalLifeline?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box140",
+          !!data.formData.fallProtectionSystem.verticalLifeline?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box141",
+          !!data.formData.fallProtectionSystem.verticalLifeline?.na
+        );
+
+        // Fall Arrest Unguarded Areas
+        safeSetCheckBox(
+          form,
+          "Check Box142",
+          !!data.formData.fallProtectionSystem.fallArrestUnguardedAreas?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box143",
+          !!data.formData.fallProtectionSystem.fallArrestUnguardedAreas?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box144",
+          !!data.formData.fallProtectionSystem.fallArrestUnguardedAreas?.na
+        );
+
+        // Emergency Rescue Plan
+        safeSetCheckBox(
+          form,
+          "Check Box145",
+          !!data.formData.fallProtectionSystem.emergencyRescuePlan?.yes
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box146",
+          !!data.formData.fallProtectionSystem.emergencyRescuePlan?.no
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box147",
+          !!data.formData.fallProtectionSystem.emergencyRescuePlan?.na
+        );
+      }
+
+      // Comment Items
+      if (
+        data.formData.commentItems &&
+        Array.isArray(data.formData.commentItems)
+      ) {
+        // In the PDF, there are 5 comment rows
+        data.formData.commentItems.forEach(
+          (item: { comment: string }, index: number) => {
+            if (index < 5) {
+              const commentField = `Text${7 + index}`;
               safeSetTextField(form, commentField, item.comment || "");
             }
           }

@@ -274,8 +274,7 @@ export default function PanelOptimizationPage() {
                     }
                   />
                   <label htmlFor="allowRotation" className="text-sm">
-                    Allow panel rotation (panels can be placed in either
-                    orientation)
+                    Allow panel rotation (panels are not directional)
                   </label>
                 </div>
               </div>

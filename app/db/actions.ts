@@ -1897,7 +1897,11 @@ export async function getAllFormSubmissions(includeDeleted = false) {
     return await db.select().from(forms);
   } else {
     // Return only records where isDeleted is false
-    return await db.select().from(forms).where(eq(forms.isDeleted, false));
+    return await db
+      .select()
+      .from(forms)
+      .where(eq(forms.isDeleted, false))
+      .orderBy(desc(forms.createdAt));
   }
 }
 
@@ -2032,7 +2036,7 @@ export async function searchSafetyForms(query: string) {
       .select()
       .from(forms)
       .where(not(forms.isDeleted))
-      .orderBy(forms.id);
+      .orderBy(desc(forms.createdAt));
 
     return { submissions: allForms };
   }
@@ -2058,7 +2062,7 @@ export async function searchSafetyForms(query: string) {
         )
       )
     )
-    .orderBy(forms.id);
+    .orderBy(desc(forms.dateCreated));
 
   return { submissions: results };
 }

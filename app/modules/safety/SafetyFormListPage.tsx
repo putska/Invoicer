@@ -203,6 +203,9 @@ export default function SafetyFormListPage({
       case "mewp":
         router.push(`/modules/safety/mewp/${form.id}`);
         break;
+      case "swing-stage":
+        router.push(`/modules/safety/swing-stage/${form.id}`);
+        break;
       case "telehandler":
         router.push(`/modules/safety/telehandler/${form.id}`);
         break;
