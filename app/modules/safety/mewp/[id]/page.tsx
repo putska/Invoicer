@@ -562,6 +562,7 @@ export default function MEWPFormPage() {
   useEffect(() => {
     if (fullName) {
       setValue("formData.inspectionConductedBy", fullName);
+      setValue("userName", fullName);
     }
   }, [fullName, setValue]);
 

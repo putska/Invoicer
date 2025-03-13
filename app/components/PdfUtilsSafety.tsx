@@ -1,6 +1,11 @@
 // components/safetyPdfUtils.ts
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import { format } from "date-fns";
+import {
+  fillMultiLineField,
+  fillAllMultiLineFields,
+  type FieldMapping,
+} from "./pdfHelper";
 
 const formatDate = (dateString: string): string => {
   if (!dateString) return "";
@@ -61,6 +66,12 @@ export const generatePDF = async (data: any) => {
         break;
       case "MEWP":
         pdfPath = "/MEWP.pdf";
+        break;
+      case "Lanyard-Inspection":
+        pdfPath = "/LanyardInspection.pdf";
+        break;
+      case "Accident-Incident-Report":
+        pdfPath = "/AccidentReport.pdf";
         break;
       default:
         throw new Error(`Unknown form type: ${data.formName}`);
@@ -3308,6 +3319,979 @@ export const generatePDF = async (data: any) => {
               const commentField = `Text${7 + index}`;
               safeSetTextField(form, commentField, item.comment || "");
             }
+          }
+        );
+      }
+    } else if (data.formName === "Lanyard-Inspection") {
+      // Basic Information
+      safeSetTextField(form, "Text1", data.formData.manufacturer || "");
+      safeSetTextField(
+        form,
+        "Text2",
+        formatDate(data.formData.dateOfManufacture)
+      );
+      safeSetTextField(form, "Text3", data.formData.serialNumber || "");
+      safeSetTextField(form, "Text4", data.formData.modelNumber || "");
+      safeSetTextField(form, "Text5", data.formData.typeMaterial || "");
+      safeSetTextField(form, "Text6", formatDate(data.formData.inspectionDate));
+      safeSetTextField(form, "Text7", formatDate(data.formData.inServiceDate));
+      safeSetTextField(form, "Text8", data.formData.authorizedPerson || "");
+      safeSetTextField(form, "Text9", data.formData.competentPerson || "");
+
+      // Labels & Markings
+      if (data.formData.labelsAndMarkings) {
+        // Label
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          !!data.formData.labelsAndMarkings.label?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          !!data.formData.labelsAndMarkings.label?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text10",
+          data.formData.labelsAndMarkings.label?.note || ""
+        );
+
+        // ANSI/OSHA Markings
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          !!data.formData.labelsAndMarkings.markings?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          !!data.formData.labelsAndMarkings.markings?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text11",
+          data.formData.labelsAndMarkings.markings?.note || ""
+        );
+
+        // Date of First Use
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          !!data.formData.labelsAndMarkings.dateOfFirstUse?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          !!data.formData.labelsAndMarkings.dateOfFirstUse?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text12",
+          data.formData.labelsAndMarkings.dateOfFirstUse?.note || ""
+        );
+
+        // Inspections Current
+        safeSetCheckBox(
+          form,
+          "Check Box7",
+          !!data.formData.labelsAndMarkings.inspectionsCurrent?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box8",
+          !!data.formData.labelsAndMarkings.inspectionsCurrent?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text13",
+          data.formData.labelsAndMarkings.inspectionsCurrent?.note || ""
+        );
+      }
+
+      // Connectors
+      if (data.formData.connectors) {
+        // Connector
+        safeSetCheckBox(
+          form,
+          "Check Box9",
+          !!data.formData.connectors.connector?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box10",
+          !!data.formData.connectors.connector?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text14",
+          data.formData.connectors.connector?.note || ""
+        );
+
+        // Hook Gate / Rivets
+        safeSetCheckBox(
+          form,
+          "Check Box11",
+          !!data.formData.connectors.hookGateRivets?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box12",
+          !!data.formData.connectors.hookGateRivets?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text15",
+          data.formData.connectors.hookGateRivets?.note || ""
+        );
+
+        // Corrosion
+        safeSetCheckBox(
+          form,
+          "Check Box13",
+          !!data.formData.connectors.corrosion?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box14",
+          !!data.formData.connectors.corrosion?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text16",
+          data.formData.connectors.corrosion?.note || ""
+        );
+
+        // Pitting / Nicks
+        safeSetCheckBox(
+          form,
+          "Check Box15",
+          !!data.formData.connectors.pittingNicks?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box16",
+          !!data.formData.connectors.pittingNicks?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text17",
+          data.formData.connectors.pittingNicks?.note || ""
+        );
+      }
+
+      // Material (Web or Cable)
+      if (data.formData.material) {
+        // Broken / Missing / Loose Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box17",
+          !!data.formData.material.brokenStitching?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box18",
+          !!data.formData.material.brokenStitching?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text18",
+          data.formData.material.brokenStitching?.note || ""
+        );
+
+        // Termination
+        safeSetCheckBox(
+          form,
+          "Check Box19",
+          !!data.formData.material.termination?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box20",
+          !!data.formData.material.termination?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text19",
+          data.formData.material.termination?.note || ""
+        );
+
+        // Webbing Length
+        safeSetCheckBox(
+          form,
+          "Check Box21",
+          !!data.formData.material.webbingLength?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box22",
+          !!data.formData.material.webbingLength?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text20",
+          data.formData.material.webbingLength?.note || ""
+        );
+
+        // Cuts / Burns / Holes / Paint Damage
+        safeSetCheckBox(
+          form,
+          "Check Box23",
+          !!data.formData.material.cutsBurns?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box24",
+          !!data.formData.material.cutsBurns?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text21",
+          data.formData.material.cutsBurns?.note || ""
+        );
+
+        // Cable Separating / Bird-Caging
+        safeSetCheckBox(
+          form,
+          "Check Box25",
+          !!data.formData.material.cableSeparating?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box26",
+          !!data.formData.material.cableSeparating?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text22",
+          data.formData.material.cableSeparating?.note || ""
+        );
+      }
+
+      // Shock Pack
+      if (data.formData.shockPack) {
+        // Cover / Shrink Tube
+        safeSetCheckBox(
+          form,
+          "Check Box27",
+          !!data.formData.shockPack.coverShrinkTube?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box28",
+          !!data.formData.shockPack.coverShrinkTube?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text23",
+          data.formData.shockPack.coverShrinkTube?.note || ""
+        );
+
+        // Damage / Fraying / Broken Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box29",
+          !!data.formData.shockPack.damageFraying?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box30",
+          !!data.formData.shockPack.damageFraying?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text24",
+          data.formData.shockPack.damageFraying?.note || ""
+        );
+
+        // Impact Indicator
+        safeSetCheckBox(
+          form,
+          "Check Box31",
+          !!data.formData.shockPack.impactIndicator?.pass
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box32",
+          !!data.formData.shockPack.impactIndicator?.fail
+        );
+        safeSetTextField(
+          form,
+          "Text25",
+          data.formData.shockPack.impactIndicator?.note || ""
+        );
+      }
+
+      // Additional Notes
+      safeSetTextField(form, "Text26", data.formData.additionalNotes || "");
+    } else if (data.formName === "Accident-Incident-Report") {
+      // Accident Classification
+      if (data.formData.accidentClassification) {
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          !!data.formData.accidentClassification.injury
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          !!data.formData.accidentClassification.illness
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          !!data.formData.accidentClassification.fatality
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          !!data.formData.accidentClassification.propertyDamage
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          !!data.formData.accidentClassification.environment
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          !!data.formData.accidentClassification.proceduralIssues
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box7",
+          !!data.formData.accidentClassification.other
+        );
+        safeSetTextField(
+          form,
+          "Text1",
+          data.formData.accidentClassification.otherDescription || ""
+        );
+      }
+
+      // Day and Date of accident
+      if (data.formData.dayOfAccident) {
+        safeSetCheckBox(form, "Check Box8", !!data.formData.dayOfAccident.m);
+        safeSetCheckBox(form, "Check Box9", !!data.formData.dayOfAccident.t);
+        safeSetCheckBox(form, "Check Box10", !!data.formData.dayOfAccident.w);
+        safeSetCheckBox(form, "Check Box11", !!data.formData.dayOfAccident.th);
+        safeSetCheckBox(form, "Check Box12", !!data.formData.dayOfAccident.f);
+        safeSetCheckBox(form, "Check Box13", !!data.formData.dayOfAccident.s);
+        safeSetCheckBox(form, "Check Box14", !!data.formData.dayOfAccident.su);
+        // Format the date for the PDF
+        if (data.formData.dayOfAccident.date) {
+          safeSetTextField(
+            form,
+            "Text3",
+            formatDate(data.formData.dayOfAccident.date)
+          );
+        }
+      }
+
+      // This report is made by
+      if (data.formData.reportMadeBy) {
+        safeSetCheckBox(
+          form,
+          "Check Box15",
+          !!data.formData.reportMadeBy.employee
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box16",
+          !!data.formData.reportMadeBy.superintendent
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box17",
+          !!data.formData.reportMadeBy.management
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box18",
+          !!data.formData.reportMadeBy.finalReport
+        );
+      }
+
+      // First reported info
+      safeSetTextField(form, "Text2", data.formData.firstReportedTo || "");
+      if (data.formData.dateFirstReported) {
+        safeSetTextField(
+          form,
+          "Text3",
+          formatDate(data.formData.dateFirstReported)
+        );
+      }
+
+      // Step 1: Personal Information - Injured Employee
+      if (data.formData.personalInfo) {
+        safeSetTextField(form, "Text4", data.formData.personalInfo.name || "");
+
+        // Sex
+        if (data.formData.personalInfo.sex === "Male") {
+          safeSetCheckBox(form, "Check Box19", true);
+        } else if (data.formData.personalInfo.sex === "Female") {
+          safeSetCheckBox(form, "Check Box20", true);
+        }
+
+        safeSetTextField(form, "Text5", data.formData.personalInfo.age || "");
+        safeSetTextField(
+          form,
+          "Text6",
+          data.formData.personalInfo.employedBy || ""
+        );
+        safeSetTextField(
+          form,
+          "Text7",
+          data.formData.personalInfo.jobTitle || ""
+        );
+
+        // Nature of injury
+        if (data.formData.personalInfo.natureOfInjury) {
+          safeSetCheckBox(
+            form,
+            "Check Box21",
+            !!data.formData.personalInfo.natureOfInjury.abrasionScrapes
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box22",
+            !!data.formData.personalInfo.natureOfInjury.amputation
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box23",
+            !!data.formData.personalInfo.natureOfInjury.brokenBone
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box24",
+            !!data.formData.personalInfo.natureOfInjury.bruise
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box25",
+            !!data.formData.personalInfo.natureOfInjury.burnHeat
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box26",
+            !!data.formData.personalInfo.natureOfInjury.burnChemical
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box27",
+            !!data.formData.personalInfo.natureOfInjury.concussion
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box28",
+            !!data.formData.personalInfo.natureOfInjury.crushingInjury
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box29",
+            !!data.formData.personalInfo.natureOfInjury.cutLacerationPuncture
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box30",
+            !!data.formData.personalInfo.natureOfInjury.hernia
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box31",
+            !!data.formData.personalInfo.natureOfInjury.illness
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box32",
+            !!data.formData.personalInfo.natureOfInjury.sprainStrain
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box33",
+            !!data.formData.personalInfo.natureOfInjury.damageToBodySystem
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box34",
+            !!data.formData.personalInfo.natureOfInjury.other
+          );
+          safeSetTextField(
+            form,
+            "Text9",
+            data.formData.personalInfo.natureOfInjury.otherDescription || ""
+          );
+        }
+
+        // Employee works
+        if (data.formData.personalInfo.employeeWorks) {
+          safeSetCheckBox(
+            form,
+            "Check Box35",
+            !!data.formData.personalInfo.employeeWorks.regularFullTime
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box36",
+            !!data.formData.personalInfo.employeeWorks.regularPartTime
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box37",
+            !!data.formData.personalInfo.employeeWorks.seasonal
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box38",
+            !!data.formData.personalInfo.employeeWorks.temporary
+          );
+        }
+
+        safeSetTextField(
+          form,
+          "Text8",
+          data.formData.personalInfo.superintendentName || ""
+        );
+        safeSetTextField(
+          form,
+          "Text9",
+          data.formData.personalInfo.wasPersonTrained || ""
+        );
+        safeSetTextField(
+          form,
+          "Text10",
+          data.formData.personalInfo.trainingType || ""
+        );
+      }
+
+      // Step 2: Witness Information
+      if (
+        data.formData.witnessInfo &&
+        Array.isArray(data.formData.witnessInfo)
+      ) {
+        // Witness 1
+        if (data.formData.witnessInfo[0]) {
+          safeSetTextField(
+            form,
+            "Text13",
+            data.formData.witnessInfo[0].name || ""
+          );
+          safeSetTextField(
+            form,
+            "Text14",
+            data.formData.witnessInfo[0].jobTitle || ""
+          );
+          safeSetTextField(
+            form,
+            "Text16",
+            data.formData.witnessInfo[0].employedBy || ""
+          );
+          safeSetTextField(
+            form,
+            "Text17",
+            data.formData.witnessInfo[0].supervisorName || ""
+          );
+        }
+
+        // Witness 2
+        if (data.formData.witnessInfo[1]) {
+          safeSetTextField(
+            form,
+            "Text18",
+            data.formData.witnessInfo[1].name || ""
+          );
+          safeSetTextField(
+            form,
+            "Text19",
+            data.formData.witnessInfo[1].jobTitle || ""
+          );
+          safeSetTextField(
+            form,
+            "Text20",
+            data.formData.witnessInfo[1].employedBy || ""
+          );
+          safeSetTextField(
+            form,
+            "Text21",
+            data.formData.witnessInfo[1].supervisorName || ""
+          );
+        }
+      }
+
+      // Site secured
+      if (data.formData.siteSecured === "Yes") {
+        safeSetCheckBox(form, "Check Box39", true);
+      } else if (data.formData.siteSecured === "No") {
+        safeSetCheckBox(form, "Check Box40", true);
+      }
+
+      safeSetTextField(form, "Text22", data.formData.securedBy || "");
+
+      // Step 3: Accident Description
+      if (data.formData.accidentDescription) {
+        safeSetTextField(
+          form,
+          "Text23",
+          data.formData.accidentDescription.exactLocation || ""
+        );
+        safeSetTextField(
+          form,
+          "Text24",
+          data.formData.accidentDescription.jobNameNumber || ""
+        );
+        safeSetTextField(
+          form,
+          "Text25",
+          data.formData.accidentDescription.exactTime || ""
+        );
+
+        // Workday part
+        if (data.formData.accidentDescription.workdayPart) {
+          safeSetCheckBox(
+            form,
+            "Check Box41",
+            !!data.formData.accidentDescription.workdayPart.enteringLeaving
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box42",
+            !!data.formData.accidentDescription.workdayPart.normalWork
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box43",
+            !!data.formData.accidentDescription.workdayPart.mealPeriod
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box44",
+            !!data.formData.accidentDescription.workdayPart.duringBreak
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box45",
+            !!data.formData.accidentDescription.workdayPart.overtime
+          );
+          safeSetCheckBox(
+            form,
+            "Check Box46",
+            !!data.formData.accidentDescription.workdayPart.other
+          );
+        }
+
+        fillMultiLineField(
+          form,
+          "description1",
+          data.formData.accidentDescription.description || ""
+        );
+        fillMultiLineField(
+          form,
+          "description2",
+          data.formData.accidentDescription.equipmentInvolved || ""
+        );
+        fillMultiLineField(
+          form,
+          "description3",
+          data.formData.accidentDescription.equipmentInvolved || ""
+        );
+        fillMultiLineField(
+          form,
+          "description4",
+          data.formData.accidentDescription.equipmentInvolved || ""
+        );
+        fillMultiLineField(
+          form,
+          "description5",
+          data.formData.accidentDescription.equipmentInvolved || ""
+        );
+        fillMultiLineField(
+          form,
+          "description6",
+          data.formData.accidentDescription.equipmentInvolved || ""
+        );
+      }
+
+      // Step 4: Why did the accident happen?
+      // Unsafe workplace conditions
+      if (data.formData.accidentCauses?.unsafeConditions) {
+        safeSetCheckBox(
+          form,
+          "Check Box47",
+          !!data.formData.accidentCauses.unsafeConditions.inadequateGuard
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box48",
+          !!data.formData.accidentCauses.unsafeConditions.unguardedHazard
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box49",
+          !!data.formData.accidentCauses.unsafeConditions.safetyDeviceDefective
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box50",
+          !!data.formData.accidentCauses.unsafeConditions.toolEquipmentDefective
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box51",
+          !!data.formData.accidentCauses.unsafeConditions.workstationHazardous
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box52",
+          !!data.formData.accidentCauses.unsafeConditions.unsafeLighting
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box53",
+          !!data.formData.accidentCauses.unsafeConditions.unsafeVentilation
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box54",
+          !!data.formData.accidentCauses.unsafeConditions.lackOfPpe
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box55",
+          !!data.formData.accidentCauses.unsafeConditions.lackOfEquipment
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box56",
+          !!data.formData.accidentCauses.unsafeConditions.unsafeClothing
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box57",
+          !!data.formData.accidentCauses.unsafeConditions.insufficientTraining
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box58",
+          !!data.formData.accidentCauses.unsafeConditions.other
+        );
+        safeSetTextField(
+          form,
+          "Text53",
+          data.formData.accidentCauses.unsafeConditions.otherDescription || ""
+        );
+      }
+
+      // Unsafe acts
+      if (data.formData.accidentCauses?.unsafeActs) {
+        safeSetCheckBox(
+          form,
+          "Check Box59",
+          !!data.formData.accidentCauses.unsafeActs.operatingWithoutPermission
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box60",
+          !!data.formData.accidentCauses.unsafeActs.operatingUnsafeSpeed
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box61",
+          !!data.formData.accidentCauses.unsafeActs.servicingPoweredEquipment
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box62",
+          !!data.formData.accidentCauses.unsafeActs.safetyDeviceInoperative
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box63",
+          !!data.formData.accidentCauses.unsafeActs.usingDefectiveEquipment
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box64",
+          !!data.formData.accidentCauses.unsafeActs.usingEquipmentImproperly
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box65",
+          !!data.formData.accidentCauses.unsafeActs.unsafeLifting
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box66",
+          !!data.formData.accidentCauses.unsafeActs.unsafePosition
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box67",
+          !!data.formData.accidentCauses.unsafeActs.distractionHorseplay
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box68",
+          !!data.formData.accidentCauses.unsafeActs.failureToWearPpe
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box69",
+          !!data.formData.accidentCauses.unsafeActs.failureToUseEquipment
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box70",
+          !!data.formData.accidentCauses.unsafeActs.other
+        );
+        safeSetTextField(
+          form,
+          "Text54",
+          data.formData.accidentCauses.unsafeActs.otherDescription || ""
+        );
+      }
+
+      // Why questions
+      fillMultiLineField(
+        form,
+        "description7",
+        data.formData.accidentDescription.equipmentInvolved || ""
+      );
+      fillMultiLineField(
+        form,
+        "description8",
+        data.formData.accidentDescription.equipmentInvolved || ""
+      );
+
+      // Reward for unsafe acts
+      if (data.formData.accidentCauses?.rewardForUnsafeActs === "Yes") {
+        safeSetCheckBox(form, "Check Box71", true);
+      } else if (data.formData.accidentCauses?.rewardForUnsafeActs === "No") {
+        safeSetCheckBox(form, "Check Box72", true);
+      }
+
+      fillMultiLineField(
+        form,
+        "description9",
+        data.formData.accidentDescription.equipmentInvolved || ""
+      );
+
+      // Page 4 questions
+      // Unsafe acts reported prior
+      if (data.formData.accidentCauses?.unsafeActsReportedPrior === "Yes") {
+        safeSetCheckBox(form, "Check Box73", true);
+      } else if (
+        data.formData.accidentCauses?.unsafeActsReportedPrior === "No"
+      ) {
+        safeSetCheckBox(form, "Check Box74", true);
+      }
+      fillMultiLineField(
+        form,
+        "description10",
+        data.formData.accidentDescription.equipmentInvolved || ""
+      );
+
+      // Similar accidents prior
+      if (data.formData.accidentCauses?.similarAccidentsPrior === "Yes") {
+        safeSetCheckBox(form, "Check Box75", true);
+      } else if (data.formData.accidentCauses?.similarAccidentsPrior === "No") {
+        safeSetCheckBox(form, "Check Box76", true);
+      }
+
+      fillMultiLineField(
+        form,
+        "description11",
+        data.formData.accidentDescription.equipmentInvolved || ""
+      );
+
+      // Step 5: OSHA Information
+      if (data.formData.oshaInfo) {
+        safeSetTextField(
+          form,
+          "Text82",
+          data.formData.oshaInfo.dateNotified
+            ? formatDate(data.formData.oshaInfo.dateNotified)
+            : ""
+        );
+        safeSetTextField(
+          form,
+          "Text83",
+          data.formData.oshaInfo.investigationDates || ""
+        );
+        safeSetTextField(
+          form,
+          "Text84",
+          data.formData.oshaInfo.citationDate
+            ? formatDate(data.formData.oshaInfo.citationDate)
+            : ""
+        );
+        safeSetTextField(
+          form,
+          "Text85",
+          data.formData.oshaInfo.penaltyAmount || ""
+        );
+      }
+
+      // Step 6: Report Preparer
+      if (data.formData.reportPreparer) {
+        safeSetTextField(
+          form,
+          "Text86",
+          data.formData.reportPreparer.name || ""
+        );
+        safeSetTextField(
+          form,
+          "Text87",
+          data.formData.reportPreparer.dateOfReport
+            ? formatDate(data.formData.reportPreparer.dateOfReport)
+            : ""
+        );
+        safeSetTextField(
+          form,
+          "Text88",
+          data.formData.reportPreparer.title || ""
+        );
+        safeSetTextField(
+          form,
+          "Text89",
+          data.formData.reportPreparer.employer || ""
+        );
+        safeSetTextField(
+          form,
+          "Text90",
+          data.formData.reportPreparer.phoneNumber || ""
+        );
+      }
+      // Draw injury markers on body diagrams
+      if (
+        data.formData.personalInfo?.bodyMarkers &&
+        data.formData.personalInfo?.bodyMarkers.length > 0
+      ) {
+        const page = pdfDoc.getPage(0); // Assuming body diagram is on the first page
+        const { width, height } = page.getSize();
+        // You would need to know the exact position and dimensions of your body diagrams in the PDF
+        const frontDiagramBounds = { x: 38, y: 290, width: 100, height: 220 }; // Example values
+        const backDiagramBounds = { x: 139, y: 295, width: 100, height: 215 }; // Example values
+
+        // Draw each marker
+        data.formData.personalInfo.bodyMarkers.forEach(
+          (marker: { view: string; x: number; y: number }) => {
+            const diagramBounds =
+              marker.view === "front" ? frontDiagramBounds : backDiagramBounds;
+            const markerX =
+              diagramBounds.x + (marker.x / 100) * diagramBounds.width;
+            const markerY =
+              diagramBounds.y + (marker.y / 100) * diagramBounds.height;
+
+            // Draw a red circle at the marker position
+            console.log("Drawing marker at:", markerX, markerY);
+            page.drawCircle({
+              x: markerX,
+              y: height - markerY, // PDF coordinates start from bottom-left
+              size: 3,
+              color: rgb(1, 0, 0), // Red
+              opacity: 1,
+            });
           }
         );
       }

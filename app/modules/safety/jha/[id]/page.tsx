@@ -191,6 +191,7 @@ export default function JHAFormPage() {
   useEffect(() => {
     if (fullName) {
       setValue("formData.competentPersonName", fullName);
+      setValue("userName", fullName);
     }
   }, [fullName, setValue]);
 

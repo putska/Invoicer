@@ -16,9 +16,9 @@ import { useFullNameFromDB } from "../../../../components/useFullNameFromDB";
 
 // ---------------- Schema & Types ----------------
 
-const fallProtectionSchema = z.object({
-  formName: z.string().default("Fall Protection Inspection Form"),
-  pdfName: z.string().default("FallProtection.pdf"),
+const lanyardInspectionSchema = z.object({
+  formName: z.string().default("Lanyard Inspection Form"),
+  pdfName: z.string().default("LanyardInspection.pdf"),
   userName: z.string().min(1, "User name is required"),
   dateCreated: z.string().min(1, "Date is required"),
   formData: z.object({
@@ -26,8 +26,9 @@ const fallProtectionSchema = z.object({
     dateOfManufacture: z.string().min(1, "Date of manufacture is required"),
     serialNumber: z.string().min(1, "Serial number is required"),
     modelNumber: z.string().min(1, "Model number is required"),
+    typeMaterial: z.string().min(1, "Type of lanyard & material is required"),
     inspectionDate: z.string().min(1, "Inspection date is required"),
-    removeFromServiceDate: z.string().optional(),
+    inServiceDate: z.string().optional(),
     authorizedPerson: z.string().min(1, "Authorized person is required"),
     competentPerson: z.string().min(1, "Competent person is required"),
 
@@ -48,26 +49,21 @@ const fallProtectionSchema = z.object({
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
-      impactIndicator: z.object({
+      inspectionsCurrent: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
     }),
 
-    // Hardware
-    hardware: z.object({
-      shoulderBuckles: z.object({
+    // Connectors
+    connectors: z.object({
+      connector: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
-      legWaistBuckles: z.object({
-        pass: z.boolean().default(false),
-        fail: z.boolean().default(false),
-        note: z.string().optional(),
-      }),
-      dRings: z.object({
+      hookGateRivets: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
@@ -77,11 +73,26 @@ const fallProtectionSchema = z.object({
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
+      pittingNicks: z.object({
+        pass: z.boolean().default(false),
+        fail: z.boolean().default(false),
+        note: z.string().optional(),
+      }),
     }),
 
-    // Webbing
-    webbing: z.object({
-      shoulderStrap: z.object({
+    // Material (Web or Cable)
+    material: z.object({
+      brokenStitching: z.object({
+        pass: z.boolean().default(false),
+        fail: z.boolean().default(false),
+        note: z.string().optional(),
+      }),
+      termination: z.object({
+        pass: z.boolean().default(false),
+        fail: z.boolean().default(false),
+        note: z.string().optional(),
+      }),
+      webbingLength: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
@@ -91,31 +102,26 @@ const fallProtectionSchema = z.object({
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
-      paintContamination: z.object({
-        pass: z.boolean().default(false),
-        fail: z.boolean().default(false),
-        note: z.string().optional(),
-      }),
-      excessiveWear: z.object({
-        pass: z.boolean().default(false),
-        fail: z.boolean().default(false),
-        note: z.string().optional(),
-      }),
-      heatDamage: z.object({
+      cableSeparating: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
     }),
 
-    // Stitching
-    stitching: z.object({
-      shouldersChest: z.object({
+    // Shock Pack
+    shockPack: z.object({
+      coverShrinkTube: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
       }),
-      legsBackStraps: z.object({
+      damageFraying: z.object({
+        pass: z.boolean().default(false),
+        fail: z.boolean().default(false),
+        note: z.string().optional(),
+      }),
+      impactIndicator: z.object({
         pass: z.boolean().default(false),
         fail: z.boolean().default(false),
         note: z.string().optional(),
@@ -127,7 +133,7 @@ const fallProtectionSchema = z.object({
   }),
 });
 
-type FallProtectionForm = z.infer<typeof fallProtectionSchema>;
+type LanyardInspectionForm = z.infer<typeof lanyardInspectionSchema>;
 
 interface FormFieldProps {
   label: string;
@@ -243,7 +249,7 @@ const CheckboxField = ({
 
 // ---------------- Main Component ----------------
 
-export default function FallProtectionFormPage() {
+export default function Page() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { user } = useUser();
@@ -253,11 +259,11 @@ export default function FallProtectionFormPage() {
     "loading"
   );
 
-  const methods = useForm<FallProtectionForm>({
-    resolver: zodResolver(fallProtectionSchema),
+  const methods = useForm<LanyardInspectionForm>({
+    resolver: zodResolver(lanyardInspectionSchema),
     defaultValues: {
-      formName: "Fall-Protection",
-      pdfName: "FallProtection.pdf",
+      formName: "Lanyard-Inspection",
+      pdfName: "LanyardInspection.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: fullName || "Stephen Watts",
       formData: {
@@ -265,32 +271,34 @@ export default function FallProtectionFormPage() {
         dateOfManufacture: "",
         serialNumber: "",
         modelNumber: "",
+        typeMaterial: "",
         inspectionDate: new Date().toISOString().split("T")[0],
-        removeFromServiceDate: "",
-        authorizedPerson: "",
-        competentPerson: "",
+        inServiceDate: "",
+        authorizedPerson: fullName || "",
+        competentPerson: fullName || "",
         labelsAndMarkings: {
           label: { pass: false, fail: false, note: "" },
           markings: { pass: false, fail: false, note: "" },
           dateOfFirstUse: { pass: false, fail: false, note: "" },
-          impactIndicator: { pass: false, fail: false, note: "" },
+          inspectionsCurrent: { pass: false, fail: false, note: "" },
         },
-        hardware: {
-          shoulderBuckles: { pass: false, fail: false, note: "" },
-          legWaistBuckles: { pass: false, fail: false, note: "" },
-          dRings: { pass: false, fail: false, note: "" },
+        connectors: {
+          connector: { pass: false, fail: false, note: "" },
+          hookGateRivets: { pass: false, fail: false, note: "" },
           corrosion: { pass: false, fail: false, note: "" },
+          pittingNicks: { pass: false, fail: false, note: "" },
         },
-        webbing: {
-          shoulderStrap: { pass: false, fail: false, note: "" },
+        material: {
+          brokenStitching: { pass: false, fail: false, note: "" },
+          termination: { pass: false, fail: false, note: "" },
+          webbingLength: { pass: false, fail: false, note: "" },
           cutsBurns: { pass: false, fail: false, note: "" },
-          paintContamination: { pass: false, fail: false, note: "" },
-          excessiveWear: { pass: false, fail: false, note: "" },
-          heatDamage: { pass: false, fail: false, note: "" },
+          cableSeparating: { pass: false, fail: false, note: "" },
         },
-        stitching: {
-          shouldersChest: { pass: false, fail: false, note: "" },
-          legsBackStraps: { pass: false, fail: false, note: "" },
+        shockPack: {
+          coverShrinkTube: { pass: false, fail: false, note: "" },
+          damageFraying: { pass: false, fail: false, note: "" },
+          impactIndicator: { pass: false, fail: false, note: "" },
         },
         additionalNotes: "",
         generatePDF: false,
@@ -314,7 +322,7 @@ export default function FallProtectionFormPage() {
   const watchedValues = useWatch({ control });
 
   const saveDraft = useCallback(
-    async (data: FallProtectionForm) => {
+    async (data: LanyardInspectionForm) => {
       try {
         const response = await fetch(`/api/safety/${id}`, {
           method: "PUT",
@@ -347,7 +355,7 @@ export default function FallProtectionFormPage() {
     if (fullName) {
       setValue("formData.authorizedPerson", fullName);
       setValue("formData.competentPerson", fullName);
-      setValue("userName", fullName);
+      setValue("userName", fullName); // Add this line to update the userName field
     }
   }, [fullName, setValue]);
 
@@ -401,7 +409,7 @@ export default function FallProtectionFormPage() {
 
   // ---------------- Form Submission ----------------
 
-  const onSubmit = async (formData: FallProtectionForm) => {
+  const onSubmit = async (formData: LanyardInspectionForm) => {
     try {
       console.log("Saving with data:", formData);
       const isNewRecord = !id || id === "new";
@@ -435,7 +443,7 @@ export default function FallProtectionFormPage() {
           jobName: "",
           userName: formData.userName,
           dateCreated: formData.dateCreated,
-          submissionDate: Date(),
+          submissionDate: new Date(),
           formData: formData.formData,
         });
       }
@@ -457,8 +465,8 @@ export default function FallProtectionFormPage() {
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
       <h1 className="text-2xl font-semibold text-gray-700 mb-6">
         {id && id !== "new"
-          ? "Edit Fall Protection Inspection"
-          : "New Fall Protection Inspection"}
+          ? "Edit Fall Protection Lanyard Inspection"
+          : "New Fall Protection Lanyard Inspection"}
       </h1>
       <FormProvider {...methods}>
         <form
@@ -470,7 +478,7 @@ export default function FallProtectionFormPage() {
           {/* Basic Information Section */}
           <div className="bg-gray-50 p-4 rounded-md mb-6">
             <h2 className="text-xl font-medium text-gray-700 mb-4">
-              Harness Information
+              Lanyard Information
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -518,6 +526,17 @@ export default function FallProtectionFormPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
                 />
               </FormField>
+
+              <FormField
+                label="Type of Lanyard & Material"
+                error={errors.formData?.typeMaterial?.message}
+                required
+              >
+                <input
+                  {...register("formData.typeMaterial")}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                />
+              </FormField>
             </div>
           </div>
 
@@ -541,12 +560,12 @@ export default function FallProtectionFormPage() {
               </FormField>
 
               <FormField
-                label="Remove from Service Date"
-                error={errors.formData?.removeFromServiceDate?.message}
+                label="In-Service Date"
+                error={errors.formData?.inServiceDate?.message}
               >
                 <input
                   type="date"
-                  {...register("formData.removeFromServiceDate")}
+                  {...register("formData.inServiceDate")}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
                 />
               </FormField>
@@ -620,19 +639,19 @@ export default function FallProtectionFormPage() {
             />
 
             <CheckboxField
-              label="Impact Indicator (signs of deployment)"
-              passName="formData.labelsAndMarkings.impactIndicator.pass"
-              failName="formData.labelsAndMarkings.impactIndicator.fail"
-              noteName="formData.labelsAndMarkings.impactIndicator.note"
+              label="Inspections Current / Up to Date"
+              passName="formData.labelsAndMarkings.inspectionsCurrent.pass"
+              failName="formData.labelsAndMarkings.inspectionsCurrent.fail"
+              noteName="formData.labelsAndMarkings.inspectionsCurrent.note"
               register={register}
               errors={errors}
             />
           </div>
 
-          {/* Hardware Section */}
+          {/* Connectors Section */}
           <div className="bg-gray-50 p-4 rounded-md mb-6">
             <h2 className="text-xl font-medium text-gray-700 mb-4">
-              HARDWARE (BUCKLES & RINGS)
+              CONNECTORS
             </h2>
 
             <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
@@ -647,107 +666,46 @@ export default function FallProtectionFormPage() {
             </div>
 
             <CheckboxField
-              label="Shoulder Adjustment Buckles"
-              passName="formData.hardware.shoulderBuckles.pass"
-              failName="formData.hardware.shoulderBuckles.fail"
-              noteName="formData.hardware.shoulderBuckles.note"
+              label="Connector (self closing& locking)"
+              passName="formData.connectors.connector.pass"
+              failName="formData.connectors.connector.fail"
+              noteName="formData.connectors.connector.note"
               register={register}
               errors={errors}
             />
 
             <CheckboxField
-              label="Leg & Waist Buckles / Other Hardware"
-              passName="formData.hardware.legWaistBuckles.pass"
-              failName="formData.hardware.legWaistBuckles.fail"
-              noteName="formData.hardware.legWaistBuckles.note"
+              label="Hook Gate / Rivets"
+              passName="formData.connectors.hookGateRivets.pass"
+              failName="formData.connectors.hookGateRivets.fail"
+              noteName="formData.connectors.hookGateRivets.note"
               register={register}
               errors={errors}
             />
 
             <CheckboxField
-              label="D-Rings (Dorsal, Side, Shoulder or Sternal)"
-              passName="formData.hardware.dRings.pass"
-              failName="formData.hardware.dRings.fail"
-              noteName="formData.hardware.dRings.note"
+              label="Corrosion"
+              passName="formData.connectors.corrosion.pass"
+              failName="formData.connectors.corrosion.fail"
+              noteName="formData.connectors.corrosion.note"
               register={register}
               errors={errors}
             />
 
             <CheckboxField
-              label="Corrosion / Pitting / Nicks"
-              passName="formData.hardware.corrosion.pass"
-              failName="formData.hardware.corrosion.fail"
-              noteName="formData.hardware.corrosion.note"
+              label="Pitting / Nicks"
+              passName="formData.connectors.pittingNicks.pass"
+              failName="formData.connectors.pittingNicks.fail"
+              noteName="formData.connectors.pittingNicks.note"
               register={register}
               errors={errors}
             />
           </div>
 
-          {/* Webbing Section */}
-          <div className="bg-gray-50 p-4 rounded-md mb-6">
-            <h2 className="text-xl font-medium text-gray-700 mb-4">WEBBING</h2>
-
-            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
-              <div className="col-span-4 font-semibold">Item</div>
-              <div className="col-span-2 text-center font-semibold text-green-600">
-                PASS
-              </div>
-              <div className="col-span-2 text-center font-semibold text-red-600">
-                FAIL
-              </div>
-              <div className="col-span-4 font-semibold">NOTE</div>
-            </div>
-
-            <CheckboxField
-              label="Shoulder / Chest / Leg / Back Strap"
-              passName="formData.webbing.shoulderStrap.pass"
-              failName="formData.webbing.shoulderStrap.fail"
-              noteName="formData.webbing.shoulderStrap.note"
-              register={register}
-              errors={errors}
-            />
-
-            <CheckboxField
-              label="Cuts / Burns / Holes"
-              passName="formData.webbing.cutsBurns.pass"
-              failName="formData.webbing.cutsBurns.fail"
-              noteName="formData.webbing.cutsBurns.note"
-              register={register}
-              errors={errors}
-            />
-
-            <CheckboxField
-              label="Paint Contamination"
-              passName="formData.webbing.paintContamination.pass"
-              failName="formData.webbing.paintContamination.fail"
-              noteName="formData.webbing.paintContamination.note"
-              register={register}
-              errors={errors}
-            />
-
-            <CheckboxField
-              label="Excessive Wear"
-              passName="formData.webbing.excessiveWear.pass"
-              failName="formData.webbing.excessiveWear.fail"
-              noteName="formData.webbing.excessiveWear.note"
-              register={register}
-              errors={errors}
-            />
-
-            <CheckboxField
-              label="Heat / UV Damage"
-              passName="formData.webbing.heatDamage.pass"
-              failName="formData.webbing.heatDamage.fail"
-              noteName="formData.webbing.heatDamage.note"
-              register={register}
-              errors={errors}
-            />
-          </div>
-
-          {/* Stitching Section */}
+          {/* Material Section */}
           <div className="bg-gray-50 p-4 rounded-md mb-6">
             <h2 className="text-xl font-medium text-gray-700 mb-4">
-              STITCHING
+              MATERIAL (WEB or CABLE)
             </h2>
 
             <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
@@ -762,19 +720,91 @@ export default function FallProtectionFormPage() {
             </div>
 
             <CheckboxField
-              label="Shoulders / Chest"
-              passName="formData.stitching.shouldersChest.pass"
-              failName="formData.stitching.shouldersChest.fail"
-              noteName="formData.stitching.shouldersChest.note"
+              label="Broken / Missing / Loose Stitching"
+              passName="formData.material.brokenStitching.pass"
+              failName="formData.material.brokenStitching.fail"
+              noteName="formData.material.brokenStitching.note"
               register={register}
               errors={errors}
             />
 
             <CheckboxField
-              label="Legs / Back Straps"
-              passName="formData.stitching.legsBackStraps.pass"
-              failName="formData.stitching.legsBackStraps.fail"
-              noteName="formData.stitching.legsBackStraps.note"
+              label="Termination (Stitch, Splice or Swag)"
+              passName="formData.material.termination.pass"
+              failName="formData.material.termination.fail"
+              noteName="formData.material.termination.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Webbing Length"
+              passName="formData.material.webbingLength.pass"
+              failName="formData.material.webbingLength.fail"
+              noteName="formData.material.webbingLength.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Cuts / Burns / Holes / Paint Damage"
+              passName="formData.material.cutsBurns.pass"
+              failName="formData.material.cutsBurns.fail"
+              noteName="formData.material.cutsBurns.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Cable Separating / Bird-Caging"
+              passName="formData.material.cableSeparating.pass"
+              failName="formData.material.cableSeparating.fail"
+              noteName="formData.material.cableSeparating.note"
+              register={register}
+              errors={errors}
+            />
+          </div>
+
+          {/* Shock Pack Section */}
+          <div className="bg-gray-50 p-4 rounded-md mb-6">
+            <h2 className="text-xl font-medium text-gray-700 mb-4">
+              SHOCK PACK (if present)
+            </h2>
+
+            <div className="grid grid-cols-12 gap-2 items-center mb-2 bg-blue-50 py-2">
+              <div className="col-span-4 font-semibold">Item</div>
+              <div className="col-span-2 text-center font-semibold text-green-600">
+                PASS
+              </div>
+              <div className="col-span-2 text-center font-semibold text-red-600">
+                FAIL
+              </div>
+              <div className="col-span-4 font-semibold">NOTE</div>
+            </div>
+
+            <CheckboxField
+              label="Cover / Shrink Tube (Don't cut or remove)"
+              passName="formData.shockPack.coverShrinkTube.pass"
+              failName="formData.shockPack.coverShrinkTube.fail"
+              noteName="formData.shockPack.coverShrinkTube.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Damage / Fraying / Broken Stitching"
+              passName="formData.shockPack.damageFraying.pass"
+              failName="formData.shockPack.damageFraying.fail"
+              noteName="formData.shockPack.damageFraying.note"
+              register={register}
+              errors={errors}
+            />
+
+            <CheckboxField
+              label="Impact Indicator (Signs of Deployment)"
+              passName="formData.shockPack.impactIndicator.pass"
+              failName="formData.shockPack.impactIndicator.fail"
+              noteName="formData.shockPack.impactIndicator.note"
               register={register}
               errors={errors}
             />
@@ -809,7 +839,7 @@ export default function FallProtectionFormPage() {
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
                 <label htmlFor="generatePDF" className="text-gray-700">
-                  Generate PDF for this Fall Protection Inspection
+                  Generate PDF for this Lanyard Inspection
                 </label>
               </div>
             </FormField>

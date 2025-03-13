@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
-
+    console.log("User found:", user);
     // If the user is found, return the user data
     return NextResponse.json(user, { status: 200 });
   } catch (err) {

@@ -209,6 +209,12 @@ export default function SafetyFormListPage({
       case "telehandler":
         router.push(`/modules/safety/telehandler/${form.id}`);
         break;
+      case "lanyard-inspection":
+        router.push(`/modules/safety/lanyard-inspection/${form.id}`);
+        break;
+      case "accident-incident-report":
+        router.push(`/modules/safety/accident-incident-report/${form.id}`);
+        break;
       default:
         console.error("Unknown form type");
     }
