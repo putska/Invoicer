@@ -11,9 +11,9 @@ import { useFullNameFromDB } from "../../../../components/useFullNameFromDB";
 
 // ---------------- Schema & Types ----------------
 
-const jhaFormSchema = z.object({
-  formName: z.string().default("Job Hazard Analysis"),
-  pdfName: z.string().default("JHA.pdf"),
+const thaFormSchema = z.object({
+  formName: z.string().default("Task Hazard Analysis"),
+  pdfName: z.string().default("THA.pdf"),
   jobName: z.string().min(1, "Job name is required"),
   userName: z.string().min(1, "User name is required"),
   dateCreated: z.string().min(1, "Date is required"),
@@ -55,12 +55,12 @@ const jhaFormSchema = z.object({
   }),
 });
 
-type JHAForm = z.infer<typeof jhaFormSchema>;
+type THAForm = z.infer<typeof thaFormSchema>;
 
 type Job = {
   id: number;
   name: string;
-  jobNumber: string; // Changed from 'number' to 'jobNumber'
+  jobNumber: string;
   status: string;
 };
 
@@ -96,7 +96,7 @@ const FormField = ({
 
 // ---------------- Main Component ----------------
 
-export default function JHAFormPage() {
+export default function THAFormPage() {
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const { user } = useUser();
@@ -117,11 +117,11 @@ export default function JHAFormPage() {
     watch,
     clearErrors,
     getValues,
-  } = useForm<JHAForm>({
-    resolver: zodResolver(jhaFormSchema),
+  } = useForm<THAForm>({
+    resolver: zodResolver(thaFormSchema),
     defaultValues: {
-      formName: "JHA",
-      pdfName: "JHA.pdf",
+      formName: "THA",
+      pdfName: "THA.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: fullName || "Stephen Watts",
       formData: {
@@ -129,7 +129,6 @@ export default function JHAFormPage() {
         competentPersonName: "",
         phoneNumber: "",
         workDescription: "",
-        jobNumber: "",
         tasks: [{ task: "", hazard: "", control: "" }],
         ppeRequirements: {
           hardHat: false,
@@ -162,7 +161,7 @@ export default function JHAFormPage() {
   const watchedValues = useWatch({ control });
 
   const saveDraft = useCallback(
-    async (data: JHAForm) => {
+    async (data: THAForm) => {
       try {
         const response = await fetch(`/api/safety/${id}`, {
           method: "PUT",
@@ -207,7 +206,6 @@ export default function JHAFormPage() {
 
         if (selectedJob) {
           setValue("formData.jobNumber", selectedJob.jobNumber);
-          clearErrors("formData.jobNumber");
         }
       }
     });
@@ -289,7 +287,7 @@ export default function JHAFormPage() {
 
   // ---------------- Form Submission ----------------
 
-  const onSubmit = async (formData: JHAForm) => {
+  const onSubmit = async (formData: THAForm) => {
     try {
       console.log("Saving with data:", formData);
       const isNewRecord = !id || id === "new";
@@ -348,8 +346,8 @@ export default function JHAFormPage() {
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-md shadow-md">
       <h1 className="text-2xl font-semibold text-gray-700 mb-6">
         {id && id !== "new"
-          ? "Edit Job Hazard Analysis"
-          : "New Job Hazard Analysis"}
+          ? "Edit Task Hazard Analysis"
+          : "New Task Hazard Analysis"}
       </h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -772,7 +770,7 @@ export default function JHAFormPage() {
                 className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
               />
               <label htmlFor="generatePDF" className="text-gray-700">
-                Generate PDF for this Job Hazard Analysis
+                Generate PDF for this Task Hazard Analysis
               </label>
             </div>
           </FormField>

@@ -200,8 +200,14 @@ export default function SafetyFormListPage({
       case "jha":
         router.push(`/modules/safety/jha/${form.id}`);
         break;
+      case "tha":
+        router.push(`/modules/safety/tha/${form.id}`);
+        break;
       case "mewp":
         router.push(`/modules/safety/mewp/${form.id}`);
+        break;
+      case "witness-statement":
+        router.push(`/modules/safety/witness-statement/${form.id}`);
         break;
       case "swing-stage":
         router.push(`/modules/safety/swing-stage/${form.id}`);
@@ -211,6 +217,9 @@ export default function SafetyFormListPage({
         break;
       case "lanyard-inspection":
         router.push(`/modules/safety/lanyard-inspection/${form.id}`);
+        break;
+      case "jobsite-safety-inspection":
+        router.push(`/modules/safety/jobsite-safety/${form.id}`);
         break;
       case "accident-incident-report":
         router.push(`/modules/safety/accident-incident-report/${form.id}`);

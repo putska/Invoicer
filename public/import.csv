@@ -1,51 +1,47 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-Altringer,Garth,783,Tuesday,03/11/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Amos,David,1196,Tuesday,03/11/25,Stanford GSE,20-592,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
-Arias,Ozzie,683,Tuesday,03/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,7 hours high pay
-Bracamonte,Julian,1133,Tuesday,03/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Bumgarner,Thomas,1048,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,
-Bumgarner,Thomas,1048,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,
-Bustos,Jorge,1201,Tuesday,03/11/25,Bechtel,23-641,11-15 - Install Terracotta tile (A / B),11-15,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Jorge Bustos,"Fired, failed drug test."
-Calderon,Lucio,1177,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,DT,8,06:30 AM,03:00 PM,0,1,0:30,Lucio Calderon,6hrs High Pay
-Carroll,Andrew,917,Tuesday,03/11/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,
-Centeno,Paul,1158,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Clarke,Eric,,Tuesday,03/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-De La Torre,Miguel,1198,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Duran,Jose,1144,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Ellington,Christian,,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Christian Ellington,
-England,Chris,787,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Esparza,Vincent,1057,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,School all week
-Espinosa,Luis,1191,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Estrada,Nick,1193,Tuesday,03/11/25,Bechtel,23-641,11-24 - Glaze WW / SF (H / I),11-24,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Galindo,Ray,712,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Tom,559,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,,,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Gutierrez,Rogelio,837,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,5,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Gutierrez,Rogelio,837,Tuesday,03/11/25,Bechtel,23-641,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,3,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hart,David,839,Tuesday,03/11/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,7,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Hart,David,839,Tuesday,03/11/25,South San Fransico Wellness Center,,11-12 - Install Membrane (A / B),11-12,,Journeyman,,RT,1,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Helton,Toby,1155,Tuesday,03/11/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Hendricks,Jon,689,Tuesday,03/11/25,South San Fransico Wellness Center,,11-13 - Install Panels (A / B),11-13,,Leadman,,RT,5,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Hendricks,Jon,689,Tuesday,03/11/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Leadman,,RT,3,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Hendricks,Kevin,1010,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,
-Hernandez (Garcia),Eleazar,1176,Tuesday,03/11/25,Stanford GSE,20-592,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Apprentice,,RT,4,06:15 AM,02:45 PM,0,1,0:30,Stanford,
-Hernandez (Garcia),Eleazar,1176,Tuesday,03/11/25,Stanford GSE,20-592,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Apprentice,,RT,4,06:15 AM,02:45 PM,0,1,0:30,Stanford,
-James,Michael,754,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Kenner,Geordan,251,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Geordan Kenner,
-Mason,Brandon,1164,Tuesday,03/11/25,South San Fransico Wellness Center,,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,4,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Mason,Brandon,1164,Tuesday,03/11/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,4,07:00 AM,03:30 PM,0,1,0:30,WELLNESS,
-Medina,Gilbert,812,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,
-Molina,Rodrigo,870,Tuesday,03/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
-Moore,Jakob,1202,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Morales,Jaime,831,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Nakagawa,Elijah,1171,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,,,,Apprentice,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,School all week
-Noguera,Jovany,813,Tuesday,03/11/25,Congregation Emanu-El-Construction,23-646,11-22 - Install WW / SF Metal (A / B),11-22,,Journeyman,,DT,8,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Pelletier,Teejay,1181,Tuesday,03/11/25,Stanford GSE,20-592,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:15 AM,02:45 PM,0,1,0:30,Stanford,6 hours high pay
-Ramos,John,1190,Tuesday,03/11/25,Bechtel,23-641,11-24 - Glaze WW / SF (H / I),11-24,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Rodriguez,Luis,874,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Rolon,David,1162,Tuesday,03/11/25,SFO ITB Phase 2,24-647,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,10:00 AM,0,0,0:00,sfo,Work 4 hours due to work
-Rolon,David,1162,Tuesday,03/11/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,Stanford,Transferred to SFO
-Sanchez,Jaime,710,Tuesday,03/11/25,SFO ITB Phase 2,24-647,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,OT,4,06:00 AM,10:00 AM,0,0,0:00,sfo,Work 4 hours due to no work
-Sanchez,Jaime,710,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sousa,Mike,257,Tuesday,03/11/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sousa,Wagner,1188,Tuesday,03/11/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
-Vierra,Rye,735,Tuesday,03/11/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Crew,
+Altringer,Garth,783,Wednesday,03/12/25,Bechtel,23-641,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Amos,David,1196,Wednesday,03/12/25,Stanford GSE,20-592,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,STANFORD,6 hours high pay
+Arias,Ozzie,683,Wednesday,03/12/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,STANFORD,CCSF
+Bracamonte,Julian,1133,Wednesday,03/12/25,Bechtel,23-641,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Bumgarner,Thomas,1048,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,
+Bumgarner,Thomas,1048,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,
+Calderon,Lucio,1177,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,DT,8,06:30 AM,03:00 PM,0,1,0:30,Lucio Calderon,6hrs High Pay
+Carroll,Andrew,917,Wednesday,03/12/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,8,06:15 AM,02:45 PM,0,1,0:30,STANFORD,
+Centeno,Paul,1158,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Clarke,Eric,,Wednesday,03/12/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+De La Torre,Miguel,1198,Wednesday,03/12/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Duran,Jose,1144,Wednesday,03/12/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Apprentice,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Ellington,Christian,,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Christian Ellington,
+England,Chris,787,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Esparza,Vincent,1057,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,,,,Apprentice,,,0,,,0,0,0:00,Behavioral Crew,School all week
+Espinosa,Luis,1191,Wednesday,03/12/25,Bechtel,23-641,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Estrada,Nick,1193,Wednesday,03/12/25,Bechtel,23-641,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Crew,Vacation
+Galindo,Ray,712,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Gutierrez,Rogelio,837,Wednesday,03/12/25,Bechtel,23-641,11-15 - Install Terracotta tile (A / B),11-15,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Hart,David,839,Wednesday,03/12/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,6,07:00 AM,01:30 PM,0,1,0:30,WELLNESS,
+Helton,Toby,1155,Wednesday,03/12/25,Bechtel,23-641,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Hendricks,Jon,689,Wednesday,03/12/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Leadman,,RT,3,07:00 AM,01:30 PM,0,1,0:30,WELLNESS,
+Hendricks,Jon,689,Wednesday,03/12/25,South San Fransico Wellness Center,,11-13 - Install Panels (A / B),11-13,,Leadman,,RT,3,07:00 AM,01:30 PM,0,1,0:30,WELLNESS,
+Hendricks,Kevin,1010,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,
+Hernandez (Garcia),Eleazar,1176,Wednesday,03/12/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:15 AM,02:45 PM,0,1,0:30,STANFORD,
+James,Michael,754,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Kenner,Geordan,251,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Geordan Kenner,
+Mason,Brandon,1164,Wednesday,03/12/25,South San Fransico Wellness Center,,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,6,07:00 AM,01:30 PM,0,1,0:30,WELLNESS,
+Medina,Gilbert,812,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,
+Molina,Rodrigo,870,Wednesday,03/12/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,STANFORD,SFO
+Molina,Rodrigo,870,Wednesday,03/12/25,SFO ITB Phase 2,24-647,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Moore,Jakob,1202,Wednesday,03/12/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Apprentice,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Morales,Jaime,831,Wednesday,03/12/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Nakagawa,Elijah,1171,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,,,,Apprentice,,,0,,,0,0,0:00,Behavioral Crew,School all week
+Noguera,Jovany,813,Wednesday,03/12/25,Congregation Emanu-El-Construction,23-646,11-22 - Install WW / SF Metal (A / B),11-22,,Journeyman,,DT,8,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
+Pelletier,Teejay,1181,Wednesday,03/12/25,Stanford GSE,20-592,,,,Apprentice,,,0,,,0,0,0:00,STANFORD,CCSF
+Ramos,John,1190,Wednesday,03/12/25,Bechtel,23-641,11-14 - Install Terracotta Subgirts (A / B),11-14,,Journeyman,,RT,2,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Ramos,John,1190,Wednesday,03/12/25,Bechtel,23-641,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,2.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Rodriguez,Luis,874,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Rolon,David,1162,Wednesday,03/12/25,Stanford GSE,20-592,,,,Journeyman,,,0,,,0,0,0:00,STANFORD,SFO
+Rolon,David,1162,Wednesday,03/12/25,SFO ITB Phase 2,24-647,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Sanchez,Jaime,710,Wednesday,03/12/25,SFO ITB Phase 2,24-647,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Sousa,Mike,257,Wednesday,03/12/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Sousa,Wagner,1188,Wednesday,03/12/25,Bechtel,23-641,11-15 - Install Terracotta tile (A / B),11-15,,Journeyman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"
+Vierra,Rye,735,Wednesday,03/12/25,Bechtel,23-641,11-37 - Supervision A/B,11-37,,Leadman,,RT,4.5,06:00 AM,11:00 AM,0,1,0:30,Crew,"Left early, Rain"

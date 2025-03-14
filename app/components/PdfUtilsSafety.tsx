@@ -55,6 +55,9 @@ export const generatePDF = async (data: any) => {
       case "JHA":
         pdfPath = "/JHA.pdf";
         break;
+      case "THA":
+        pdfPath = "/THA.pdf";
+        break;
       case "Fall-Protection":
         pdfPath = "/FallProtection.pdf";
         break;
@@ -64,17 +67,23 @@ export const generatePDF = async (data: any) => {
       case "Swing-Stage":
         pdfPath = "/SwingStage.pdf";
         break;
+      case "Witness-Statement":
+        pdfPath = "/Witness-Statement.pdf";
+        break;
       case "MEWP":
         pdfPath = "/MEWP.pdf";
         break;
       case "Lanyard-Inspection":
         pdfPath = "/LanyardInspection.pdf";
         break;
+      case "Jobsite-Safety-Inspection":
+        pdfPath = "/JobsiteInspection.pdf";
+        break;
       case "Accident-Incident-Report":
         pdfPath = "/AccidentReport.pdf";
         break;
       default:
-        throw new Error(`Unknown form type: ${data.formName}`);
+        throw new Error(`Unknown form type at top of file: ${data.formName}`);
     }
 
     console.log(`Using PDF template: ${pdfPath}`);
@@ -93,7 +102,7 @@ export const generatePDF = async (data: any) => {
     //);
 
     // Fill the form based on the form type
-    if (data.formName === "JHA") {
+    if (data.formName === "JHA" || data.formName === "THA") {
       // JHA specific fields
       safeSetTextField(form, "Text1", formatDate(data.dateCreated));
       safeSetTextField(form, "Text2", data.shiftTime || "");
@@ -4295,6 +4304,537 @@ export const generatePDF = async (data: any) => {
           }
         );
       }
+    } else if (data.formName === "Jobsite-Safety-Inspection") {
+      //jobsite-safety-inspection
+      // Project information
+      safeSetTextField(form, "Text1", data.formData.projectName || ""); // Project Name
+      safeSetTextField(form, "Text2", data.dateCreated || ""); // Date
+      safeSetTextField(form, "Text3", data.formData.address || ""); // Address
+      safeSetTextField(form, "Text4", data.formData.jobNumber || ""); // Job #
+      safeSetTextField(form, "Text5", data.formData.superintendent || ""); // Superintendent
+      safeSetTextField(form, "Text6", data.formData.weather || ""); // Weather
+
+      // Notes field
+      safeSetTextField(form, "Text11", data.formData.notes || "");
+
+      // Corrective Actions (5 rows, each with item number, date, and action)
+      if (
+        data.formData.correctiveActions &&
+        data.formData.correctiveActions.length > 0
+      ) {
+        let textFieldIndex = 17;
+        for (
+          let i = 0;
+          i < Math.min(data.formData.correctiveActions.length, 7);
+          i++
+        ) {
+          const action = data.formData.correctiveActions[i];
+          if (action) {
+            console.log("text field index", textFieldIndex);
+            console.log("action item number", action.itemNumber);
+            form
+              .getTextField(`Text${textFieldIndex++}`)
+              .setText(action.itemNumber || "");
+            form
+              .getTextField(`Text${textFieldIndex++}`)
+              .setText(action.dateCorrected || "");
+            form
+              .getTextField(`Text${textFieldIndex++}`)
+              .setText(action.actionTaken || "");
+            textFieldIndex++; // Skip empty row
+            textFieldIndex++; // Skip empty row
+            textFieldIndex++; // Skip empty row
+          } else {
+            textFieldIndex += 3; // Skip empty rows
+          }
+        }
+      }
+
+      // Project information repeated on page 2
+      safeSetTextField(form, "Text13", data.formData.projectName || ""); // Project Name on page 2
+      safeSetTextField(form, "Text14", data.dateCreated || ""); // Date on page 2
+      safeSetTextField(form, "Text15", data.formData.superintendent || ""); // Superintendent on page 2
+      safeSetTextField(form, "Text16", data.formData.jobNumber || ""); // Job # on page 2
+
+      // Safety Checklist Items
+      // Item 1: Toolbox Safety Meetings
+      safeSetCheckBox(
+        form,
+        "Check Box1",
+        !!data.formData.safetyItems.toolboxMeetings?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box2",
+        !!data.formData.safetyItems.toolboxMeetings?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box3",
+        !!data.formData.safetyItems.toolboxMeetings?.notApplicable
+      );
+
+      // Item 2: Safety Program
+      safeSetCheckBox(
+        form,
+        "Check Box4",
+        !!data.formData.safetyItems.safetyProgram?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box5",
+        !!data.formData.safetyItems.safetyProgram?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box6",
+        !!data.formData.safetyItems.safetyProgram?.notApplicable
+      );
+
+      // Item 3: Heat Illness Prevention
+      safeSetCheckBox(
+        form,
+        "Check Box7",
+        !!data.formData.safetyItems.heatIllnessPrevention?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box8",
+        !!data.formData.safetyItems.heatIllnessPrevention?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box9",
+        !!data.formData.safetyItems.heatIllnessPrevention?.notApplicable
+      );
+
+      // Item 4: Emergency Evacuation
+      safeSetCheckBox(
+        form,
+        "Check Box10",
+        !!data.formData.safetyItems.emergencyEvacuation?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box11",
+        !!data.formData.safetyItems.emergencyEvacuation?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box12",
+        !!data.formData.safetyItems.emergencyEvacuation?.notApplicable
+      );
+
+      // Item 5: First Aid
+      safeSetCheckBox(
+        form,
+        "Check Box13",
+        !!data.formData.safetyItems.firstAid?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box14",
+        !!data.formData.safetyItems.firstAid?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box15",
+        !!data.formData.safetyItems.firstAid?.notApplicable
+      );
+
+      // Item 6: Hazard Communication
+      safeSetCheckBox(
+        form,
+        "Check Box16",
+        !!data.formData.safetyItems.hazardCommunication?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box17",
+        !!data.formData.safetyItems.hazardCommunication?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box18",
+        !!data.formData.safetyItems.hazardCommunication?.notApplicable
+      );
+
+      // Item 7: PPE
+      safeSetCheckBox(
+        form,
+        "Check Box19",
+        !!data.formData.safetyItems.ppe?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box20",
+        !!data.formData.safetyItems.ppe?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box21",
+        !!data.formData.safetyItems.ppe?.notApplicable
+      );
+
+      // Item 8: Scaffolds
+      safeSetCheckBox(
+        form,
+        "Check Box22",
+        !!data.formData.safetyItems.scaffolds?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box23",
+        !!data.formData.safetyItems.scaffolds?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box24",
+        !!data.formData.safetyItems.scaffolds?.notApplicable
+      );
+
+      // Item 9: Housekeeping
+      safeSetCheckBox(
+        form,
+        "Check Box25",
+        !!data.formData.safetyItems.housekeeping?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box26",
+        !!data.formData.safetyItems.housekeeping?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box27",
+        !!data.formData.safetyItems.housekeeping?.notApplicable
+      );
+
+      // Item 10: Mobile Elevating Platforms
+      safeSetCheckBox(
+        form,
+        "Check Box28",
+        !!data.formData.safetyItems.mobileElevatingPlatforms?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box29",
+        !!data.formData.safetyItems.mobileElevatingPlatforms?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box30",
+        !!data.formData.safetyItems.mobileElevatingPlatforms?.notApplicable
+      );
+
+      // Item 11: Fall Protection
+      safeSetCheckBox(
+        form,
+        "Check Box31",
+        !!data.formData.safetyItems.fallProtection?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box32",
+        !!data.formData.safetyItems.fallProtection?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box33",
+        !!data.formData.safetyItems.fallProtection?.notApplicable
+      );
+
+      // Item 12: Ladders/Stairways
+      safeSetCheckBox(
+        form,
+        "Check Box34",
+        !!data.formData.safetyItems.laddersStairways?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box35",
+        !!data.formData.safetyItems.laddersStairways?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box36",
+        !!data.formData.safetyItems.laddersStairways?.notApplicable
+      );
+
+      // Item 13: Fire Safety
+      safeSetCheckBox(
+        form,
+        "Check Box37",
+        !!data.formData.safetyItems.fireSafety?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box38",
+        !!data.formData.safetyItems.fireSafety?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box39",
+        !!data.formData.safetyItems.fireSafety?.notApplicable
+      );
+
+      // Item 14: Lockout/Tagout
+      safeSetCheckBox(
+        form,
+        "Check Box40",
+        !!data.formData.safetyItems.lockoutTagout?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box41",
+        !!data.formData.safetyItems.lockoutTagout?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box42",
+        !!data.formData.safetyItems.lockoutTagout?.notApplicable
+      );
+
+      // Item 15: Electrical Safety
+      safeSetCheckBox(
+        form,
+        "Check Box43",
+        !!data.formData.safetyItems.electricalSafety?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box44",
+        !!data.formData.safetyItems.electricalSafety?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box45",
+        !!data.formData.safetyItems.electricalSafety?.notApplicable
+      );
+
+      // Item 16: Flammable Liquids
+      safeSetCheckBox(
+        form,
+        "Check Box46",
+        !!data.formData.safetyItems.flammableLiquids?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box47",
+        !!data.formData.safetyItems.flammableLiquids?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box48",
+        !!data.formData.safetyItems.flammableLiquids?.notApplicable
+      );
+
+      // Item 17: Hot Work Operations
+      safeSetCheckBox(
+        form,
+        "Check Box49",
+        !!data.formData.safetyItems.hotWorkOperations?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box50",
+        !!data.formData.safetyItems.hotWorkOperations?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box51",
+        !!data.formData.safetyItems.hotWorkOperations?.notApplicable
+      );
+
+      // Item 18: Power Tools
+      safeSetCheckBox(
+        form,
+        "Check Box52",
+        !!data.formData.safetyItems.powerTools?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box53",
+        !!data.formData.safetyItems.powerTools?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box54",
+        !!data.formData.safetyItems.powerTools?.notApplicable
+      );
+
+      // Item 19: Forklift Operations
+      safeSetCheckBox(
+        form,
+        "Check Box55",
+        !!data.formData.safetyItems.forkliftOperations?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box56",
+        !!data.formData.safetyItems.forkliftOperations?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box57",
+        !!data.formData.safetyItems.forkliftOperations?.notApplicable
+      );
+
+      // Item 20: Cranes
+      safeSetCheckBox(
+        form,
+        "Check Box58",
+        !!data.formData.safetyItems.cranes?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box59",
+        !!data.formData.safetyItems.cranes?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box60",
+        !!data.formData.safetyItems.cranes?.notApplicable
+      );
+
+      // Item 21: Rigging Equipment
+      safeSetCheckBox(
+        form,
+        "Check Box61",
+        !!data.formData.safetyItems.riggingEquipment?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box62",
+        !!data.formData.safetyItems.riggingEquipment?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box63",
+        !!data.formData.safetyItems.riggingEquipment?.notApplicable
+      );
+
+      // Item 22: Confined Space
+      safeSetCheckBox(
+        form,
+        "Check Box64",
+        !!data.formData.safetyItems.confinedSpace?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box65",
+        !!data.formData.safetyItems.confinedSpace?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box66",
+        !!data.formData.safetyItems.confinedSpace?.notApplicable
+      );
+
+      // Item 23: Public Protection
+      safeSetCheckBox(
+        form,
+        "Check Box67",
+        !!data.formData.safetyItems.publicProtection?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box68",
+        !!data.formData.safetyItems.publicProtection?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box69",
+        !!data.formData.safetyItems.publicProtection?.notApplicable
+      );
+
+      // Item 24: Excavation/Trenching
+      safeSetCheckBox(
+        form,
+        "Check Box70",
+        !!data.formData.safetyItems.excavationTrenching?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box71",
+        !!data.formData.safetyItems.excavationTrenching?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box72",
+        !!data.formData.safetyItems.excavationTrenching?.notApplicable
+      );
+
+      // Item 25: Other
+      safeSetCheckBox(
+        form,
+        "Check Box73",
+        !!data.formData.safetyItems.other?.satisfactory
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box74",
+        !!data.formData.safetyItems.other?.improvement
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box75",
+        !!data.formData.safetyItems.other?.notApplicable
+      );
+    } else if (data.formName === "Witness-Statement") {
+      // Based on the PDF layout reading left to right, top to bottom
+      // First row
+      safeSetTextField(
+        form,
+        "Text1",
+        formatDate(data.formData.dateOfIncident) || ""
+      );
+      safeSetTextField(form, "Text2", data.formData.timeOfIncident || "");
+      safeSetTextField(
+        form,
+        "Text3",
+        formatDate(data.formData.statementDate) || ""
+      );
+
+      // Second row
+      safeSetTextField(form, "Text4", data.formData.locationOfIncident || "");
+      safeSetTextField(form, "Text5", data.formData.statementTime || "");
+
+      // Third row
+      safeSetTextField(form, "Text6", data.formData.generalForemanName || "");
+      safeSetTextField(form, "Text7", data.formData.jobNumber || "");
+
+      // Fourth row - Witness Info
+      safeSetTextField(form, "Text8", data.formData.witnessName || "");
+      safeSetTextField(form, "Text9", data.formData.witnessPhone || "");
+
+      // Fifth row
+      safeSetTextField(form, "Text10", data.formData.witnessEmployer || "");
+
+      // Sixth row
+      safeSetTextField(form, "Text11", data.formData.employeesInvolved || "");
+
+      // Seventh row
+      safeSetTextField(form, "Text12", data.formData.witnesInvolved || "");
+
+      // Eighth row
+      safeSetTextField(form, "Text13", data.formData.equipmentInvolved || "");
+
+      // Statement content - might span several fields depending on how the PDF is set up
+
+      fillMultiLineField(
+        form,
+        "witnessStatement",
+        data.formData.statementContent || ""
+      );
+
+      // Signature fields at the bottom
+      safeSetTextField(form, "Text30", data.formData.witnessSignature || ""); // Adjust this number based on actual field count
+      safeSetTextField(
+        form,
+        "Text31",
+        formatDate(data.formData.signatureDate) || ""
+      );
     }
 
     // Generate the PDF

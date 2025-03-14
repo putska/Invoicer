@@ -28,13 +28,25 @@ export default function FormTypeSelector({ onClose }: FormTypeSelectorProps) {
           onClick={() => handleSelect("jha")}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >
-          JHA
+          Job Hazard Aanalysis
+        </button>
+        <button
+          onClick={() => handleSelect("tha")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Task Hazard Analysis
         </button>
         <button
           onClick={() => handleSelect("mewp")}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >
           MEWP
+        </button>
+        <button
+          onClick={() => handleSelect("witness-statement")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Witness Statement
         </button>
         <button
           onClick={() => handleSelect("telehandler")}
@@ -60,6 +72,13 @@ export default function FormTypeSelector({ onClose }: FormTypeSelectorProps) {
         >
           Accident Incedent Report
         </button>
+        <button
+          onClick={() => handleSelect("jobsite-safety")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Jobsite Safety Inspection
+        </button>
+
         <button
           onClick={onClose}
           className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md"

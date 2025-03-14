@@ -160,12 +160,20 @@ const bodyMarkerSchema = z.object({
   y: z.number(),
 });
 
+type Job = {
+  id: number;
+  name: string;
+  jobNumber: string;
+  status: string;
+};
+
 // Main form schema
 const accidentReportSchema = z.object({
   formName: z.string().default("Accident Incident Report"),
   pdfName: z.string().default("AccidentReport.pdf"),
   userName: z.string().min(1, "User name is required"),
   dateCreated: z.string().min(1, "Date is required"),
+  jobName: z.string().min(1, "Job name is required"),
   formData: z.object({
     // Step 1: Accident Classification
     accidentClassification: z.object({
@@ -257,7 +265,6 @@ const accidentReportSchema = z.object({
     // Step 3: Accident Description
     accidentDescription: z.object({
       exactLocation: z.string().min(1, "Location is required"),
-      jobNameNumber: z.string().min(1, "Job name/number is required"),
       exactTime: z.string().min(1, "Time is required"),
       workdayPart: z.object({
         enteringLeaving: z.boolean().default(false),
@@ -588,6 +595,7 @@ export default function Page() {
   const { id } = useParams() as { id: string };
   const { user } = useUser();
   const fullName = useFullNameFromDB();
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [activeTab, setActiveTab] = useState("step1");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "error" | "success">(
@@ -601,6 +609,7 @@ export default function Page() {
       pdfName: "AccidentReport.pdf",
       dateCreated: new Date().toISOString().split("T")[0],
       userName: fullName || "",
+      jobName: "",
       formData: {
         accidentClassification: {
           injury: false,
@@ -668,7 +677,6 @@ export default function Page() {
         securedBy: "",
         accidentDescription: {
           exactLocation: "",
-          jobNameNumber: "",
           exactTime: "",
           workdayPart: {
             enteringLeaving: false,
@@ -807,6 +815,27 @@ export default function Page() {
 
   // ---------------- API Loaders ----------------
 
+  const loadJobs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/projects");
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
+      if (!result.projects) throw new Error("Failed to load jobs");
+
+      // If we're editing (id exists and isn't "new"), show all jobs.
+      // Otherwise, for a new form, show only active jobs.
+      const jobsToSet =
+        id && id !== "new"
+          ? result.projects
+          : result.projects.filter((job: Job) => job.status === "active");
+
+      setJobs(jobsToSet);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    }
+  }, [id]);
+
   const loadSafetyForm = useCallback(
     async (formId: string) => {
       try {
@@ -840,6 +869,8 @@ export default function Page() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Wait for dropdown data to load
+        await loadJobs();
         // Now load the safety form if we're editing
         if (id && id !== "new") {
           await loadSafetyForm(id);
@@ -1451,19 +1482,21 @@ export default function Page() {
                   </FormField>
 
                   <FormField
-                    label="Job Name & Number"
-                    error={
-                      errors.formData?.accidentDescription?.jobNameNumber
-                        ?.message
-                    }
+                    label="Job Name"
+                    error={errors.jobName?.message}
                     required
                   >
-                    <input
-                      {...register(
-                        "formData.accidentDescription.jobNameNumber"
-                      )}
+                    <select
+                      {...register("jobName")}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                    />
+                    >
+                      <option value="">Select a Job</option>
+                      {jobs.map((job) => (
+                        <option key={job.id} value={job.name}>
+                          {job.name}
+                        </option>
+                      ))}
+                    </select>
                   </FormField>
 
                   <FormField

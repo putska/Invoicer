@@ -118,6 +118,31 @@ const FORM_FIELD_GROUPS: FormFieldGroups = {
     fieldLabel:
       "Have there been similar accidents or near misses prior to the accident?",
   },
+  witnessStatement: {
+    fieldIds: [
+      "Text14",
+      "Text15",
+      "Text16",
+      "Text17",
+      "Text18",
+      "Text19",
+      "Text20",
+      "Text21",
+      "Text22",
+      "Text23",
+      "Text24",
+      "Text25",
+      "Text26",
+      "Text27",
+      "Text28",
+      "Text29",
+    ],
+    charLimits: [
+      100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+      100,
+    ],
+    fieldLabel: "Witness Statement",
+  },
 };
 
 /**

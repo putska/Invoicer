@@ -30,10 +30,8 @@ const swingStageFormSchema = z.object({
   pdfName: z.string().default("SwingStage.pdf"),
   userName: z.string().min(1, "User name is required"),
   dateCreated: z.string().min(1, "Date is required"),
-  jobName: z.string().default(""),
-  jobNumber: z.string().default("22-22"),
+  jobName: z.string().min(1, "Job name is required"),
   formData: z.object({
-    jobName: z.string().min(1, "Job name is required"),
     jobNumber: z.string().optional(),
     jobsiteAddress: z.string().min(1, "Jobsite address is required"),
     date: z.string().min(1, "Date is required"),
@@ -127,7 +125,7 @@ type SwingStageForm = z.infer<typeof swingStageFormSchema>;
 type Job = {
   id: number;
   name: string;
-  number: string;
+  jobNumber: string;
   status: string;
 };
 
@@ -286,9 +284,7 @@ export default function Page() {
       dateCreated: new Date().toISOString().split("T")[0],
       userName: fullName || "",
       jobName: "",
-      jobNumber: "",
       formData: {
-        jobName: "",
         jobNumber: "",
         jobsiteAddress: "",
         date: new Date().toISOString().split("T")[0],
@@ -463,6 +459,8 @@ export default function Page() {
     formState: { errors, dirtyFields },
     setValue,
     watch,
+    clearErrors,
+    getValues,
   } = methods;
 
   // Field array for comments
@@ -511,6 +509,22 @@ export default function Page() {
       setValue("userName", fullName);
     }
   }, [fullName, setValue]);
+
+  // Watch for job name changes to auto-populate job number
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === "jobName") {
+        // When job name changes, find the matching job
+        const selectedJob = jobs.find((job) => job.name === value.jobName);
+
+        if (selectedJob) {
+          setValue("formData.jobNumber", selectedJob.jobNumber);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [jobs, setValue, watch, clearErrors, getValues, id]);
 
   // ---------------- API Loaders ----------------
 
@@ -594,8 +608,7 @@ export default function Page() {
 
       const payload = {
         ...formData,
-        jobName: formData.formData.jobName || "",
-        jobNumber: formData.formData.jobNumber || "",
+        jobName: formData.jobName || "",
         submissionDate: new Date().toISOString(),
       };
 
@@ -618,7 +631,7 @@ export default function Page() {
           id: id,
           formName: formData.formName,
           pdfName: formData.pdfName,
-          jobName: formData.formData.jobName,
+          jobName: formData.jobName,
           userName: formData.userName,
           dateCreated: formData.dateCreated,
           submissionDate: new Date(),
@@ -657,23 +670,12 @@ export default function Page() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Job Name"
-                error={errors.formData?.jobName?.message}
+                error={errors.jobName?.message}
                 required
               >
                 <select
-                  {...register("formData.jobName")}
+                  {...register("jobName")}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                  onChange={(e) => {
-                    setValue("formData.jobName", e.target.value);
-                    // Find the job number based on selected job name
-                    const selectedJob = jobs.find(
-                      (job) => job.name === e.target.value
-                    );
-                    if (selectedJob) {
-                      setValue("formData.jobNumber", selectedJob.number);
-                      setValue("jobNumber", selectedJob.number);
-                    }
-                  }}
                 >
                   <option value="">Select a Job</option>
                   {jobs.map((job) => (
@@ -691,6 +693,7 @@ export default function Page() {
                 <input
                   {...register("formData.jobNumber")}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
+                  readOnly={true}
                 />
               </FormField>
             </div>

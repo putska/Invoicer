@@ -43,10 +43,8 @@ const mewpFormSchema = z.object({
   pdfName: z.string().default("MEWP.pdf"),
   userName: z.string().min(1, "User name is required"),
   dateCreated: z.string().min(1, "Date is required"),
-  jobName: z.string().default(""),
-  jobNumber: z.string().default(""),
+  jobName: z.string().min(1, "Job name is required"),
   formData: z.object({
-    jobName: z.string().min(1, "Job name is required"),
     mewpMakeModel: z.string().min(1, "MEWP make/model is required"),
     mewpType: mewpTypeSchema,
     mewpId: z.string().min(1, "MEWP ID is required"),
@@ -146,7 +144,7 @@ type MEWPForm = z.infer<typeof mewpFormSchema>;
 type Job = {
   id: number;
   name: string;
-  number: string;
+  jobNumber: string;
   status: string;
 };
 
@@ -362,9 +360,7 @@ export default function MEWPFormPage() {
       dateCreated: new Date().toISOString().split("T")[0],
       userName: fullName || "Stephen Watts",
       jobName: "",
-      jobNumber: "",
       formData: {
-        jobName: "",
         mewpMakeModel: "",
         mewpType: {
           scissorLift: false,
@@ -648,8 +644,7 @@ export default function MEWPFormPage() {
 
       const payload = {
         ...formData,
-        jobName: formData.formData.jobName || "",
-        jobNumber: formData.jobNumber || "",
+        jobName: formData.jobName || "",
         submissionDate: new Date().toISOString(),
       };
 
@@ -672,7 +667,7 @@ export default function MEWPFormPage() {
           id: id,
           formName: formData.formName,
           pdfName: formData.pdfName,
-          jobName: formData.formData.jobName,
+          jobName: formData.jobName,
           userName: formData.userName,
           dateCreated: formData.dateCreated,
           submissionDate: new Date(),
