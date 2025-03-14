@@ -43,6 +43,12 @@ export default function FormTypeSelector({ onClose }: FormTypeSelectorProps) {
           MEWP
         </button>
         <button
+          onClick={() => handleSelect("safety-meeting")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Safety Meeting
+        </button>
+        <button
           onClick={() => handleSelect("near-miss")}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >

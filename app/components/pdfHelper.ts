@@ -184,6 +184,11 @@ const FORM_FIELD_GROUPS: FormFieldGroups = {
     charLimits: [100, 100, 100, 100, 100, 100, 100],
     fieldLabel: "Corrective Actions",
   },
+  safetyMeetingTopic: {
+    fieldIds: ["Text6", "Text7", "Text8", "Text9", "Text10", "Text11"],
+    charLimits: [80, 100, 100, 100, 100, 100],
+    fieldLabel: "Safety Meeting Topic",
+  },
 };
 
 /**

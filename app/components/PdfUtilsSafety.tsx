@@ -82,6 +82,9 @@ export const generatePDF = async (data: any) => {
       case "Jobsite-Safety-Inspection":
         pdfPath = "/JobsiteInspection.pdf";
         break;
+      case "Safety-Meeting":
+        pdfPath = "/SafetyMeeting.pdf";
+        break;
       case "Accident-Incident-Report":
         pdfPath = "/AccidentReport.pdf";
         break;
@@ -4912,6 +4915,62 @@ export const generatePDF = async (data: any) => {
       safeSetTextField(
         form,
         "Text34",
+        formatDate(data.formData.signatureDate) || ""
+      );
+
+      //Safety Meeting form
+    } else if (data.formName === "Safety-Meeting") {
+      // Job Information
+      safeSetTextField(form, "Text1", data.formData.jobNumber || "");
+      safeSetTextField(form, "Text2", data.jobName || "");
+
+      // Meeting Information
+      safeSetTextField(
+        form,
+        "Text3",
+        formatDate(data.formData.meetingDate) || ""
+      );
+      safeSetTextField(form, "Text4", data.formData.meetingTime || "");
+      safeSetTextField(form, "Text5", data.formData.weather || "");
+
+      // Meeting Topic
+      fillMultiLineField(
+        form,
+        "safetyMeetingTopic",
+        data.formData.meetingTopic || ""
+      );
+
+      // Attendance List - Handle up to 20 attendees
+      // Using Text12 through Text56 for attendee names and signatures (2 fields per attendee)
+      const attendees = data.formData.attendees || [];
+      for (let i = 0; i < attendees.length && i < 23; i++) {
+        // Attendee name field (odd numbers)
+        safeSetTextField(form, `Text${12 + i * 2}`, attendees[i].name || "");
+
+        // Attendee signature field (even numbers)
+        safeSetTextField(
+          form,
+          `Text${13 + i * 2}`,
+          attendees[i].signature || ""
+        );
+      }
+
+      // Superintendent Information (assuming these are the last three fields)
+      const baseIndex = 12 + 23 * 2; // 7 for the header fields + 40 for attendees (20 attendees * 2 fields each)
+
+      safeSetTextField(
+        form,
+        `Text${baseIndex}`,
+        data.formData.superintendentName || ""
+      );
+      safeSetTextField(
+        form,
+        `Text${baseIndex + 1}`,
+        data.formData.superintendentSignature || ""
+      );
+      safeSetTextField(
+        form,
+        `Text${baseIndex + 2}`,
         formatDate(data.formData.signatureDate) || ""
       );
     }
