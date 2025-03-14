@@ -209,6 +209,9 @@ export default function SafetyFormListPage({
       case "witness-statement":
         router.push(`/modules/safety/witness-statement/${form.id}`);
         break;
+      case "near-miss-report":
+        router.push(`/modules/safety/near-miss/${form.id}`);
+        break;
       case "swing-stage":
         router.push(`/modules/safety/swing-stage/${form.id}`);
         break;

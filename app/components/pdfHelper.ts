@@ -143,6 +143,47 @@ const FORM_FIELD_GROUPS: FormFieldGroups = {
     ],
     fieldLabel: "Witness Statement",
   },
+  incidentDescription: {
+    fieldIds: [
+      "Text10",
+      "Text11",
+      "Text12",
+      "Text13",
+      "Text14",
+      "Text15",
+      "Text16",
+      "Text17",
+    ],
+    charLimits: [100, 100, 100, 100, 100, 100, 100, 100],
+    fieldLabel: "Incident Description",
+  },
+  preventionSuggestion: {
+    fieldIds: [
+      "Text18",
+      "Text19",
+      "Text20",
+      "Text21",
+      "Text22",
+      "Text23",
+      "Text24",
+      "Text25",
+    ],
+    charLimits: [100, 100, 100, 100, 100, 100, 100, 100],
+    fieldLabel: "Prevention Suggestion",
+  },
+  correctiveActions: {
+    fieldIds: [
+      "Text26",
+      "Text27",
+      "Text28",
+      "Text29",
+      "Text30",
+      "Text31",
+      "Text32",
+    ],
+    charLimits: [100, 100, 100, 100, 100, 100, 100],
+    fieldLabel: "Corrective Actions",
+  },
 };
 
 /**

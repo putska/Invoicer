@@ -76,6 +76,9 @@ export const generatePDF = async (data: any) => {
       case "Lanyard-Inspection":
         pdfPath = "/LanyardInspection.pdf";
         break;
+      case "Near-Miss-Report":
+        pdfPath = "/Near-Miss.pdf";
+        break;
       case "Jobsite-Safety-Inspection":
         pdfPath = "/JobsiteInspection.pdf";
         break;
@@ -4833,6 +4836,82 @@ export const generatePDF = async (data: any) => {
       safeSetTextField(
         form,
         "Text31",
+        formatDate(data.formData.signatureDate) || ""
+      );
+
+      // Near-Miss Report
+    } else if (data.formName === "Near-Miss-Report") {
+      // First row - Date, Time, Statement Date
+      safeSetTextField(
+        form,
+        "Text1",
+        formatDate(data.formData.dateOfIncident) || ""
+      );
+      safeSetTextField(form, "Text2", data.formData.timeOfIncident || "");
+      safeSetTextField(
+        form,
+        "Text3",
+        formatDate(data.formData.statementDate) || ""
+      );
+
+      // Second row - Location, Statement Time
+      safeSetTextField(form, "Text4", data.formData.locationOfIncident || "");
+      safeSetTextField(form, "Text5", data.formData.statementTime || "");
+
+      // Third row - General Foreman, Job Number
+      safeSetTextField(form, "Text6", data.formData.generalForemanName || "");
+      safeSetTextField(form, "Text7", data.formData.jobNumber || "");
+
+      // Fourth row - Witnesses, Phone Number
+      safeSetTextField(form, "Text8", data.formData.witnesses || "");
+      safeSetTextField(form, "Text9", data.formData.witnessPhone || "");
+
+      // Type of Near Miss checkboxes
+      if (data.formData.typeOfNearMiss === "NEAR MISS") {
+        safeSetCheckBox(form, "Check Box1", true);
+      } else if (data.formData.typeOfNearMiss === "SAFETY CONCERN") {
+        safeSetCheckBox(form, "Check Box3", true);
+      } else if (data.formData.typeOfNearMiss === "SAFETY IDEA / SUGGESTIONS") {
+        safeSetCheckBox(form, "Check Box5", true);
+      }
+
+      // Type of Concern checkboxes
+      if (data.formData.typeOfConcern === "UNSAFE ACT") {
+        safeSetCheckBox(form, "Check Box2", true);
+      } else if (data.formData.typeOfConcern === "UNSAFE CONDITION OF AREA") {
+        safeSetCheckBox(form, "Check Box4", true);
+      } else if (
+        data.formData.typeOfConcern === "UNSAFE CONDITION OF THE EQUIPMENT"
+      ) {
+        safeSetCheckBox(form, "Check Box6", true);
+      }
+
+      // Description text area
+      fillMultiLineField(
+        form,
+        "incidentDescription",
+        data.formData.incidentDescription || ""
+      );
+
+      // Prevention suggestion text area
+      fillMultiLineField(
+        form,
+        "preventionSuggestion",
+        data.formData.preventionSuggestion || ""
+      );
+
+      // Corrective actions text area
+      fillMultiLineField(
+        form,
+        "correctiveActions",
+        data.formData.correctiveActions || ""
+      );
+
+      // Signature fields at the bottom
+      safeSetTextField(form, "Text33", data.formData.supervisorSignature || "");
+      safeSetTextField(
+        form,
+        "Text34",
         formatDate(data.formData.signatureDate) || ""
       );
     }
