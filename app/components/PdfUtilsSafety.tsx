@@ -70,6 +70,9 @@ export const generatePDF = async (data: any) => {
       case "Witness-Statement":
         pdfPath = "/Witness-Statement.pdf";
         break;
+      case "Scaffold-Inspection":
+        pdfPath = "/ScaffoldInspection.pdf";
+        break;
       case "Safety-Violation":
         pdfPath = "/SafetyViolation.pdf";
         break;
@@ -5034,6 +5037,56 @@ export const generatePDF = async (data: any) => {
         "Text21",
         formatDate(data.formData.supervisorSignatureDate) || ""
       );
+
+      // Scaffold Inspection form
+    } else if (data.formName === "Scaffold-Inspection") {
+      // Project Information
+      safeSetTextField(form, "Text1", data.formData.projectName || "");
+      safeSetTextField(
+        form,
+        "Text2",
+        formatDate(data.formData.inspectionDate) || ""
+      );
+      safeSetTextField(form, "Text3", data.formData.address || "");
+      safeSetTextField(form, "Text4", data.formData.jobNumber || "");
+      safeSetTextField(form, "Text5", data.formData.superintendentName || "");
+      safeSetTextField(form, "Text6", data.formData.weather || "");
+
+      // Checklist Items - Status Checkboxes
+      // We have 25 items, each with 3 possible statuses (S, I, NA)
+      // Each status requires a checkbox, so we need to handle 25*3 = 75 checkboxes
+      const checklistItems = data.formData.checklistItems || [];
+
+      // The checkboxes in the PDF are numbered sequentially, with 3 checkboxes per item
+      // For item 1: Check Box1 (S), Check Box2 (I), Check Box3 (NA)
+      // For item 2: Check Box4 (S), Check Box5 (I), Check Box6 (NA)
+      // And so on...
+
+      checklistItems.forEach(
+        (item: { id: number; status: string }, index: number) => {
+          // Skip the heading row (item 17 in the data)
+          if (item.id === 17) return;
+
+          // Calculate the base checkbox number for this item
+          // For item with id 1, the base is 1 (checkboxes 1,2,3)
+          // For item with id 2, the base is 4 (checkboxes 4,5,6)
+          // For items after the heading (id > 17), we need to adjust
+          const baseCheckBoxNum =
+            item.id <= 16 ? (item.id - 1) * 3 + 1 : (item.id - 2) * 3 + 1; // Adjust for the heading at id 17
+
+          // Set the appropriate checkbox based on the status
+          if (item.status === "S") {
+            safeSetCheckBox(form, `Check Box${baseCheckBoxNum}`, true);
+          } else if (item.status === "I") {
+            safeSetCheckBox(form, `Check Box${baseCheckBoxNum + 1}`, true);
+          } else if (item.status === "NA") {
+            safeSetCheckBox(form, `Check Box${baseCheckBoxNum + 2}`, true);
+          }
+        }
+      );
+
+      // Notes
+      safeSetTextField(form, "Text7", data.formData.notes || "");
     }
 
     // Generate the PDF

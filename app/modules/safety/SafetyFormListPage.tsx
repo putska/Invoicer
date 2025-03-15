@@ -215,6 +215,9 @@ export default function SafetyFormListPage({
       case "safety-violation":
         router.push(`/modules/safety/safety-violation/${form.id}`);
         break;
+      case "scaffold-inspection":
+        router.push(`/modules/safety/scaffold-inspection/${form.id}`);
+        break;
       case "safety-meeting":
         router.push(`/modules/safety/safety-meeting/${form.id}`);
         break;
