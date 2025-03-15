@@ -70,6 +70,9 @@ export const generatePDF = async (data: any) => {
       case "Witness-Statement":
         pdfPath = "/Witness-Statement.pdf";
         break;
+      case "Safety-Violation":
+        pdfPath = "/SafetyViolation.pdf";
+        break;
       case "MEWP":
         pdfPath = "/MEWP.pdf";
         break;
@@ -4972,6 +4975,64 @@ export const generatePDF = async (data: any) => {
         form,
         `Text${baseIndex + 2}`,
         formatDate(data.formData.signatureDate) || ""
+      );
+
+      // Safety Violation form
+    } else if (data.formName === "Safety-Violation") {
+      // Employee and Job Information
+      safeSetTextField(form, "Text1", data.formData.employeeName || "");
+      safeSetTextField(form, "Text2", data.formData.jobTitle || "");
+      safeSetTextField(form, "Text3", data.formData.superintendentName || "");
+      safeSetTextField(
+        form,
+        "Text4",
+        formatDate(data.formData.dateOfViolation) || ""
+      );
+
+      // Offense Level Checkboxes
+      if (data.formData.offenseLevel === "1st Offence") {
+        safeSetCheckBox(form, "Check Box1", true);
+      } else if (data.formData.offenseLevel === "2nd Offence") {
+        safeSetCheckBox(form, "Check Box2", true);
+      } else if (data.formData.offenseLevel === "3rd Offence") {
+        safeSetCheckBox(form, "Check Box3", true);
+      }
+
+      // Corrective Action Checkboxes
+      if (data.formData.correctiveAction === "Counseling/Retraining") {
+        safeSetCheckBox(form, "Check Box4", true);
+      } else if (data.formData.correctiveAction === "Written Reprimand") {
+        safeSetCheckBox(form, "Check Box5", true);
+      } else if (data.formData.correctiveAction === "Suspension") {
+        safeSetCheckBox(form, "Check Box6", true);
+      } else if (data.formData.correctiveAction === "Termination") {
+        safeSetCheckBox(form, "Check Box7", true);
+      }
+
+      // Violation Description and Employee Explanation
+      fillMultiLineField(
+        form,
+        "violationDescription",
+        data.formData.violationDescription || ""
+      );
+      fillMultiLineField(
+        form,
+        "employeeExplanation",
+        data.formData.employeeExplanation || ""
+      );
+
+      // Signatures
+      safeSetTextField(form, "Text18", data.formData.employeeSignature || "");
+      safeSetTextField(
+        form,
+        "Text19",
+        formatDate(data.formData.employeeSignatureDate) || ""
+      );
+      safeSetTextField(form, "Text20", data.formData.supervisorSignature || "");
+      safeSetTextField(
+        form,
+        "Text21",
+        formatDate(data.formData.supervisorSignatureDate) || ""
       );
     }
 

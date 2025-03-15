@@ -212,6 +212,9 @@ export default function SafetyFormListPage({
       case "near-miss-report":
         router.push(`/modules/safety/near-miss/${form.id}`);
         break;
+      case "safety-violation":
+        router.push(`/modules/safety/safety-violation/${form.id}`);
+        break;
       case "safety-meeting":
         router.push(`/modules/safety/safety-meeting/${form.id}`);
         break;
