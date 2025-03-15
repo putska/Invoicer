@@ -13,6 +13,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { generatePDF } from "../../../../components/PdfUtilsSafety";
 import { useFullNameFromDB } from "../../../../components/useFullNameFromDB";
+import SignatureField from "../../../../components/SignatureField";
 
 // ---------------- Schema & Types ----------------
 
@@ -591,29 +592,13 @@ export default function SafetyViolationPage() {
               disciplinary procedures, which could include termination.
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Employee Signature"
-                error={errors.formData?.employeeSignature?.message}
-              >
-                <input
-                  {...register("formData.employeeSignature")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                  placeholder="Type your full name to sign"
-                />
-              </FormField>
-
-              <FormField
-                label="Date"
-                error={errors.formData?.employeeSignatureDate?.message}
-              >
-                <input
-                  type="date"
-                  {...register("formData.employeeSignatureDate")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                />
-              </FormField>
-            </div>
+            <SignatureField
+              fieldName="formData.employeeSignature"
+              dateFieldName="formData.employeeSignatureDate"
+              label="Employee Signature"
+              error={errors.formData?.employeeSignature?.message}
+              dateError={errors.formData?.employeeSignatureDate?.message}
+            />
           </div>
 
           {/* Supervisor Signature */}
@@ -624,29 +609,13 @@ export default function SafetyViolationPage() {
               file for two years.
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Supervisor Signature"
-                error={errors.formData?.supervisorSignature?.message}
-              >
-                <input
-                  {...register("formData.supervisorSignature")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                  placeholder="Type your full name to sign"
-                />
-              </FormField>
-
-              <FormField
-                label="Date"
-                error={errors.formData?.supervisorSignatureDate?.message}
-              >
-                <input
-                  type="date"
-                  {...register("formData.supervisorSignatureDate")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-                />
-              </FormField>
-            </div>
+            <SignatureField
+              fieldName="formData.supervisorSignature"
+              dateFieldName="formData.supervisorSignatureDate"
+              label="Supervisor Signature"
+              error={errors.formData?.supervisorSignature?.message}
+              dateError={errors.formData?.supervisorSignatureDate?.message}
+            />
           </div>
 
           {/* PDF Generation Option */}
