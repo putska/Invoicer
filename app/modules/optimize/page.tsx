@@ -228,8 +228,17 @@ export default function BarOptimizationPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Extrusion Optimization</h1>
-
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Extrusion Optimization</h1>
+        <a
+          href="https://wiki.cse-portal.com/en/Engineering/documentation#extrusion-optimization-instructions"
+          className="text-blue-500 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Instructions
+        </a>
+      </div>
       <div className="mb-4">
         <Label htmlFor="jobName">Job Name</Label>
         <Input
@@ -240,7 +249,6 @@ export default function BarOptimizationPage() {
           className="max-w-md"
         />
       </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="parts">Parts</TabsTrigger>
@@ -486,7 +494,6 @@ export default function BarOptimizationPage() {
           )}
         </TabsContent>
       </Tabs>
-
       <div className="mt-6 flex justify-center">
         <Button
           onClick={handleOptimize}

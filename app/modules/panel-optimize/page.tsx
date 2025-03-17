@@ -243,8 +243,17 @@ export default function PanelOptimizationPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Panel Optimization</h1>
-
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Panel Optimization</h1>
+        <a
+          href="https://wiki.cse-portal.com/en/Engineering/documentation#panel-optimization-instructions"
+          className="text-blue-500 underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Instructions
+        </a>
+      </div>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="panels">Panels</TabsTrigger>
@@ -519,7 +528,6 @@ export default function PanelOptimizationPage() {
           )}
         </TabsContent>
       </Tabs>
-
       <div className="mt-6 flex justify-center">
         <Button
           onClick={handleOptimize}
