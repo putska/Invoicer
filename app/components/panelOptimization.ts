@@ -183,12 +183,25 @@ export function optimizePanelsRecursive(
   bladeWidth: number = 0.25,
   allowRotation: boolean = true
 ): PanelOptimizationResult {
-  // Clone input data to avoid modifying originals
-  const panelsData = panels.map((p) => ({ ...p }));
+  const expandedPanels: Panel[] = [];
+  let uniqueId = 1;
+
+  panels.forEach((panel) => {
+    for (let i = 0; i < panel.qty; i++) {
+      // Create a truly unique ID for each expanded panel
+      expandedPanels.push({
+        ...panel,
+        id: -uniqueId++, // Use a simple counter for unique IDs
+        qty: 1, // Each expanded panel has qty of 1
+      });
+    }
+  });
+
+  // Clone sheet data
   let sheetsData = sheets.map((s) => ({ ...s, maxQty: s.maxQty ?? s.qty }));
 
   // Sort panels by area (largest first)
-  const sortedPanels = [...panelsData].sort(
+  const sortedPanels = [...expandedPanels].sort(
     (a, b) => b.width * b.height - a.width * a.height
   );
 
@@ -197,8 +210,9 @@ export function optimizePanelsRecursive(
   const usedSheets: CutSheet[] = [];
 
   // Track total panels to place
-  const totalPanelsToPlace = sortedPanels.reduce((sum, p) => sum + p.qty, 0);
+  const totalPanelsToPlace = sortedPanels.length;
   let panelsPlaced = 0;
+  let loopCount = 0;
 
   // Keep track of sheet consumption
   const sheetCounts = new Map<number, number>();
@@ -206,9 +220,12 @@ export function optimizePanelsRecursive(
 
   // Main optimization loop
   while (
-    sortedPanels.some((p) => p.qty > 0) &&
-    panelsPlaced < totalPanelsToPlace
+    sortedPanels.length > 0 &&
+    panelsPlaced < totalPanelsToPlace &&
+    sheetsData.length > 0 // Make sure we have sheets available
   ) {
+    loopCount++;
+
     // Find the best sheet for the current set of panels
     let bestSheetIndex = -1;
     let bestPlacementResult: {
@@ -222,6 +239,8 @@ export function optimizePanelsRecursive(
       const sheet = sheetsData[i];
       if (sheet.qty <= 0) continue;
 
+      // Create a new usedPanelIds set for this sheet's placement attempt
+      const usedPanelIds = new Set<number>();
       // Try to place panels on this sheet using recursive approach
       const result = placeRecursive(
         sortedPanels,
@@ -233,7 +252,8 @@ export function optimizePanelsRecursive(
           y: 0,
         },
         bladeWidth,
-        allowRotation
+        allowRotation,
+        usedPanelIds // Pass the set of used IDs to avoid duplicates
       );
 
       // Calculate efficiency score based on area utilization and panels placed
@@ -261,7 +281,10 @@ export function optimizePanelsRecursive(
     }
 
     // If no suitable sheet is found, break
-    if (bestSheetIndex === -1 || !bestPlacementResult) break;
+    if (bestSheetIndex === -1 || !bestPlacementResult) {
+      console.log("No suitable sheet found, breaking loop");
+      break;
+    }
 
     // Use the selected sheet
     const selectedSheet = sheetsData[bestSheetIndex];
@@ -292,31 +315,58 @@ export function optimizePanelsRecursive(
             (selectedSheet.width * selectedSheet.height)),
     });
 
-    // Update panel quantities based on what was placed
-    // We keep track of placed panels by ID and decrement their quantities
-    const placedPanelIds = bestPlacementResult.placements.map((p) => p.panelId);
-    for (const panelId of placedPanelIds) {
-      const panelIndex = sortedPanels.findIndex((p) => p.id === panelId);
-      if (panelIndex >= 0 && sortedPanels[panelIndex].qty > 0) {
-        sortedPanels[panelIndex].qty--;
+    // Track which panels were placed by ID
+    const placedIds = new Set(
+      bestPlacementResult.placements.map((p) => p.panelId)
+    );
+
+    // Remove all placed panels from the sortedPanels array
+    const removedPanelInfo: string[] = [];
+
+    // Filter out all placed panels
+    const originalLength = sortedPanels.length;
+    const remainingPanels = sortedPanels.filter((panel) => {
+      const isPlaced = placedIds.has(panel.id);
+      if (isPlaced) {
+        removedPanelInfo.push(`${panel.mark_no}: id=${panel.id}`);
       }
-    }
+      return !isPlaced;
+    });
+
+    // Directly replace the sorted panels array
+    sortedPanels.length = 0;
+    sortedPanels.push(...remainingPanels);
 
     // Update sheet quantity
     sheetsData[bestSheetIndex].qty--;
     sheetsData = sheetsData.filter((s) => s.qty > 0);
 
-    // Update panels placed count
-    panelsPlaced += bestPlacementResult.panelsPlaced;
+    // Update panels placed count to match the actual number of placements
+    panelsPlaced += bestPlacementResult.placements.length;
+    console.log(
+      `Total panels placed so far: ${panelsPlaced} of ${totalPanelsToPlace}`
+    );
   }
+
+  // Group placements by mark for a summary
+  const placementsByMark = placements.reduce((acc, p) => {
+    acc[p.mark] = (acc[p.mark] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Calculate summary statistics
   const totalArea = usedSheets.reduce((sum, s) => sum + s.width * s.height, 0);
   const usedArea = usedSheets.reduce((sum, s) => sum + s.usedArea, 0);
   const wastePercentage = totalArea ? 100 * (1 - usedArea / totalArea) : 0;
 
+  // Map placements back to original panel IDs (optional, if needed for UI consistency)
+  const mappedPlacements = placements.map((p) => ({
+    ...p,
+    panelId: Math.floor(p.panelId / 10000), // Get back original panel ID
+  }));
+
   return {
-    placements,
+    placements: mappedPlacements,
     sheets: usedSheets,
     summary: {
       totalSheets: usedSheets.length,
@@ -345,7 +395,8 @@ function placeRecursive(
     y: number;
   },
   bladeWidth: number,
-  allowRotation: boolean
+  allowRotation: boolean,
+  usedPanelIds: Set<number> // Shared across all recursive calls for this sheet
 ): {
   placements: Placement[];
   usedArea: number;
@@ -356,9 +407,12 @@ function placeRecursive(
     return { placements: [], usedArea: 0, panelsPlaced: 0 };
   }
 
+  // Only consider panels that haven't been used yet in this recursion branch
+  const availablePanels = panels.filter((p) => !usedPanelIds.has(p.id));
+
   // Find the best panel to place on this sheet
   const panelFit = findBestPanelFit(
-    panels,
+    availablePanels,
     sheet.width,
     sheet.height,
     allowRotation
@@ -370,6 +424,7 @@ function placeRecursive(
   }
 
   const { panel, width, height, rotated } = panelFit;
+  usedPanelIds.add(panel.id); // Mark panel as used for this sheet
 
   // Place this panel
   const placement: Placement = {
@@ -387,14 +442,6 @@ function placeRecursive(
   // Calculate used area for this panel
   const panelArea = width * height;
 
-  // Create a new set of panels without the one we just placed
-  const remainingPanels = panels.map((p) => {
-    if (p.id === panel.id && p.qty > 0) {
-      return { ...p, qty: p.qty - 1 };
-    }
-    return { ...p };
-  });
-
   // Now we have two options for the next cut:
   // 1. Cut horizontally (create a bottom drop)
   // 2. Cut vertically (create a right drop)
@@ -403,7 +450,7 @@ function placeRecursive(
   const horizontalResult = {
     // Right side drop (same height as panel)
     right: placeRecursive(
-      remainingPanels,
+      panels,
       {
         sheetId: sheet.sheetId,
         width: sheet.width - width - bladeWidth,
@@ -412,11 +459,12 @@ function placeRecursive(
         y: sheet.y,
       },
       bladeWidth,
-      allowRotation
+      allowRotation,
+      usedPanelIds // Pass the updated set of used IDs
     ),
     // Bottom drop (full width of original sheet)
     bottom: placeRecursive(
-      remainingPanels,
+      panels,
       {
         sheetId: sheet.sheetId,
         width: sheet.width,
@@ -425,7 +473,8 @@ function placeRecursive(
         y: sheet.y + height + bladeWidth,
       },
       bladeWidth,
-      allowRotation
+      allowRotation,
+      usedPanelIds // Pass the updated set of used IDs
     ),
   };
 
@@ -433,7 +482,7 @@ function placeRecursive(
   const verticalResult = {
     // Right side drop (full height of original sheet)
     right: placeRecursive(
-      remainingPanels,
+      panels,
       {
         sheetId: sheet.sheetId,
         width: sheet.width - width - bladeWidth,
@@ -442,11 +491,12 @@ function placeRecursive(
         y: sheet.y,
       },
       bladeWidth,
-      allowRotation
+      allowRotation,
+      usedPanelIds // Pass the updated set of used IDs
     ),
     // Bottom drop (same width as panel)
     bottom: placeRecursive(
-      remainingPanels,
+      panels,
       {
         sheetId: sheet.sheetId,
         width: width,
@@ -455,7 +505,8 @@ function placeRecursive(
         y: sheet.y + height + bladeWidth,
       },
       bladeWidth,
-      allowRotation
+      allowRotation,
+      usedPanelIds // Pass the updated set of used IDs
     ),
   };
 
