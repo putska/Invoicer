@@ -40,8 +40,8 @@ export default function CuttingPatternVisualization({
 }: CuttingPatternVisualizationProps) {
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [debugInfo, setDebugInfo] = useState<string>("");
-  const [showDimensions, setShowDimensions] = useState<"feet" | "inches">(
-    "feet"
+  const [showDimensions, setShowDimensions] = useState<"inches" | "feet">(
+    "inches"
   );
 
   // Count total number of placed panels if not provided in summary

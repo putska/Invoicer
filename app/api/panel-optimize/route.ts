@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
     const userId = user.id;
 
     const data = await req.json();
-    console.log("Panel optimization request received:", data);
 
     // Validate input data
     if (
