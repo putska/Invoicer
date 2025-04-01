@@ -22,10 +22,13 @@ interface SheetsTableProps {
 }
 
 const COMMON_SHEET_SIZES = [
-  { width: 96, height: 50, name: "8' x 4'-2''" },
-  { width: 120, height: 50, name: "10' x 4'-2''" },
-  { width: 120, height: 62, name: "10' x 5'-2''" },
-  { width: 144, height: 62, name: "12' x 5'-2''" },
+  { width: 96, height: 50, name: "96'' x 50''" },
+  { width: 120, height: 50, name: "120'' x 50''" },
+  { width: 144, height: 50, name: "144'' x 50''" },
+  { width: 196, height: 50, name: "196'' x 50''" },
+  { width: 120, height: 62, name: "120'' x 62''" },
+  { width: 144, height: 62, name: "144'' x 62''" },
+  { width: 196, height: 62, name: "196'' x 62''" },
 ];
 
 export default function SheetsTable({

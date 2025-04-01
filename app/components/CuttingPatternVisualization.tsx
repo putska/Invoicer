@@ -8,19 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { JobContextImpl } from "twilio/lib/rest/bulkexports/v1/export/job";
 
 interface CuttingPatternVisualizationProps {
   placements: Placement[];
   sheets: CutSheet[];
-  bladeWidth: number;
-  summary?: {
+  bladeWidth?: number;
+  summary: {
     totalSheets: number;
     totalArea: number;
     usedArea: number;
     wastePercentage: number;
-    totalPanelsPlaced?: number;
-    totalPanelsNeeded?: number;
+    totalPanelsPlaced: number;
+    totalPanelsNeeded: number;
+    sheetTypesUsed: number;
   };
+  jobName: string; // Added jobName property
+  allowRotation: boolean;
 }
 
 // Helper function to convert square inches to square feet
@@ -31,6 +35,8 @@ export default function CuttingPatternVisualization({
   sheets,
   bladeWidth = 0.25,
   summary,
+  jobName = "Panel Optimization",
+  allowRotation = true,
 }: CuttingPatternVisualizationProps) {
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [debugInfo, setDebugInfo] = useState<string>("");
@@ -253,14 +259,11 @@ export default function CuttingPatternVisualization({
             >
               Show in {showDimensions === "inches" ? "Feet" : "Inches"}
             </Button>
-            <Button variant="outline" size="sm" onClick={exportAsSVG}>
-              <Download className="h-4 w-4 mr-2" />
-              Export SVG
-            </Button>
+
             <ExportPdfPatterns
               sheets={sheets}
               placements={placements}
-              jobName="Panel Optimization"
+              jobName={jobName}
             />
 
             <div className="flex items-center space-x-2">

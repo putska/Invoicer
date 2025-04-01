@@ -30,6 +30,9 @@ import {
   panelJobs,
   panelPlacements,
   usedSheets,
+  glass,
+  glassDescript,
+  glassTO,
 } from "./schema";
 import {
   Customer,
@@ -49,6 +52,9 @@ import {
   Panel,
   Sheet,
   PanelOptimizationResult,
+  GlassData,
+  TakeoffRequest,
+  ProcessedGlassData,
 } from "../types";
 import { desc, eq, and, inArray, sql, max, not, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -2434,5 +2440,173 @@ export async function getPanelOptimizationResults(
     sheets,
     placements,
     summary: JSON.parse(job.resultsJson),
+  };
+}
+
+// ********************  Glass Takeoff Actions  ***************************
+
+export async function processGlassTakeoff(
+  data: TakeoffRequest
+): Promise<ProcessedGlassData[]> {
+  const { drawing, glassItems } = data;
+
+  // Process results array
+  const processedGlass: ProcessedGlassData[] = [];
+
+  try {
+    // Delete any previous takeoff for this drawing
+    await db.delete(glassTO).where(eq(glassTO.dwgname, drawing));
+
+    // Process each glass item
+    for (const glassItem of glassItems) {
+      // Get or create glass type in glassDescript table
+      let glassTypeRecord = await db.query.glassDescript.findFirst({
+        where: eq(glassDescript.glasstyp, glassItem.GlassType),
+      });
+
+      if (!glassTypeRecord) {
+        // Create new glass type record
+        await db.insert(glassDescript).values({
+          glasstyp: glassItem.GlassType,
+          prefix: `${glassItem.GlassType}-`,
+          description: `Type ${glassItem.GlassType}:`,
+        });
+
+        // Get the newly created record
+        glassTypeRecord = await db.query.glassDescript.findFirst({
+          where: eq(glassDescript.glasstyp, glassItem.GlassType),
+        });
+      }
+
+      // Ensure we have a prefix
+      const prefix = glassTypeRecord?.prefix || `${glassItem.GlassType}-`;
+
+      // Process coordinates to get dimensions (simplified version)
+      const dimensions = calculateDimensions(glassItem.Coordinates);
+
+      // Check if identical glass exists
+      const existingGlass = await db.query.glass.findFirst({
+        where: (glass, { and, eq }) =>
+          and(
+            eq(glass.dloWidth, dimensions.dloWidth.toString()),
+            eq(glass.dloHeight, dimensions.dloHeight.toString()),
+            eq(glass.dloHeight2, dimensions.dloHeight2.toString() || "0"),
+            eq(glass.width, dimensions.width.toString()),
+            eq(glass.height, dimensions.height.toString()),
+            eq(glass.height2, dimensions.height2.toString() || "0"),
+            eq(glass.gtype, glassItem.GlassType)
+          ),
+      });
+
+      let markNum: string;
+      let markIndex: string;
+
+      if (!existingGlass) {
+        // Find the next available mark number for this glass type
+        const latestGlass = await db.query.glass.findFirst({
+          where: (glass) => eq(glass.markIndex, `${prefix}%`),
+          orderBy: (glass, { desc }) => [desc(glass.markNum)],
+        });
+
+        const nextMarkNum = latestGlass
+          ? parseInt(latestGlass.markNum.replace(prefix, "")) + 1
+          : 1;
+
+        markNum = `${prefix}${String(nextMarkNum).padStart(3, "0")}`;
+        markIndex = markNum;
+
+        // Insert new glass record
+        await db.insert(glass).values({
+          markNum,
+          markIndex,
+          gtype: glassItem.GlassType,
+          width: dimensions.width.toString(),
+          height: dimensions.height.toString(),
+          height2: dimensions.height2.toString() || "0",
+          dloWidth: dimensions.dloWidth.toString(),
+          dloHeight: dimensions.dloHeight.toString(),
+          dloHeight2: dimensions.dloHeight2.toString() || "0",
+          left: glassItem.GlassBiteLeft.toString(),
+          right: glassItem.GlassBiteRight.toString(),
+          top: glassItem.GlassBiteTop.toString(),
+          bottom: glassItem.GlassBiteBottom.toString(),
+        });
+      } else {
+        markNum = existingGlass.markNum;
+        markIndex = existingGlass.markIndex;
+      }
+
+      // Insert into glassTO table
+      await db.insert(glassTO).values({
+        dwgname: drawing,
+        handle: glassItem.Handle,
+        markNum: markNum,
+        elevation: glassItem.Elevation || "",
+        floor: glassItem.Floor,
+        qty: 1,
+        x_pt: dimensions.centerX.toString(), // Make sure these are strings
+        y_pt: dimensions.centerY.toString(),
+        blx: dimensions.corners[0].x.toString(),
+        bly: dimensions.corners[0].y.toString(),
+        brx: dimensions.corners[1].x.toString(),
+        bry: dimensions.corners[1].y.toString(),
+        trx: dimensions.corners[2].x.toString(),
+        try_: dimensions.corners[2].y.toString(), // Note the underscore
+        tlx: dimensions.corners[3].x.toString(),
+        tly: dimensions.corners[3].y.toString(),
+        location: "", // Add a default value if needed
+      });
+
+      // Add to processed results
+      processedGlass.push({
+        Handle: glassItem.Handle,
+        MarkNumber: markNum,
+      });
+    }
+
+    return processedGlass;
+  } catch (error) {
+    console.error("Error processing glass takeoff:", error);
+    throw error;
+  }
+}
+
+// Function to calculate dimensions from coordinates (simplified)
+function calculateDimensions(coordinates: number[]) {
+  // This is a simplified implementation - you'll need to adapt your GlassTag
+  // class logic for more sophisticated geometry calculations
+
+  const points = [];
+  for (let i = 0; i < coordinates.length; i += 2) {
+    points.push({ x: coordinates[i], y: coordinates[i + 1] });
+  }
+
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
+
+  for (const point of points) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+  }
+
+  return {
+    width: maxX - minX,
+    height: maxY - minY,
+    height2: 0, // For rectangular glass
+    dloWidth: maxX - minX,
+    dloHeight: maxY - minY,
+    dloHeight2: 0,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+    corners: [
+      { x: minX, y: minY }, // bottom left
+      { x: maxX, y: minY }, // bottom right
+      { x: maxX, y: maxY }, // top right
+      { x: minX, y: maxY }, // top left
+    ],
   };
 }

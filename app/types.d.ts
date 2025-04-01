@@ -465,3 +465,26 @@ export interface PanelOptimizationResult {
     height: number;
   };
 }
+
+export interface GlassData {
+  Handle: string;
+  GlassType: string;
+  Floor: string;
+  Elevation: string;
+  Coordinates: number[];
+  GlassBiteLeft: number;
+  GlassBiteRight: number;
+  GlassBiteTop: number;
+  GlassBiteBottom: number;
+}
+
+export interface TakeoffRequest {
+  drawing: string;
+  glassItems: GlassData[];
+}
+
+export interface ProcessedGlassData {
+  Handle: string;
+  MarkNumber: string;
+  // Add other fields as needed
+}

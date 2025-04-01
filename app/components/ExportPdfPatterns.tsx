@@ -9,13 +9,29 @@ interface ExportPdfPatternsProps {
   sheets: CutSheet[];
   placements: Placement[];
   jobName?: string;
+  allowRotation?: boolean;
+  children?: React.ReactNode;
+  variant?:
+    | "default"
+    | "outline"
+    | "secondary"
+    | "destructive"
+    | "ghost"
+    | "link";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
 export default function ExportPdfPatterns({
   sheets,
   placements,
   jobName = "Panel Optimization",
-}: ExportPdfPatternsProps) {
+  allowRotation = true,
+  children = "Print",
+  variant = "outline",
+  size = "sm",
+  ...props
+}: ExportPdfPatternsProps &
+  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">) {
   const exportPdf = async () => {
     if (sheets.length === 0) return;
 
@@ -95,215 +111,58 @@ export default function ExportPdfPatterns({
         };
       });
 
-      // Calculate total pages needed
-      const totalPages = Math.ceil(sheets.length / patternsPerPage);
+      // ========== CONSOLIDATED LAYOUTS ==========
+      // Create a hash of each layout to identify identical ones
+      const layoutHashMap = new Map();
+      const uniqueLayouts: string[] = [];
 
-      for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-        // Add a new page
-        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+      placementsBySheet.forEach((sheetData) => {
+        // Create a hash based on sheet dimensions and placement data
+        const { sheet, placements } = sheetData;
 
-        // Draw page header
-        page.drawText(jobName, {
-          x: margin,
-          y: pageHeight - margin,
-          size: 16,
-          font: helveticaBold,
-        });
-
-        page.drawText(
-          `Cutting Patterns - Page ${pageNum + 1} of ${totalPages}`,
-          {
-            x: margin,
-            y: pageHeight - margin - 20,
-            size: 12,
-            font: helveticaFont,
-          }
+        // Sort placements to ensure consistent hashing regardless of order
+        const sortedPlacements = [...placements].sort(
+          (a, b) =>
+            a.x - b.x || a.y - b.y || a.width - b.width || a.height - b.height
         );
 
-        // Draw current date
-        const currentDate = new Date().toLocaleDateString();
-        page.drawText(`Generated: ${currentDate}`, {
-          x: pageWidth - margin - 150,
-          y: pageHeight - margin - 20,
-          size: 10,
-          font: helveticaFont,
+        // Create a hash string that uniquely identifies this layout
+        const layoutHash = JSON.stringify({
+          width: sheet.width,
+          height: sheet.height,
+          placements: sortedPlacements.map((p) => ({
+            x: p.x,
+            y: p.y,
+            width: p.width,
+            height: p.height,
+            mark: p.mark,
+          })),
         });
 
-        // Calculate patterns for this page
-        const startIdx = pageNum * patternsPerPage;
-        const endIdx = Math.min(
-          startIdx + patternsPerPage,
-          placementsBySheet.length
-        );
-        const patternsOnPage = placementsBySheet.slice(startIdx, endIdx);
-
-        // Draw each pattern
-        for (let i = 0; i < patternsOnPage.length; i++) {
-          const { sheet, placements } = patternsOnPage[i];
-
-          // Calculate pattern position
-          const patternY =
-            pageHeight -
-            margin -
-            headerHeight -
-            i * (patternHeight + patternSpacing);
-
-          // Draw sheet info
-          page.drawText(
-            `Sheet #${sheet.sheetNo} - Size: ${sheet.width}" × ${
-              sheet.height
-            }" - Yield: ${(100 - sheet.wastePercentage).toFixed(1)}%`,
-            {
-              x: margin,
-              y: patternY,
-              size: 11,
-              font: helveticaBold,
-            }
-          );
-
-          // Calculate scale to fit the pattern within the available width/height
-          const patternWidth = contentWidth * 0.98; // 98% of content width
-          const patternBoxHeight = patternHeight - 20; // Leave space for the title
-
-          const scaleX = patternWidth / sheet.width;
-          const scaleY = patternBoxHeight / sheet.height;
-          const scale = Math.min(scaleX, scaleY);
-
-          // Calculate centered position
-          const scaledWidth = sheet.width * scale;
-          const scaledHeight = sheet.height * scale;
-          const centerX = margin + (contentWidth - scaledWidth) / 2;
-          const patternTopY = patternY - 15; // Below title
-
-          // Draw sheet outline
-          page.drawRectangle({
-            x: centerX,
-            y: patternTopY - scaledHeight,
-            width: scaledWidth,
-            height: scaledHeight,
-            borderColor: rgb(0, 0, 0),
-            borderWidth: 1,
-            color: rgb(0.95, 0.95, 0.95),
+        // Check if we've seen this layout before
+        if (!layoutHashMap.has(layoutHash)) {
+          // First time seeing this layout - add to unique layouts
+          layoutHashMap.set(layoutHash, {
+            sheet,
+            placements: sortedPlacements,
+            count: 1,
+            sheetNumbers: [sheet.sheetNo],
           });
-
-          // Draw each panel on the sheet
-          for (const placement of placements) {
-            // Generate a deterministic color for each panel based on its mark
-            const markHash = placement.mark
-              .split("")
-              .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const hue = (markHash * 137.5) % 360;
-            const saturation = 0.7;
-            const lightness = 0.6;
-
-            // Convert HSL to RGB (simple conversion for pdf-lib)
-            let r, g, b;
-            const h = hue / 360;
-            const s = saturation as number; // Explicitly cast to number
-            const l = lightness;
-
-            if (s === 0) {
-              r = g = b = l;
-            } else {
-              const hue2rgb = (p: number, q: number, t: number) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1 / 6) return p + (q - p) * 6 * t;
-                if (t < 1 / 2) return q;
-                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-                return p;
-              };
-
-              const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-              const p = 2 * l - q;
-
-              r = hue2rgb(p, q, h + 1 / 3);
-              g = hue2rgb(p, q, h);
-              b = hue2rgb(p, q, h - 1 / 3);
-            }
-
-            // Draw panel rectangle
-            page.drawRectangle({
-              x: centerX + placement.x * scale,
-              y: patternTopY - placement.y * scale - placement.height * scale,
-              width: placement.width * scale,
-              height: placement.height * scale,
-              borderColor: rgb(0, 0, 0),
-              borderWidth: 0.5,
-              color: rgb(r, g, b),
-            });
-
-            // Calculate text size based on panel size, with min/max limits
-            const minTextSize = 6;
-            const maxTextSize = 12;
-            const calculatedSize =
-              Math.min(placement.width, placement.height) * scale * 0.2;
-            const textSize = Math.max(
-              minTextSize,
-              Math.min(maxTextSize, calculatedSize)
-            );
-
-            // Add panel mark text
-            const textX =
-              centerX + placement.x * scale + (placement.width * scale) / 2;
-            const textY =
-              patternTopY -
-              placement.y * scale -
-              (placement.height * scale) / 2;
-
-            // Ensure enough contrast for text color
-            const textColor =
-              (r + g + b) / 3 > 0.65 ? rgb(0, 0, 0) : rgb(1, 1, 1);
-
-            // Draw panel text
-            //page.drawText(placement.mark, {
-            //  x: textX,
-            //  y: textY,
-            //  size: textSize,
-            //  font: helveticaBold,
-            //  color: textColor,
-            //rotate: {
-            //  type: degrees,
-            //  angle: 0,
-            //},
-            //});
-
-            // Center the text
-            const textWidth = helveticaBold.widthOfTextAtSize(
-              placement.mark,
-              textSize
-            );
-            page.drawText(placement.mark, {
-              x: textX - textWidth / 2,
-              y: textY - textSize / 3, // Approximate vertical centering
-              size: textSize,
-              font: helveticaBold,
-              color: textColor,
-            });
-
-            // Add dimensions to larger panels
-            if (placement.width * scale > 50 && placement.height * scale > 30) {
-              const widthFraction = decimalToFraction(placement.width);
-              const heightFraction = decimalToFraction(placement.height);
-              const dimText = `${widthFraction}" × ${heightFraction}"`;
-              const dimTextSize = Math.max(minTextSize, textSize * 0.7);
-              const dimTextWidth = helveticaFont.widthOfTextAtSize(
-                dimText,
-                dimTextSize
-              );
-
-              page.drawText(dimText, {
-                x: textX - dimTextWidth / 2,
-                y: textY - textSize / 2 - dimTextSize,
-                size: dimTextSize,
-                font: helveticaFont,
-                color: textColor,
-              });
-            }
-          }
+          uniqueLayouts.push(layoutHash);
+        } else {
+          // We've seen this layout before - increment count
+          const existingLayout = layoutHashMap.get(layoutHash);
+          existingLayout.count++;
+          existingLayout.sheetNumbers.push(sheet.sheetNo);
         }
-      }
+      });
 
+      // Convert our unique layouts back to an array for drawing
+      const consolidatedLayouts = uniqueLayouts.map((hash) =>
+        layoutHashMap.get(hash)
+      );
+
+      // ========== CREATE SUMMARY PAGE FIRST ==========
       // Add summary page
       let summaryPage = pdfDoc.addPage([pageWidth, pageHeight]);
 
@@ -318,6 +177,18 @@ export default function ExportPdfPatterns({
       summaryPage.drawText(`Generated: ${new Date().toLocaleDateString()}`, {
         x: margin,
         y: pageHeight - margin - 20,
+        size: 10,
+        font: helveticaFont,
+      });
+
+      // Add rotation information
+      const rotationInfo = allowRotation
+        ? "Panels can be rotated (non-directional)"
+        : "Panels cannot be rotated (directional)";
+
+      summaryPage.drawText(rotationInfo, {
+        x: margin,
+        y: pageHeight - margin - 40,
         size: 10,
         font: helveticaFont,
       });
@@ -518,20 +389,30 @@ export default function ExportPdfPatterns({
             height: placement.height,
             count: 0,
             totalArea: 0,
+            rotated: 0,
           };
         }
 
         groups[placement.mark].count++;
         groups[placement.mark].totalArea += placement.width * placement.height;
+        if (placement.rotated) {
+          groups[placement.mark].rotated++;
+        }
 
         return groups;
-      }, {} as Record<string, { width: number; height: number; count: number; totalArea: number }>);
+      }, {} as Record<string, { width: number; height: number; count: number; totalArea: number; rotated: number }>);
 
       // Table headers for panels
       rowY -= 30;
 
       // Table headers for panels - make columns wider for dimensions
-      const pnlColumns = [margin, margin + 125, margin + 290, margin + 380];
+      const pnlColumns = [
+        margin,
+        margin + 125,
+        margin + 240,
+        margin + 310,
+        margin + 380,
+      ];
 
       summaryPage.drawText("Panel Mark", {
         x: pnlColumns[0],
@@ -554,8 +435,17 @@ export default function ExportPdfPatterns({
         font: helveticaBold,
       });
 
+      if (allowRotation) {
+        summaryPage.drawText("Rotated", {
+          x: pnlColumns[3],
+          y: rowY,
+          size: 11,
+          font: helveticaBold,
+        });
+      }
+
       summaryPage.drawText("Area (sq.ft)", {
-        x: pnlColumns[3],
+        x: pnlColumns[4],
         y: rowY,
         size: 11,
         font: helveticaBold,
@@ -573,6 +463,7 @@ export default function ExportPdfPatterns({
       rowY -= 20;
       let totalPanels = 0;
       let totalPanelAreaSqFt = 0;
+      let totalRotated = 0;
 
       Object.entries(panelsByMark).forEach(([mark, data]) => {
         if (rowY < margin + 40) {
@@ -610,8 +501,17 @@ export default function ExportPdfPatterns({
             font: helveticaBold,
           });
 
+          if (allowRotation) {
+            summaryPage.drawText("Rotated", {
+              x: pnlColumns[3],
+              y: rowY,
+              size: 11,
+              font: helveticaBold,
+            });
+          }
+
           summaryPage.drawText("Area (sq.ft)", {
-            x: pnlColumns[3],
+            x: pnlColumns[4],
             y: rowY,
             size: 11,
             font: helveticaBold,
@@ -651,9 +551,20 @@ export default function ExportPdfPatterns({
           font: helveticaFont,
         });
 
+        if (allowRotation) {
+          summaryPage.drawText(`${data.rotated}`, {
+            x: pnlColumns[3],
+            y: rowY,
+            size: 10,
+            font: helveticaFont,
+          });
+
+          totalRotated += data.rotated;
+        }
+
         const areaSqFt = data.totalArea / 144;
         summaryPage.drawText(`${areaSqFt.toFixed(2)}`, {
-          x: pnlColumns[3],
+          x: pnlColumns[4],
           y: rowY,
           size: 10,
           font: helveticaFont,
@@ -675,25 +586,293 @@ export default function ExportPdfPatterns({
 
       // Totals row for panels
       summaryPage.drawText("TOTALS:", {
-        x: columns[0],
+        x: pnlColumns[0],
         y: rowY - 10,
         size: 10,
         font: helveticaBold,
       });
 
       summaryPage.drawText(`${totalPanels}`, {
-        x: columns[2],
+        x: pnlColumns[2],
         y: rowY - 10,
         size: 10,
         font: helveticaBold,
       });
 
+      if (allowRotation) {
+        summaryPage.drawText(`${totalRotated}`, {
+          x: pnlColumns[3],
+          y: rowY - 10,
+          size: 10,
+          font: helveticaBold,
+        });
+      }
+
       summaryPage.drawText(`${totalPanelAreaSqFt.toFixed(2)}`, {
-        x: columns[3],
+        x: pnlColumns[4],
         y: rowY - 10,
         size: 10,
         font: helveticaBold,
       });
+
+      // ========== LAYOUT PAGES ==========
+      // Calculate total pages needed based on consolidated layouts
+      const totalPages = Math.ceil(
+        consolidatedLayouts.length / patternsPerPage
+      );
+
+      for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+        // Add a new page
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+        // Draw page header
+        page.drawText(jobName, {
+          x: margin,
+          y: pageHeight - margin,
+          size: 16,
+          font: helveticaBold,
+        });
+
+        page.drawText(
+          `Cutting Patterns - Page ${pageNum + 1} of ${totalPages}`,
+          {
+            x: margin,
+            y: pageHeight - margin - 20,
+            size: 12,
+            font: helveticaFont,
+          }
+        );
+
+        // Draw current date
+        const currentDate = new Date().toLocaleDateString();
+        page.drawText(`Generated: ${currentDate}`, {
+          x: pageWidth - margin - 150,
+          y: pageHeight - margin - 20,
+          size: 10,
+          font: helveticaFont,
+        });
+
+        // Calculate patterns for this page
+        const startIdx = pageNum * patternsPerPage;
+        const endIdx = Math.min(
+          startIdx + patternsPerPage,
+          consolidatedLayouts.length
+        );
+        const patternsOnPage = consolidatedLayouts.slice(startIdx, endIdx);
+
+        // Draw each pattern
+        for (let i = 0; i < patternsOnPage.length; i++) {
+          const { sheet, placements, count, sheetNumbers } = patternsOnPage[i];
+
+          // Calculate pattern position
+          const patternY =
+            pageHeight -
+            margin -
+            headerHeight -
+            i * (patternHeight + patternSpacing);
+
+          // Draw sheet info with quantity and sheet numbers
+          // Format the sheet numbers to show ranges where possible
+          const formatSheetNumbers = (nums: number[]): string => {
+            if (nums.length <= 4) return nums.join(", ");
+
+            const ranges: string[] = [];
+            let rangeStart = nums[0];
+            let rangeEnd = nums[0];
+
+            for (let i = 1; i < nums.length; i++) {
+              if (nums[i] === rangeEnd + 1) {
+                rangeEnd = nums[i];
+              } else {
+                ranges.push(
+                  rangeStart === rangeEnd
+                    ? `${rangeStart}`
+                    : `${rangeStart}-${rangeEnd}`
+                );
+                rangeStart = rangeEnd = nums[i];
+              }
+            }
+
+            ranges.push(
+              rangeStart === rangeEnd
+                ? `${rangeStart}`
+                : `${rangeStart}-${rangeEnd}`
+            );
+
+            return ranges.join(", ");
+          };
+
+          const sheetNumbersText =
+            sheetNumbers.length > 10
+              ? `${sheetNumbers.length} sheets (# ${formatSheetNumbers([
+                  sheetNumbers[0],
+                  sheetNumbers[sheetNumbers.length - 1],
+                ])})`
+              : `${sheetNumbers.length} sheets (# ${formatSheetNumbers(
+                  sheetNumbers
+                )})`;
+
+          page.drawText(
+            `${sheetNumbersText} - Size: ${sheet.width}" × ${
+              sheet.height
+            }" - Yield: ${(100 - sheet.wastePercentage).toFixed(1)}%`,
+            {
+              x: margin,
+              y: patternY,
+              size: 11,
+              font: helveticaBold,
+            }
+          );
+
+          // Calculate scale to fit the pattern within the available width/height
+          const patternWidth = contentWidth * 0.98; // 98% of content width
+          const patternBoxHeight = patternHeight - 20; // Leave space for the title
+
+          const scaleX = patternWidth / sheet.width;
+          const scaleY = patternBoxHeight / sheet.height;
+          const scale = Math.min(scaleX, scaleY);
+
+          // Calculate centered position
+          const scaledWidth = sheet.width * scale;
+          const scaledHeight = sheet.height * scale;
+          const centerX = margin + (contentWidth - scaledWidth) / 2;
+          const patternTopY = patternY - 15; // Below title
+
+          // Draw sheet outline
+          page.drawRectangle({
+            x: centerX,
+            y: patternTopY - scaledHeight,
+            width: scaledWidth,
+            height: scaledHeight,
+            borderColor: rgb(0, 0, 0),
+            borderWidth: 1,
+            color: rgb(0.95, 0.95, 0.95),
+          });
+
+          // Draw each panel on the sheet
+          for (const placement of placements) {
+            // Generate a deterministic color for each panel based on its mark
+            const markHash = placement.mark
+              .split("")
+              .reduce(
+                (acc: number, char: string) => acc + char.charCodeAt(0),
+                0
+              );
+            const hue = (markHash * 137.5) % 360;
+            const saturation = 0.7;
+            const lightness = 0.6;
+
+            // Convert HSL to RGB (simple conversion for pdf-lib)
+            let r, g, b;
+            const h = hue / 360;
+            const s = saturation as number; // Explicitly cast to number
+            const l = lightness;
+
+            if (s === 0) {
+              r = g = b = l;
+            } else {
+              const hue2rgb = (p: number, q: number, t: number) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1 / 6) return p + (q - p) * 6 * t;
+                if (t < 1 / 2) return q;
+                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p;
+              };
+
+              const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+              const p = 2 * l - q;
+
+              r = hue2rgb(p, q, h + 1 / 3);
+              g = hue2rgb(p, q, h);
+              b = hue2rgb(p, q, h - 1 / 3);
+            }
+
+            // Draw panel rectangle
+            page.drawRectangle({
+              x: centerX + placement.x * scale,
+              y: patternTopY - placement.y * scale - placement.height * scale,
+              width: placement.width * scale,
+              height: placement.height * scale,
+              borderColor: rgb(0, 0, 0),
+              borderWidth: 0.5,
+              color: rgb(r, g, b),
+            });
+
+            // Calculate text size based on panel size, with min/max limits
+            const minTextSize = 6;
+            const maxTextSize = 12;
+            const calculatedSize =
+              Math.min(placement.width, placement.height) * scale * 0.2;
+            const textSize = Math.max(
+              minTextSize,
+              Math.min(maxTextSize, calculatedSize)
+            );
+
+            // Add panel mark text
+            const textX =
+              centerX + placement.x * scale + (placement.width * scale) / 2;
+            const textY =
+              patternTopY -
+              placement.y * scale -
+              (placement.height * scale) / 2;
+
+            // Ensure enough contrast for text color
+            const textColor =
+              (r + g + b) / 3 > 0.65 ? rgb(0, 0, 0) : rgb(1, 1, 1);
+
+            // Center the text
+            const textWidth = helveticaBold.widthOfTextAtSize(
+              placement.mark,
+              textSize
+            );
+            page.drawText(placement.mark, {
+              x: textX - textWidth / 2,
+              y: textY - textSize / 3, // Approximate vertical centering
+              size: textSize,
+              font: helveticaBold,
+              color: textColor,
+            });
+
+            // Add dimensions to larger panels
+            if (placement.width * scale > 50 && placement.height * scale > 30) {
+              const widthFraction = decimalToFraction(placement.width);
+              const heightFraction = decimalToFraction(placement.height);
+              const dimText = `${widthFraction}" × ${heightFraction}"`;
+              const dimTextSize = Math.max(minTextSize, textSize * 0.7);
+              const dimTextWidth = helveticaFont.widthOfTextAtSize(
+                dimText,
+                dimTextSize
+              );
+
+              page.drawText(dimText, {
+                x: textX - dimTextWidth / 2,
+                y: textY - textSize / 2 - dimTextSize,
+                size: dimTextSize,
+                font: helveticaFont,
+                color: textColor,
+              });
+
+              // If rotated, show a rotation indicator
+              if (placement.rotated && allowRotation) {
+                const rotationText = "R";
+                const rotationTextWidth = helveticaFont.widthOfTextAtSize(
+                  rotationText,
+                  dimTextSize
+                );
+
+                page.drawText(rotationText, {
+                  x: textX - rotationTextWidth / 2,
+                  y: textY + textSize,
+                  size: dimTextSize,
+                  font: helveticaBold,
+                  color: textColor,
+                });
+              }
+            }
+          }
+        }
+      }
 
       // Generate PDF
       const pdfBytes = await pdfDoc.save();
@@ -717,9 +896,9 @@ export default function ExportPdfPatterns({
   };
 
   return (
-    <Button onClick={exportPdf} variant="outline" size="sm">
+    <Button onClick={exportPdf} variant={variant} size={size} {...props}>
       <Download className="h-4 w-4 mr-2" />
-      Export PDF Cutting Package
+      {children}
     </Button>
   );
 }

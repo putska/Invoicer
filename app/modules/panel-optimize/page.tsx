@@ -9,13 +9,17 @@ import SheetsTable from "../../components/SheetsTable";
 import PanelUploadExcel from "../../components/PanelUploadExcel";
 import CuttingPatternVisualization from "../../components/CuttingPatternVisualization";
 import SheetSummary from "../../components/SheetSummary";
+import ExportPdfPatterns from "../../components/ExportPdfPatterns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function PanelOptimizationPage() {
   const router = useRouter();
+  const [jobName, setJobName] = useState<string>("Panel Optimization");
   const [panels, setPanels] = useState<Panel[]>([]);
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [bladeWidth, setBladeWidth] = useState(0.25);
@@ -40,7 +44,70 @@ export default function PanelOptimizationPage() {
       alert("Please add sheet sizes or enable automatic optimization");
       return;
     }
+    // Validate panels against sheet sizes
+    const invalidPanels = [];
 
+    if (!findOptimalSheet) {
+      // When using specific sheets, check against provided sheets
+      for (const panel of panels) {
+        const canFitInAnySheet = sheets.some((sheet) => {
+          if (allowRotation) {
+            // Panel can be rotated, so check both orientations
+            return (
+              (panel.width <= sheet.width && panel.height <= sheet.height) ||
+              (panel.height <= sheet.width && panel.width <= sheet.height)
+            );
+          } else {
+            // Panel cannot be rotated, must fit as-is
+            return panel.width <= sheet.width && panel.height <= sheet.height;
+          }
+        });
+
+        if (!canFitInAnySheet) {
+          invalidPanels.push(panel);
+        }
+      }
+    } else {
+      // When using optimal sheets, check against the max dimensions
+      for (const panel of panels) {
+        if (allowRotation) {
+          // Check if either orientation fits within max dimensions
+          const maxDimension = Math.max(maxWidth, maxHeight);
+          const minDimension = Math.min(maxWidth, maxHeight);
+          const panelMaxDim = Math.max(panel.width, panel.height);
+          const panelMinDim = Math.min(panel.width, panel.height);
+
+          if (panelMaxDim > maxDimension || panelMinDim > minDimension) {
+            invalidPanels.push(panel);
+          }
+        } else {
+          // Without rotation, panel must fit exactly as specified
+          if (panel.width > maxWidth || panel.height > maxHeight) {
+            invalidPanels.push(panel);
+          }
+        }
+      }
+    }
+
+    // If invalid panels were found, show an error message
+    if (invalidPanels.length > 0) {
+      const panelList = invalidPanels
+        .map((p) => `${p.mark_no} (${p.width}" × ${p.height}")`)
+        .join(", ");
+
+      const rotationText = allowRotation
+        ? "even when rotated"
+        : "and rotation is not allowed";
+
+      const sheetDimensionsText = !findOptimalSheet
+        ? `available sheet sizes`
+        : `maximum sheet dimensions (${maxWidth}" × ${maxHeight}")`;
+
+      alert(
+        `The following panels are too large to fit on ${sheetDimensionsText} ${rotationText}:\n\n${panelList}\n\nPlease adjust panel sizes or sheet dimensions before running optimization.`
+      );
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -95,7 +162,7 @@ export default function PanelOptimizationPage() {
       let csvContent = "data:text/csv;charset=utf-8,";
 
       // Summary section
-      csvContent += "PANEL OPTIMIZATION SUMMARY\r\n";
+      csvContent += `${jobName} - PANEL OPTIMIZATION SUMMARY\r\n`;
       csvContent += `Total Sheets,${results.summary.totalSheets}\r\n`;
       csvContent += `Total Area (sq in),${results.summary.totalArea.toFixed(
         2
@@ -231,7 +298,12 @@ export default function PanelOptimizationPage() {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "panel_optimization_results.csv");
+      link.setAttribute(
+        "download",
+        `${jobName
+          .replace(/[^a-z0-9]/gi, "_")
+          .toLowerCase()}_panel_optimization.csv`
+      );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -243,8 +315,18 @@ export default function PanelOptimizationPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">Panel Optimization</h1>
+        <div className="w-full md:w-1/3">
+          <Label htmlFor="jobName">Job Name</Label>
+          <Input
+            id="jobName"
+            value={jobName}
+            onChange={(e) => setJobName(e.target.value)}
+            className="mt-1"
+            placeholder="Enter job name"
+          />
+        </div>
         <a
           href="https://wiki.cse-portal.com/en/Engineering/documentation#panel-optimization-instructions"
           className="text-blue-500 underline"
@@ -266,7 +348,18 @@ export default function PanelOptimizationPage() {
         <TabsContent value="panels">
           <Card>
             <CardHeader>
-              <CardTitle>Panel Data</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Panel Data</CardTitle>
+                {activeTab === "panels" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || panels.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
@@ -276,14 +369,14 @@ export default function PanelOptimizationPage() {
                 </p>
                 <div className="flex items-center space-x-2 mb-4">
                   <Checkbox
-                    id="allowRotation"
-                    checked={allowRotation}
+                    id="restrictRotation"
+                    checked={!allowRotation}
                     onCheckedChange={(checked) =>
-                      setAllowRotation(checked as boolean)
+                      setAllowRotation(!(checked as boolean))
                     }
                   />
-                  <label htmlFor="allowRotation" className="text-sm">
-                    Allow panel rotation (panels are not directional)
+                  <label htmlFor="restrictRotation" className="text-sm">
+                    Directional Panels (Panels will not be rotated)
                   </label>
                 </div>
               </div>
@@ -302,7 +395,18 @@ export default function PanelOptimizationPage() {
         <TabsContent value="sheets">
           <Card>
             <CardHeader>
-              <CardTitle>Sheet Sizes</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Sheet Sizes</CardTitle>
+                {activeTab === "sheets" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || panels.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
@@ -333,7 +437,18 @@ export default function PanelOptimizationPage() {
         <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle>Optimization Settings</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Optimization Settings</CardTitle>
+                {activeTab === "settings" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || panels.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -450,10 +565,17 @@ export default function PanelOptimizationPage() {
               <Card>
                 <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle>Optimization Results</CardTitle>
-                    <Button size="sm" onClick={handleExportResults}>
-                      Export CSV
-                    </Button>
+                    <CardTitle>Optimization Results for {jobName}</CardTitle>
+                    <ExportPdfPatterns
+                      sheets={results.sheets}
+                      placements={results.placements}
+                      jobName={jobName}
+                      allowRotation={allowRotation}
+                      variant="default"
+                      size="sm"
+                    >
+                      Print
+                    </ExportPdfPatterns>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -523,19 +645,23 @@ export default function PanelOptimizationPage() {
                 sheets={results.sheets}
                 bladeWidth={bladeWidth}
                 summary={results.summary}
+                jobName={jobName}
+                allowRotation={allowRotation}
               />
             </div>
           )}
         </TabsContent>
       </Tabs>
-      <div className="mt-6 flex justify-center">
-        <Button
-          onClick={handleOptimize}
-          disabled={isLoading || panels.length === 0}
-          className="px-6 py-2"
-        >
-          {isLoading ? "Optimizing..." : "Run Optimization"}
-        </Button>
+      <div className="mt-6 flex justify-center gap-4">
+        {results && (
+          <Button
+            onClick={handleExportResults}
+            variant="outline"
+            className="px-6 py-2"
+          >
+            Export CSV
+          </Button>
+        )}
       </div>
     </div>
   );

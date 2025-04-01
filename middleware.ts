@@ -20,6 +20,7 @@ const publicRoutes = createRouteMatcher([
   "/modules/welcome/page.tsx",
   "/api/tokens",
   "/api/tokens/refresh",
+  "/api/glass-takeoff",
   "/modules/privacy/page.tsx",
   "/",
 ]);

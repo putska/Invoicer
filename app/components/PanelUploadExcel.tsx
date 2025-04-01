@@ -1,7 +1,7 @@
 // components/PanelUploadExcel.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, DragEvent } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Panel } from "../types";
@@ -13,9 +13,10 @@ interface PanelUploadExcelProps {
 
 export default function PanelUploadExcel({ onUpload }: PanelUploadExcelProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
 
     setIsUploading(true);
@@ -91,7 +92,7 @@ export default function PanelUploadExcel({ onUpload }: PanelUploadExcelProps) {
       } finally {
         setIsUploading(false);
         // Clear the input
-        e.target.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
 
@@ -99,20 +100,80 @@ export default function PanelUploadExcel({ onUpload }: PanelUploadExcelProps) {
       alert("Error reading the file");
       setIsUploading(false);
       // Clear the input
-      e.target.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     reader.readAsArrayBuffer(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragEnter = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDrop = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if it's an Excel file
+      if (
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        file.type === "application/vnd.ms-excel"
+      ) {
+        processFile(file);
+      } else {
+        alert("Please upload an Excel file (.xlsx, .xls)");
+      }
+    }
   };
 
   return (
     <div className="flex items-center justify-center w-full">
       <label
         htmlFor="panel-dropzone-file"
-        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+        className={`flex flex-col items-center justify-center w-full h-32 border-2 ${
+          isDragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 border-dashed bg-gray-50 hover:bg-gray-100"
+        } rounded-lg cursor-pointer transition-colors`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       >
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-          <Upload className="w-8 h-8 mb-3 text-gray-400" />
+          <Upload
+            className={`w-8 h-8 mb-3 ${
+              isDragging ? "text-blue-500" : "text-gray-400"
+            }`}
+          />
           <p className="mb-2 text-sm text-gray-500">
             <span className="font-semibold">Click to upload</span> or drag and
             drop
@@ -128,6 +189,7 @@ export default function PanelUploadExcel({ onUpload }: PanelUploadExcelProps) {
           accept=".xlsx,.xls"
           onChange={handleFileUpload}
           disabled={isUploading}
+          ref={fileInputRef}
         />
       </label>
 

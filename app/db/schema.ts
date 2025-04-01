@@ -14,6 +14,8 @@ import {
   varchar,
   bigint,
   jsonb,
+  primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -413,3 +415,62 @@ export const usedSheets = pgTable("used_sheets", {
   }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Glass Takeoff tables
+
+export const glass = pgTable("glass", {
+  id: serial("id").primaryKey(),
+  markNum: text("marknum").notNull(),
+  markIndex: text("markindex").notNull(),
+  gtype: text("gtype").notNull(),
+  width: text("width").notNull(), // Changed from real to text
+  height: text("height").notNull(), // Changed from real to text
+  height2: text("height2").notNull().default("0"), // Changed from real to text
+  dloWidth: text("dlowidth").notNull(), // Changed from real to text
+  dloHeight: text("dloheight").notNull(), // Changed from real to text
+  dloHeight2: text("dloheight2").notNull().default("0"), // Changed from real to text
+  left: text("left").default("0"), // Changed from real to text
+  right: text("right").default("0"), // Changed from real to text
+  top: text("top").default("0"), // Changed from real to text
+  bottom: text("bottom").default("0"), // Changed from real to text
+  pattern: text("pattern"),
+  dlopattern: text("dlopattern"),
+});
+
+export const glassDescript = pgTable("glassdescript", {
+  id: serial("id").primaryKey(),
+  glasstyp: text("glasstyp").notNull().unique(),
+  prefix: text("prefix"),
+  description: text("description"),
+  cutback: boolean("cutback").default(false),
+  directional: boolean("directional").default(false),
+});
+
+export const glassTO = pgTable(
+  "glassto",
+  {
+    id: serial("id").primaryKey(),
+    dwgname: text("dwgname").notNull(),
+    handle: text("handle").notNull(),
+    elevation: text("elevation"),
+    markNum: text("marknum").notNull(),
+    floor: text("floor"),
+    qty: integer("qty").default(1),
+    x_pt: text("x_pt"),
+    y_pt: text("y_pt"),
+    blx: text("blx"),
+    bly: text("bly"),
+    brx: text("brx"),
+    bry: text("bry"),
+    trx: text("trx"),
+    try_: text("try_"),
+    tlx: text("tlx"),
+    tly: text("tly"),
+    location: text("location"),
+    setback: text("setback").default("0.75"),
+  },
+  (table) => [
+    // Return an array instead of an object - this is the new syntax
+    uniqueIndex("dwg_handle_idx").on(table.dwgname, table.handle),
+  ]
+);
