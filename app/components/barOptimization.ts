@@ -2,7 +2,6 @@ import { Part, Bar, BarCut, BarOptimizationResult, CutBar } from "../types";
 
 /**
  * First-fit algorithm for 1D bin packing (bar cutting optimization)
- * Rewritten to more closely match the original VBA algorithm
  */
 export function optimizeBars(
   parts: Part[],
@@ -241,8 +240,13 @@ export function findBestBarLength(
   const partsData = parts.map((p) => ({ ...p, qty: p.qty || 1 }));
   const longestPartLength = Math.max(...partsData.map((p) => p.length));
 
+  // Round up the longest part length to the nearest stepSize
+  const roundedLongestPart = Math.ceil(longestPartLength / stepSize) * stepSize;
+  console.log(
+    `Rounded longest part length: ${roundedLongestPart} (original: ${longestPartLength})`
+  );
   // Ensure minLength is at least the longest part length
-  minLength = Math.max(minLength, longestPartLength);
+  minLength = Math.max(minLength, roundedLongestPart);
 
   // Calculate total part length and estimate kerf waste
   const totalPartLength = partsData.reduce(

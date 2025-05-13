@@ -14,6 +14,7 @@ import PartsTable from "../../components/PartsTable";
 import BarsTable from "../../components/BarsTable";
 import PartsUploadExcel from "../../components/PartsUploadExcel";
 import BarCuttingVisualization from "../../components/BarCuttingVisualization";
+import ExportPdfBars from "../../components/ExportPdfBars";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -262,7 +263,18 @@ export default function BarOptimizationPage() {
         <TabsContent value="parts">
           <Card>
             <CardHeader>
-              <CardTitle>Part Data</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Part Data</CardTitle>
+                {activeTab === "parts" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || parts.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="mb-6">
@@ -280,7 +292,18 @@ export default function BarOptimizationPage() {
         <TabsContent value="bars">
           <Card>
             <CardHeader>
-              <CardTitle>Extrusion Sizes</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Extrusion Sizes</CardTitle>
+                {activeTab === "bars" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || parts.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="mb-4">
@@ -312,7 +335,18 @@ export default function BarOptimizationPage() {
         <TabsContent value="settings">
           <Card>
             <CardHeader>
-              <CardTitle>Optimization Settings</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Optimization Settings</CardTitle>
+                {activeTab === "settings" && (
+                  <Button
+                    onClick={handleOptimize}
+                    disabled={isLoading || parts.length === 0}
+                    size="sm"
+                  >
+                    {isLoading ? "Optimizing..." : "Run Optimization"}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -439,10 +473,19 @@ export default function BarOptimizationPage() {
               <Card>
                 <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle>Optimization Results</CardTitle>
-                    <Button size="sm" onClick={handleExportResults}>
-                      Export CSV
-                    </Button>
+                    <CardTitle>Optimization Results for {jobName}</CardTitle>
+                    <div className="flex space-x-2">
+                      <ExportPdfBars
+                        bars={results.bars}
+                        cuts={results.cuts}
+                        kerf={kerf}
+                        jobName={jobName}
+                        variant="default"
+                        size="sm"
+                      >
+                        Print
+                      </ExportPdfBars>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -494,15 +537,7 @@ export default function BarOptimizationPage() {
           )}
         </TabsContent>
       </Tabs>
-      <div className="mt-6 flex justify-center">
-        <Button
-          onClick={handleOptimize}
-          disabled={isLoading || parts.length === 0}
-          className="px-6 py-2"
-        >
-          {isLoading ? "Optimizing..." : "Run Optimization"}
-        </Button>
-      </div>
+      <div className="mt-6 flex justify-center"></div>
     </div>
   );
 }

@@ -229,17 +229,7 @@ export default function BarCuttingVisualization({
             >
               {groupByFinish ? "Show All Together" : "Group by Finish"}
             </Button>
-            <ExportPdfBars
-              bars={bars}
-              cuts={cuts}
-              kerf={kerf}
-              jobName={jobName}
-              variant="outline"
-              size="sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </ExportPdfBars>
+
             <div className="flex items-center space-x-2">
               {barsBySize.length > 1 && (
                 <>
