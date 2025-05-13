@@ -40,13 +40,13 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
       ...parts,
       {
         ...newPart,
-        id: newPart.id ?? 0,
+        id: newPart.id ?? Date.now(), // Generate a unique ID if none exists
         userId: newPart.userId ?? "",
         createdAt: newPart.createdAt ?? new Date(),
       } as Part,
     ]);
 
-    // Reset form except for part_no and finish to make adding multiple similar parts easier
+    // Reset form except for partNo and finish to make adding multiple similar parts easier
     setNewPart({
       ...newPart,
       qty: 1,
@@ -123,7 +123,7 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
                 <TableCell>
                   <input
                     type="text"
-                    name="part_no"
+                    name="partNo"
                     value={newPart.partNo}
                     onChange={handleInputChange}
                     className="w-full p-1 border rounded"
@@ -143,7 +143,7 @@ export default function PartsTable({ parts, onPartsChange }: PartsTableProps) {
                 <TableCell>
                   <input
                     type="text"
-                    name="mark_no"
+                    name="markNo"
                     value={newPart.markNo}
                     onChange={handleInputChange}
                     className="w-full p-1 border rounded"

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { decimalToFraction } from "./formatters";
+import ExportPdfBars from "./ExportPdfBars";
 
 interface BarCuttingVisualizationProps {
   cuts: BarCut[];
@@ -228,10 +229,17 @@ export default function BarCuttingVisualization({
             >
               {groupByFinish ? "Show All Together" : "Group by Finish"}
             </Button>
-            <Button variant="outline" size="sm" onClick={exportAsSVG}>
+            <ExportPdfBars
+              bars={bars}
+              cuts={cuts}
+              kerf={kerf}
+              jobName={jobName}
+              variant="outline"
+              size="sm"
+            >
               <Download className="h-4 w-4 mr-2" />
-              Export SVG
-            </Button>
+              Export PDF
+            </ExportPdfBars>
             <div className="flex items-center space-x-2">
               {barsBySize.length > 1 && (
                 <>
