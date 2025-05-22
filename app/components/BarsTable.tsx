@@ -47,9 +47,10 @@ export default function BarsTable({
   });
 
   // Get unique part numbers from parts
-  const uniquePartNos = Array.from(new Set(parts.map((p) => p.partNo))).sort(
-    (a, b) => a.localeCompare(b)
-  );
+  const uniquePartNos = Array.from(new Set(parts.map((p) => p.partNo)))
+    .filter((partNo) => partNo !== undefined && partNo !== null) // Remove null/undefined values
+    .map((partNo) => String(partNo)) // Convert all values to strings
+    .sort((a, b) => a.localeCompare(b));
 
   // When "Automatically find optimal bar length" is checked
   if (disabled) {
