@@ -314,15 +314,14 @@ export default function BarCuttingVisualization({
               </div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Waste Percentage</div>
+              <div className="text-sm text-gray-500">Total Yield</div>
               <div className="text-xl font-semibold">
                 {summary?.wastePercentage !== undefined
-                  ? summary.wastePercentage.toFixed(1)
+                  ? (100 - summary.wastePercentage).toFixed(1)
                   : (
                       100 *
-                      (1 -
-                        bars.reduce((sum, b) => sum + b.usedLength, 0) /
-                          bars.reduce((sum, b) => sum + b.length, 0))
+                      (bars.reduce((sum, b) => sum + b.usedLength, 0) /
+                        bars.reduce((sum, b) => sum + b.length, 0))
                     ).toFixed(1)}
                 %
               </div>
@@ -334,11 +333,11 @@ export default function BarCuttingVisualization({
               <h4 className="text-sm font-medium mb-2">Breakdown by Finish</h4>
               <div className="grid grid-cols-6 gap-2 text-sm">
                 <div className="font-medium">Finish</div>
-                <div className="font-medium">Bars</div>
-                <div className="font-medium">Bar Length</div>
+                <div className="font-medium">Qty Bars</div>
+                <div className="font-medium">Stock Length Size</div>
                 <div className="font-medium">Total Length</div>
                 <div className="font-medium">Used Length</div>
-                <div className="font-medium">Waste %</div>
+                <div className="font-medium">Yield %</div>
 
                 {barsByFinish.map((finish, index) => {
                   // Find all bar lengths for this finish group
@@ -363,7 +362,9 @@ export default function BarCuttingVisualization({
                       <div>{barLengthsDisplay || "N/A"}</div>
                       <div>{inToFt(finish.totalLength).toFixed(2)} ft</div>
                       <div>{inToFt(finish.usedLength).toFixed(2)} ft</div>
-                      <div>{finish.wastePercentage.toFixed(1)}%</div>
+                      <div>
+                        {(100 - (finish.wastePercentage || 0)).toFixed(1)}%
+                      </div>
                     </React.Fragment>
                   );
                 })}

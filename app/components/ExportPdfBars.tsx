@@ -166,12 +166,16 @@ export default function ExportPdfBars({
 
         // Convert to array and sort by part number and finish
         return Object.values(materialSummaryMap).sort((a, b) => {
-          // First sort by part number
-          const partNoComparison = a.partNo.localeCompare(b.partNo);
+          // First sort by part number - handle potential non-string values
+          const partNoA = String(a.partNo || "");
+          const partNoB = String(b.partNo || "");
+          const partNoComparison = partNoA.localeCompare(partNoB);
           if (partNoComparison !== 0) return partNoComparison;
 
-          // Then by finish
-          return a.finish.localeCompare(b.finish);
+          // Then by finish - handle potential non-string values
+          const finishA = String(a.finish || "");
+          const finishB = String(b.finish || "");
+          return finishA.localeCompare(finishB);
         });
       };
 
@@ -385,14 +389,14 @@ export default function ExportPdfBars({
           }
 
           // Draw individual material row
-          summaryPage.drawText(summary.partNo, {
+          summaryPage.drawText(String(summary.partNo), {
             x: columns[0],
             y: rowY,
             size: 10,
             font: helveticaFont,
           });
 
-          summaryPage.drawText(summary.finish, {
+          summaryPage.drawText(String(summary.finish), {
             x: columns[1],
             y: rowY,
             size: 10,
@@ -574,11 +578,11 @@ export default function ExportPdfBars({
         const key = `${cut.markNo}-${cut.partNo}-${cut.length}`;
         if (!partsByMark[key]) {
           partsByMark[key] = {
-            partNo: cut.partNo || "",
-            markNo: cut.markNo || "",
+            partNo: String(cut.partNo || ""),
+            markNo: String(cut.markNo || ""),
             length: cut.length,
-            finish: cut.finish || "",
-            fab: cut.fab || "",
+            finish: String(cut.finish || ""),
+            fab: String(cut.fab || ""),
             count: 0,
           };
         }
@@ -652,8 +656,10 @@ export default function ExportPdfBars({
 
       // Sort parts by partNo first, then by length descending
       const sortedParts = Object.values(partsByMark).sort((a, b) => {
-        // First sort by partNo
-        const partNoComparison = a.partNo.localeCompare(b.partNo);
+        // First sort by partNo - handle potential non-string values
+        const partNoA = String(a.partNo || ""); // Convert to string, use empty string as fallback
+        const partNoB = String(b.partNo || ""); // Convert to string, use empty string as fallback
+        const partNoComparison = partNoA.localeCompare(partNoB);
         if (partNoComparison !== 0) return partNoComparison;
 
         // Then sort by length (descending)
@@ -871,8 +877,8 @@ export default function ExportPdfBars({
         if (barCuts.length === 0) continue;
 
         // Get part number and finish from the first cut
-        const partNo = barCuts[0].partNo || "Unknown";
-        const finish = barCuts[0].finish || "Unknown";
+        const partNo = String(barCuts[0].partNo || "Unknown");
+        const finish = String(barCuts[0].finish || "Unknown");
 
         // Generate a unique key for this cutting pattern
         const patternKey = generatePatternKey(barCuts, kerf);
@@ -899,12 +905,16 @@ export default function ExportPdfBars({
 
       // Convert to array and sort by part number, finish, and length (descending)
       const sortedAllPatterns = Object.values(allPatternGroups).sort((a, b) => {
-        // First sort by part number
-        const partNoComparison = a.partNo.localeCompare(b.partNo);
+        // First sort by part number - handle potential non-string values
+        const partNoA = String(a.partNo || "");
+        const partNoB = String(b.partNo || "");
+        const partNoComparison = partNoA.localeCompare(partNoB);
         if (partNoComparison !== 0) return partNoComparison;
 
-        // Then by finish
-        const finishComparison = a.finish.localeCompare(b.finish);
+        // Then by finish - handle potential non-string values
+        const finishA = String(a.finish || "");
+        const finishB = String(b.finish || "");
+        const finishComparison = finishA.localeCompare(finishB);
         if (finishComparison !== 0) return finishComparison;
 
         // Finally by length (descending)
