@@ -34,8 +34,10 @@ export default function BarOptimizationPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<BarOptimizationResult | null>(null);
   const [activeTab, setActiveTab] = useState("parts");
-  const [jobName, setJobName] = useState("Bar Optimization");
+  const [jobName, setJobName] = useState("Project XXX");
+  const [notes, setNotes] = useState("");
   const [findOptimalBarByPart, setFindOptimalBarByPart] = useState(true);
+  const [kerfDisplay, setKerfDisplay] = useState(kerf.toString());
 
   // Modify the handleOptimize function to update the state after optimization
 
@@ -240,15 +242,25 @@ export default function BarOptimizationPage() {
           Instructions
         </a>
       </div>
-      <div className="mb-4">
-        <Label htmlFor="jobName">Job Name</Label>
-        <Input
-          id="jobName"
-          value={jobName}
-          onChange={(e) => setJobName(e.target.value)}
-          placeholder="Enter job name"
-          className="max-w-md"
-        />
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="jobName">Job Name</Label>
+          <Input
+            id="jobName"
+            value={jobName}
+            onChange={(e) => setJobName(e.target.value)}
+            placeholder="Enter job name"
+          />
+        </div>
+        <div>
+          <Label htmlFor="notes">Notes</Label>
+          <Input
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Enter notes (optional)"
+          />
+        </div>
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
@@ -355,12 +367,47 @@ export default function BarOptimizationPage() {
                     Kerf (Blade Width in inches)
                   </label>
                   <Input
-                    type="number"
-                    value={kerf}
-                    onChange={(e) => setKerf(parseFloat(e.target.value))}
+                    type="text"
+                    value={kerfDisplay} // Use display value instead of kerf directly
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // If the input starts with a decimal point, prepend "0"
+                      if (value.startsWith(".")) {
+                        value = "0" + value;
+                      }
+
+                      // Only allow valid number characters (digits, decimal point, minus sign)
+                      if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                        setKerfDisplay(value); // Always update display
+                        const numValue = parseFloat(value);
+                        // Only update numeric state if it's a valid number
+                        if (!isNaN(numValue)) {
+                          setKerf(numValue);
+                        } else if (value === "" || value === "-") {
+                          setKerf(0);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Clean up the value on blur - ensure it's a proper number
+                      const numValue = parseFloat(e.target.value);
+                      if (!isNaN(numValue)) {
+                        setKerf(numValue);
+                        setKerfDisplay(numValue.toString());
+                      } else {
+                        setKerf(0);
+                        setKerfDisplay("0");
+                      }
+                    }}
+                    onFocus={() => {
+                      // Sync display with actual value when focusing
+                      setKerfDisplay(kerf.toString());
+                    }}
                     step="0.015625"
                     min="0"
                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
+                    placeholder="e.g., .125 or 0.125"
                   />
                   <p className="text-sm text-gray-500 mt-1">
                     Typical values: 1/8" (0.125), 3/16" (0.1875), 1/4" (0.25)
@@ -480,6 +527,7 @@ export default function BarOptimizationPage() {
                         cuts={results.cuts}
                         kerf={kerf}
                         jobName={jobName}
+                        notes={notes}
                         variant="default"
                         size="sm"
                       >

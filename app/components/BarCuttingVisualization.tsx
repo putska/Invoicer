@@ -19,6 +19,18 @@ interface BarCuttingVisualizationProps {
 // Helper function to convert square inches to square feet
 const inToFt = (inches: number): number => inches / 12;
 
+// Helper function to convert inches to feet and inches
+const inToFeetAndInches = (inches: number) => {
+  const feet = Math.floor(inches / 12);
+  const remainingInches = inches % 12;
+
+  if (feet === 0) {
+    return `${remainingInches}"`;
+  } else {
+    return `${feet}'-${remainingInches}"`;
+  }
+};
+
 export default function BarCuttingVisualization({
   cuts,
   bars,
@@ -303,7 +315,7 @@ export default function BarCuttingVisualization({
               </div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Total Length</div>
+              <div className="text-sm text-gray-500">Total Gross Length</div>
               <div className="text-xl font-semibold">
                 {summary
                   ? inToFt(summary.totalLength).toFixed(2)
@@ -330,14 +342,16 @@ export default function BarCuttingVisualization({
 
           {barsByFinish.length > 1 && (
             <div className="mt-4 border-t border-gray-200 pt-4">
-              <h4 className="text-sm font-medium mb-2">Breakdown by Finish</h4>
-              <div className="grid grid-cols-6 gap-2 text-sm">
-                <div className="font-medium">Finish</div>
-                <div className="font-medium">Qty Bars</div>
-                <div className="font-medium">Stock Length Size</div>
-                <div className="font-medium">Total Length</div>
-                <div className="font-medium">Used Length</div>
-                <div className="font-medium">Yield %</div>
+              <h4 className="text-base font-semibold mb-2">
+                Breakdown by Finish
+              </h4>
+              <div className="grid grid-cols-6 gap-2 text-base">
+                <div className="font-semibold">Qty</div>
+                <div className="font-semibold">Part Number</div>
+                <div className="font-semibold">Size</div>
+                <div className="font-semibold">Net Length</div>
+                <div className="font-semibold">Gross Length</div>
+                <div className="font-semibold">Yield %</div>
 
                 {barsByFinish.map((finish, index) => {
                   // Find all bar lengths for this finish group
@@ -351,17 +365,17 @@ export default function BarCuttingVisualization({
                   // Format the bar lengths for display
                   const barLengthsDisplay = uniqueBarLengths
                     .map(
-                      (length) => `${length}" (${inToFt(length).toFixed(2)} ft)`
+                      (length) => `${length}" (${inToFeetAndInches(length)})`
                     )
                     .join(", ");
 
                   return (
                     <React.Fragment key={index}>
-                      <div>{finish.finish}</div>
                       <div>{finish.barCount}</div>
+                      <div>{finish.finish}</div>
                       <div>{barLengthsDisplay || "N/A"}</div>
-                      <div>{inToFt(finish.totalLength).toFixed(2)} ft</div>
                       <div>{inToFt(finish.usedLength).toFixed(2)} ft</div>
+                      <div>{inToFt(finish.totalLength).toFixed(2)} ft</div>
                       <div>
                         {(100 - (finish.wastePercentage || 0)).toFixed(1)}%
                       </div>

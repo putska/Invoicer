@@ -11,6 +11,7 @@ interface ExportPdfBarsProps {
   bars: CutBar[];
   kerf: number;
   jobName?: string;
+  notes?: string;
   children?: React.ReactNode;
   variant?:
     | "default"
@@ -54,6 +55,7 @@ export default function ExportPdfBars({
   bars,
   kerf,
   jobName = "Bar Optimization",
+  notes = "",
   children = "Print",
   variant = "outline",
   size = "sm",
@@ -197,28 +199,97 @@ export default function ExportPdfBars({
         font: helveticaBold,
       });
 
+      let currentY = pageHeight - margin - 20;
+
+      // Add notes if they exist
+      if (notes && notes.trim()) {
+        // Split notes into lines that fit within the page width
+        const maxLineWidth = contentWidth;
+        const notesFontSize = 10;
+        const lineHeight = 14;
+
+        // Simple word wrapping
+        const words = notes.trim().split(" ");
+        const lines: string[] = [];
+        let currentLine = "";
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = helveticaFont.widthOfTextAtSize(
+            testLine,
+            notesFontSize
+          );
+
+          if (testWidth <= maxLineWidth) {
+            currentLine = testLine;
+          } else {
+            if (currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              // Word is too long, just add it anyway
+              lines.push(word);
+            }
+          }
+        }
+
+        if (currentLine) {
+          lines.push(currentLine);
+        }
+
+        // Draw notes with proper spacing
+        currentY -= 10; // Add some space before notes
+
+        summaryPage.drawText("Notes:", {
+          x: margin,
+          y: currentY,
+          size: 11,
+          font: helveticaBold,
+        });
+
+        currentY -= lineHeight;
+
+        for (const line of lines) {
+          summaryPage.drawText(line, {
+            x: margin,
+            y: currentY,
+            size: notesFontSize,
+            font: helveticaFont,
+          });
+          currentY -= lineHeight;
+        }
+
+        currentY -= 10; // Add space after notes
+      }
+
       summaryPage.drawText(`Generated: ${new Date().toLocaleDateString()}`, {
         x: margin,
-        y: pageHeight - margin - 20,
+        y: currentY,
         size: 10,
         font: helveticaFont,
       });
+
+      currentY -= 20;
 
       // Add kerf information
       summaryPage.drawText(`Kerf (Cut Width): ${kerf}"`, {
         x: margin,
-        y: pageHeight - margin - 40,
+        y: currentY,
         size: 10,
         font: helveticaFont,
       });
 
+      currentY -= 20;
+
       // Bar summary section
       summaryPage.drawText("S/L Summary:", {
         x: margin,
-        y: pageHeight - margin - 60,
+        y: currentY,
         size: 14,
         font: helveticaBold,
       });
+
+      currentY -= 30;
 
       // Table headers
       const columns = [
@@ -233,63 +304,63 @@ export default function ExportPdfBars({
 
       summaryPage.drawText("Part No", {
         x: columns[0],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Finish", {
         x: columns[1],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Length", {
         x: columns[2],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Qty", {
         x: columns[3],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Gross (ft)", {
         x: columns[4],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Net (ft)", {
         x: columns[5],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       summaryPage.drawText("Yield %", {
         x: columns[6],
-        y: pageHeight - margin - 90,
+        y: currentY,
         size: 11,
         font: helveticaBold,
       });
 
       // Draw horizontal line
       summaryPage.drawLine({
-        start: { x: margin, y: pageHeight - margin - 95 },
-        end: { x: pageWidth - margin, y: pageHeight - margin - 95 },
+        start: { x: margin, y: currentY - 5 },
+        end: { x: pageWidth - margin, y: currentY - 5 },
         thickness: 1,
         color: rgb(0, 0, 0),
       });
 
       // Table rows
-      let rowY = pageHeight - margin - 115;
+      let rowY = currentY - 20;
       let totalBars = 0;
       let totalGrossFeet = 0;
       let totalNetFeet = 0;
@@ -841,7 +912,7 @@ export default function ExportPdfBars({
         font: helveticaBold,
       });
 
-      summaryPage.drawText("TOTAL PARTS TO", {
+      summaryPage.drawText("TOTAL PARTS TO CUT", {
         x: pColumns[1],
         y: rowY - 10,
         size: 10,

@@ -41,7 +41,7 @@ export default function BarsTable({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [newBar, setNewBar] = useState<Partial<Bar>>({
     length: 0,
-    qty: 1,
+    qty: 1000,
     partNo: "",
     description: "",
   });
@@ -92,7 +92,7 @@ export default function BarsTable({
     const fullBar: Bar = {
       id,
       length: newBar.length,
-      qty: newBar.qty || 1,
+      qty: newBar.qty || 1000,
       partNo: newBar.partNo || undefined,
       description: newBar.description || undefined,
     };
@@ -102,7 +102,7 @@ export default function BarsTable({
     // Reset the form
     setNewBar({
       length: 0,
-      qty: 1,
+      qty: 1000,
       partNo: "",
       description: "",
     });
@@ -158,6 +158,26 @@ export default function BarsTable({
     onBarsChange([...bars, ...newBars]);
   };
 
+  // Helper function to get display text for quantity
+  const getQuantityDisplayText = (bar: Bar) => {
+    if (bar.partNo) {
+      return `${bar.qty}`;
+    } else {
+      return `${bar.qty} each`;
+    }
+  };
+
+  // Helper function to get the effective total quantity for a bar
+  const getEffectiveTotalQuantity = (bar: Bar) => {
+    if (bar.partNo) {
+      // Specific part number - quantity is as entered
+      return bar.qty;
+    } else {
+      // No part number specified - quantity applies to each part
+      return bar.qty * uniquePartNos.length;
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -182,18 +202,28 @@ export default function BarsTable({
             />
           </div>
           <div>
-            <Label htmlFor="qty">Quantity Available</Label>
+            <Label htmlFor="qty">
+              Quantity Available{" "}
+              {!newBar.partNo && uniquePartNos.length > 0 && (
+                <span className="text-xs text-gray-500">(per part)</span>
+              )}
+            </Label>
             <Input
               id="qty"
               type="number"
               min="1"
               step="1"
-              value={newBar.qty || 1}
+              value={newBar.qty || 1000}
               onChange={(e) =>
                 setNewBar({ ...newBar, qty: parseInt(e.target.value, 10) })
               }
               placeholder="Quantity"
             />
+            {!newBar.partNo && uniquePartNos.length > 0 && (
+              <div className="text-xs text-gray-500 mt-1">
+                Total: {(newBar.qty || 1000) * uniquePartNos.length} bars
+              </div>
+            )}
           </div>
           <div>
             <Label htmlFor="partNo">Part Number (Optional)</Label>
@@ -287,21 +317,35 @@ export default function BarsTable({
                 </TableCell>
                 <TableCell>
                   {editingId === bar.id ? (
-                    <Input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={bar.qty}
-                      onChange={(e) =>
-                        handleUpdateBar(
-                          bar.id,
-                          "qty",
-                          parseInt(e.target.value, 10)
-                        )
-                      }
-                    />
+                    <div>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={bar.qty}
+                        onChange={(e) =>
+                          handleUpdateBar(
+                            bar.id,
+                            "qty",
+                            parseInt(e.target.value, 10)
+                          )
+                        }
+                      />
+                      {!bar.partNo && uniquePartNos.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Total: {bar.qty * uniquePartNos.length} bars
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    bar.qty
+                    <div>
+                      <div>{getQuantityDisplayText(bar)}</div>
+                      {!bar.partNo && uniquePartNos.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          (Total: {getEffectiveTotalQuantity(bar)})
+                        </div>
+                      )}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
