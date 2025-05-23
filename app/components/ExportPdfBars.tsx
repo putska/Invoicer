@@ -1,4 +1,3 @@
-// components/ExportPdfBars.tsx
 import React from "react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { Button } from "@/components/ui/button";
@@ -195,7 +194,7 @@ export default function ExportPdfBars({
       summaryPage.drawText(`${jobName} - Cutting Summary`, {
         x: margin,
         y: pageHeight - margin,
-        size: 16,
+        size: 18, // Increased from 16
         font: helveticaBold,
       });
 
@@ -243,7 +242,7 @@ export default function ExportPdfBars({
         summaryPage.drawText("Notes:", {
           x: margin,
           y: currentY,
-          size: 11,
+          size: 12, // Increased from 11
           font: helveticaBold,
         });
 
@@ -253,7 +252,7 @@ export default function ExportPdfBars({
           summaryPage.drawText(line, {
             x: margin,
             y: currentY,
-            size: notesFontSize,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
           currentY -= lineHeight;
@@ -265,7 +264,7 @@ export default function ExportPdfBars({
       summaryPage.drawText(`Generated: ${new Date().toLocaleDateString()}`, {
         x: margin,
         y: currentY,
-        size: 10,
+        size: 11, // Increased from 10
         font: helveticaFont,
       });
 
@@ -275,7 +274,7 @@ export default function ExportPdfBars({
       summaryPage.drawText(`Kerf (Cut Width): ${kerf}"`, {
         x: margin,
         y: currentY,
-        size: 10,
+        size: 11, // Increased from 10
         font: helveticaFont,
       });
 
@@ -285,69 +284,69 @@ export default function ExportPdfBars({
       summaryPage.drawText("S/L Summary:", {
         x: margin,
         y: currentY,
-        size: 14,
+        size: 16, // Increased from 14
         font: helveticaBold,
       });
 
       currentY -= 30;
 
-      // Table headers
+      // Updated table headers with new order: Qty, Part No, Finish, Length, Gross (ft), Net (ft), Yield %
       const columns = [
-        margin, // Part No
-        margin + 120, // Finish
-        margin + 200, // Length
-        margin + 260, // Qty
+        margin, // Qty
+        margin + 60, // Part No
+        margin + 160, // Finish
+        margin + 240, // Length
         margin + 320, // Total Gross (ft)
         margin + 400, // Total Net (ft)
         margin + 480, // Yield %
       ];
 
-      summaryPage.drawText("Part No", {
+      summaryPage.drawText("Qty", {
         x: columns[0],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
+        font: helveticaBold,
+      });
+
+      summaryPage.drawText("Part No", {
+        x: columns[1],
+        y: currentY,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Finish", {
-        x: columns[1],
+        x: columns[2],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Length", {
-        x: columns[2],
-        y: currentY,
-        size: 11,
-        font: helveticaBold,
-      });
-
-      summaryPage.drawText("Qty", {
         x: columns[3],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Gross (ft)", {
         x: columns[4],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Net (ft)", {
         x: columns[5],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Yield %", {
         x: columns[6],
         y: currentY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
@@ -390,7 +389,7 @@ export default function ExportPdfBars({
               {
                 x: margin,
                 y: pageHeight - margin,
-                size: 16,
+                size: 18, // Increased from 16
                 font: helveticaBold,
               }
             );
@@ -398,53 +397,53 @@ export default function ExportPdfBars({
             // Reset position and redraw headers
             rowY = pageHeight - margin - 60;
 
-            // Redraw column headers
-            summaryPage.drawText("Part No", {
+            // Redraw column headers with new order
+            summaryPage.drawText("Qty", {
               x: columns[0],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
+              font: helveticaBold,
+            });
+
+            summaryPage.drawText("Part No", {
+              x: columns[1],
+              y: rowY,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Finish", {
-              x: columns[1],
+              x: columns[2],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Length", {
-              x: columns[2],
-              y: rowY,
-              size: 11,
-              font: helveticaBold,
-            });
-
-            summaryPage.drawText("Qty", {
               x: columns[3],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Gross (ft)", {
               x: columns[4],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Net (ft)", {
               x: columns[5],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Yield %", {
               x: columns[6],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
@@ -459,53 +458,53 @@ export default function ExportPdfBars({
             rowY -= 20;
           }
 
-          // Draw individual material row
-          summaryPage.drawText(String(summary.partNo), {
+          // Draw individual material row with new column order
+          summaryPage.drawText(`${summary.count}`, {
             x: columns[0],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
+            font: helveticaFont,
+          });
+
+          summaryPage.drawText(String(summary.partNo), {
+            x: columns[1],
+            y: rowY,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(String(summary.finish), {
-            x: columns[1],
+            x: columns[2],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(`${decimalToFraction(summary.length)}"`, {
-            x: columns[2],
-            y: rowY,
-            size: 10,
-            font: helveticaFont,
-          });
-
-          summaryPage.drawText(`${summary.count}`, {
             x: columns[3],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(`${summary.totalGrossFeet.toFixed(2)}`, {
             x: columns[4],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(`${summary.totalNetFeet.toFixed(2)}`, {
             x: columns[5],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(`${summary.yield.toFixed(1)}%`, {
             x: columns[6],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
@@ -534,39 +533,39 @@ export default function ExportPdfBars({
 
           const partYield = (partSubtotalNetFeet / partSubtotalGrossFeet) * 100;
 
-          // Draw subtotal row with slightly emphasized formatting
-          summaryPage.drawText(`${partNo} Subtotal:`, {
+          // Draw subtotal row with slightly emphasized formatting - updated order
+          summaryPage.drawText(`${partSubtotalBars}`, {
             x: columns[0],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
-          summaryPage.drawText(`${partSubtotalBars}`, {
-            x: columns[3],
+          summaryPage.drawText(`${partNo} Subtotal:`, {
+            x: columns[1],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
           summaryPage.drawText(`${partSubtotalGrossFeet.toFixed(2)}`, {
             x: columns[4],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
           summaryPage.drawText(`${partSubtotalNetFeet.toFixed(2)}`, {
             x: columns[5],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
           summaryPage.drawText(`${partYield.toFixed(1)}%`, {
             x: columns[6],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
@@ -587,39 +586,39 @@ export default function ExportPdfBars({
       // Calculate overall yield
       const overallYield = (totalNetFeet / totalGrossFeet) * 100;
 
-      // Draw grand totals row
-      summaryPage.drawText("GRAND TOTAL:", {
+      // Draw grand totals row with updated order
+      summaryPage.drawText(`${totalBars}`, {
         x: columns[0],
         y: rowY - 10,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
-      summaryPage.drawText(`${totalBars}`, {
-        x: columns[3],
+      summaryPage.drawText("GRAND TOTAL:", {
+        x: columns[1],
         y: rowY - 10,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText(`${totalGrossFeet.toFixed(2)}`, {
         x: columns[4],
         y: rowY - 10,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText(`${totalNetFeet.toFixed(2)}`, {
         x: columns[5],
         y: rowY - 10,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText(`${overallYield.toFixed(1)}%`, {
         x: columns[6],
         y: rowY - 10,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
@@ -628,7 +627,7 @@ export default function ExportPdfBars({
       summaryPage.drawText("Part Summary:", {
         x: margin,
         y: rowY,
-        size: 14,
+        size: 16, // Increased from 14
         font: helveticaBold,
       });
 
@@ -674,42 +673,42 @@ export default function ExportPdfBars({
       summaryPage.drawText("Qty", {
         x: pColumns[0],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Part No", {
         x: pColumns[1],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Length", {
         x: pColumns[2],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Mark No", {
         x: pColumns[3],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Finish", {
         x: pColumns[4],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
       summaryPage.drawText("Fab", {
         x: pColumns[5],
         y: rowY,
-        size: 11,
+        size: 12, // Increased from 11
         font: helveticaBold,
       });
 
@@ -764,7 +763,7 @@ export default function ExportPdfBars({
             summaryPage.drawText(`${jobName} - Part Summary (continued)`, {
               x: margin,
               y: pageHeight - margin,
-              size: 16,
+              size: 18, // Increased from 16
               font: helveticaBold,
             });
 
@@ -775,42 +774,42 @@ export default function ExportPdfBars({
             summaryPage.drawText("Qty", {
               x: pColumns[0],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Part No", {
               x: pColumns[1],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Length", {
               x: pColumns[2],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Mark No", {
               x: pColumns[3],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Finish", {
               x: pColumns[4],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
             summaryPage.drawText("Fab", {
               x: pColumns[5],
               y: rowY,
-              size: 11,
+              size: 12, // Increased from 11
               font: helveticaBold,
             });
 
@@ -829,42 +828,42 @@ export default function ExportPdfBars({
           summaryPage.drawText(`${part.count}`, {
             x: pColumns[0],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(part.partNo || "", {
             x: pColumns[1],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(`${decimalToFraction(part.length)}"`, {
             x: pColumns[2],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(part.markNo || "", {
             x: pColumns[3],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(part.finish || "", {
             x: pColumns[4],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
           summaryPage.drawText(String(part.fab || ""), {
             x: pColumns[5],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaFont,
           });
 
@@ -886,7 +885,7 @@ export default function ExportPdfBars({
           summaryPage.drawText(`${partNoSubtotal}`, {
             x: pColumns[0],
             y: rowY,
-            size: 10,
+            size: 11, // Increased from 10
             font: helveticaBold,
           });
 
@@ -908,14 +907,14 @@ export default function ExportPdfBars({
       summaryPage.drawText(`${totalParts}`, {
         x: pColumns[0],
         y: rowY - 10,
-        size: 10,
+        size: 11, // Increased from 10
         font: helveticaBold,
       });
 
       summaryPage.drawText("TOTAL PARTS TO CUT", {
         x: pColumns[1],
         y: rowY - 10,
-        size: 10,
+        size: 11, // Increased from 10
         font: helveticaBold,
       });
 
@@ -1031,7 +1030,7 @@ export default function ExportPdfBars({
             {
               x: margin,
               y: pageHeight - margin,
-              size: 16,
+              size: 18, // Increased from 16
               font: helveticaBold,
             }
           );
@@ -1041,7 +1040,7 @@ export default function ExportPdfBars({
             {
               x: margin,
               y: pageHeight - margin - 20,
-              size: 10,
+              size: 11, // Increased from 10
               font: helveticaFont,
             }
           );
@@ -1096,7 +1095,7 @@ export default function ExportPdfBars({
             {
               x: margin,
               y: yPosition,
-              size: 10,
+              size: 12, // Increased from 10
               font: helveticaBold,
             }
           );
@@ -1106,7 +1105,7 @@ export default function ExportPdfBars({
             currentPage.drawText(`Bar IDs: ${barIdListShort}`, {
               x: margin,
               y: yPosition - 15,
-              size: 8,
+              size: 9, // Increased from 8
               font: helveticaFont,
             });
           }
@@ -1136,11 +1135,11 @@ export default function ExportPdfBars({
               .reduce((acc, char) => acc + char.charCodeAt(0), 0);
             const hue = (markHash * 137.5) % 360;
 
-            // Convert HSL to RGB (simple conversion for pdf-lib)
+            // Convert HSL to RGB with lighter colors for better printing
             let r, g, b;
             const h = hue / 360;
-            const s = 0.7; // Saturation
-            const l = 0.6; // Lightness
+            const s = 0.4; // Reduced saturation for lighter colors
+            const l = 0.8; // Increased lightness for better printing
 
             // Since s is never 0, we can directly calculate RGB
             const hue2rgb = (p: number, q: number, t: number) => {
@@ -1171,12 +1170,13 @@ export default function ExportPdfBars({
             });
 
             // Add label to cut if it's wide enough
-            // Adjusted the minimum width check to scale with the new scaling factor
-            if (cut.length * scale > 20) {
-              // Calculate text size based on cut width
+            // Increased minimum width check and font sizes for better readability
+            if (cut.length * scale > 15) {
+              // Reduced minimum width requirement
+              // Calculate text size based on cut width - made larger for shop guys
               const textSize = Math.min(
-                9,
-                Math.max(6, cut.length * scale * 0.08)
+                14, // Increased max size
+                Math.max(9, cut.length * scale * 0.12) // Increased scaling factor and min size
               );
 
               // Center the text
@@ -1199,11 +1199,12 @@ export default function ExportPdfBars({
                 color: rgb(0, 0, 0),
               });
 
-              // Draw length text
+              // Draw length text - made slightly smaller but still readable
               const lengthText = decimalToFraction(cut.length);
+              const lengthTextSize = Math.max(8, textSize - 2); // Ensure minimum readable size
               const lengthTextWidth = helveticaFont.widthOfTextAtSize(
                 lengthText,
-                textSize - 1
+                lengthTextSize
               );
 
               currentPage.drawText(lengthText, {
@@ -1212,7 +1213,7 @@ export default function ExportPdfBars({
                   (currentPosition + cut.length / 2) * scale -
                   lengthTextWidth / 2,
                 y: textY - 5,
-                size: textSize - 1,
+                size: lengthTextSize,
                 font: helveticaFont,
                 color: rgb(0, 0, 0),
               });
@@ -1253,7 +1254,7 @@ export default function ExportPdfBars({
               currentPage.drawText(`${foot}'`, {
                 x: margin + footPosition * scale - 5,
                 y: barY - 25,
-                size: 8,
+                size: 9, // Increased from 8
                 font: helveticaFont,
                 color: rgb(0, 0, 0),
               });
@@ -1265,6 +1266,29 @@ export default function ExportPdfBars({
           yPosition = barY - barSpacing - 25 - extraSpace; // Add extra space for the measurement scale
           patternsOnCurrentPage++;
         }
+      }
+
+      // Add page numbers to all pages
+      const totalPages = pdfDoc.getPageCount();
+      const pages = pdfDoc.getPages();
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const pageNumber = i + 1;
+        const pageText = `Page ${pageNumber} of ${totalPages}`;
+
+        // Calculate position for bottom right
+        const textWidth = helveticaFont.widthOfTextAtSize(pageText, 10);
+        const xPosition = pageWidth - margin - textWidth;
+        const yPosition = margin - 20;
+
+        page.drawText(pageText, {
+          x: xPosition,
+          y: yPosition,
+          size: 10,
+          font: helveticaFont,
+          color: rgb(0.5, 0.5, 0.5),
+        });
       }
 
       // Generate PDF
