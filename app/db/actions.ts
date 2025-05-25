@@ -33,6 +33,10 @@ import {
   glass,
   glassDescript,
   glassTO,
+  engineers,
+  engineeringTasks,
+  taskAssignments,
+  taskHistory,
 } from "./schema";
 import {
   Customer,
@@ -55,6 +59,17 @@ import {
   GlassData,
   TakeoffRequest,
   ProcessedGlassData,
+  CreateEngineerForm,
+  CreateTaskForm,
+  TaskMoveData,
+  HistoryDetail,
+  UpdateTaskForm,
+  EngineerWithTasks,
+  ScheduleData,
+  Engineer, // <-- Add this import
+  DateRange, // <-- Add this import
+  GanttTask, // <-- Add this import
+  TaskWithAssignment,
 } from "../types";
 import { desc, eq, and, inArray, sql, max, not, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -1568,7 +1583,7 @@ export const verifyFileSize = async (attachmentId: number) => {
       .where(eq(attachments.id, attachmentId))
       .limit(1);
 
-    if (!attachment) throw new Error("Attachment not found.");
+    if (!attachment) throw new Error("Attachment not found");
 
     // Initialize Dropbox
     const dbx = await getDropboxClient();
@@ -2610,3 +2625,599 @@ function calculateDimensions(coordinates: number[]) {
     ],
   };
 }
+
+// Engineering Schedule Actions
+
+// Engineers
+export const getEngineers = async () => {
+  return await db
+    .select()
+    .from(engineers)
+    .where(eq(engineers.active, true))
+    .orderBy(engineers.order);
+};
+
+export const createEngineer = async (
+  engineer: CreateEngineerForm,
+  userId: string
+) => {
+  const maxOrder = await db
+    .select({ maxOrder: max(engineers.order) })
+    .from(engineers);
+
+  const [newEngineer] = await db
+    .insert(engineers)
+    .values({
+      name: engineer.name,
+      email: engineer.email,
+      order: (maxOrder[0]?.maxOrder || 0) + 1,
+    })
+    .returning();
+
+  return newEngineer;
+};
+
+export const updateEngineer = async (id: number, data: Partial<Engineer>) => {
+  const [updated] = await db
+    .update(engineers)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(engineers.id, id))
+    .returning();
+
+  return updated;
+};
+
+export const deactivateEngineer = async (id: number) => {
+  await db
+    .update(engineers)
+    .set({ active: false, updatedAt: new Date() })
+    .where(eq(engineers.id, id));
+};
+
+// Tasks
+export const getTasks = async () => {
+  const tasks = await db
+    .select({
+      task: engineeringTasks,
+      project: projects,
+      assignment: taskAssignments,
+    })
+    .from(engineeringTasks)
+    .leftJoin(projects, eq(engineeringTasks.projectId, projects.id))
+    .leftJoin(taskAssignments, eq(engineeringTasks.id, taskAssignments.taskId))
+    .where(not(eq(engineeringTasks.status, "archived")));
+
+  return tasks.map((row) => ({
+    ...row.task,
+    project: row.project!,
+    assignment: row.assignment,
+  }));
+};
+
+export const createTask = async (task: CreateTaskForm, userId: string) => {
+  const [newTask] = await db
+    .insert(engineeringTasks)
+    .values({
+      ...task,
+      createdBy: userId,
+    })
+    .returning();
+
+  // Create history entry
+  await createTaskHistory(newTask.id, "created", null, userId);
+
+  return newTask;
+};
+
+export const updateTask = async (
+  id: number,
+  data: UpdateTaskForm,
+  userId: string
+) => {
+  const [oldTask] = await db
+    .select()
+    .from(engineeringTasks)
+    .where(eq(engineeringTasks.id, id));
+
+  const [updated] = await db
+    .update(engineeringTasks)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(engineeringTasks.id, id))
+    .returning();
+
+  // Create history entry for changes
+  const changes: HistoryDetail = {};
+  Object.keys(data).forEach((key) => {
+    if (
+      oldTask[key as keyof typeof oldTask] !== data[key as keyof typeof data]
+    ) {
+      changes.field = key;
+      changes.oldValue = oldTask[key as keyof typeof oldTask];
+      changes.newValue = data[key as keyof typeof data];
+    }
+  });
+
+  if (Object.keys(changes).length > 0) {
+    await createTaskHistory(id, "updated", changes, userId);
+  }
+
+  return updated;
+};
+
+export const assignTask = async (
+  taskId: number,
+  engineerId: number,
+  position: number,
+  userId: string
+) => {
+  // Check if task is already assigned
+  const existing = await db
+    .select()
+    .from(taskAssignments)
+    .where(eq(taskAssignments.taskId, taskId));
+
+  if (existing.length > 0) {
+    // Move task instead
+    return await moveTask(
+      {
+        taskId,
+        fromEngineerId: existing[0].engineerId,
+        toEngineerId: engineerId,
+        fromPosition: existing[0].position,
+        toPosition: position,
+      },
+      userId
+    );
+  }
+
+  // Shift other tasks down
+  await db
+    .update(taskAssignments)
+    .set({ position: sql`${taskAssignments.position} + 1` })
+    .where(
+      and(
+        eq(taskAssignments.engineerId, engineerId),
+        sql`${taskAssignments.position} >= ${position}`
+      )
+    );
+
+  // Create assignment
+  const [assignment] = await db
+    .insert(taskAssignments)
+    .values({
+      taskId,
+      engineerId,
+      position,
+      assignedBy: userId,
+    })
+    .returning();
+
+  // Update task status
+  await db
+    .update(engineeringTasks)
+    .set({ status: "assigned", updatedAt: new Date() })
+    .where(eq(engineeringTasks.id, taskId));
+
+  // Calculate schedule dates
+  await recalculateSchedule(engineerId);
+
+  // Create history
+  await createTaskHistory(
+    taskId,
+    "assigned",
+    { toEngineerId: engineerId, toPosition: position },
+    userId
+  );
+
+  return assignment;
+};
+
+export const moveTask = async (move: TaskMoveData, userId: string) => {
+  const { taskId, fromEngineerId, toEngineerId, fromPosition, toPosition } =
+    move;
+
+  // If moving within same engineer
+  if (fromEngineerId === toEngineerId && fromEngineerId !== undefined) {
+    const direction = toPosition > fromPosition! ? -1 : 1;
+    const min = Math.min(fromPosition!, toPosition);
+    const max = Math.max(fromPosition!, toPosition);
+
+    // Shift tasks between old and new position
+    await db
+      .update(taskAssignments)
+      .set({ position: sql`${taskAssignments.position} + ${direction}` })
+      .where(
+        and(
+          eq(taskAssignments.engineerId, fromEngineerId),
+          sql`${taskAssignments.position} >= ${min}`,
+          sql`${taskAssignments.position} <= ${max}`,
+          not(eq(taskAssignments.taskId, taskId))
+        )
+      );
+
+    // Update task position
+    await db
+      .update(taskAssignments)
+      .set({ position: toPosition })
+      .where(eq(taskAssignments.taskId, taskId));
+  } else {
+    // Moving to different engineer
+    if (fromEngineerId !== undefined && fromPosition !== undefined) {
+      // Remove from old engineer and shift remaining tasks up
+      await db
+        .delete(taskAssignments)
+        .where(eq(taskAssignments.taskId, taskId));
+
+      await db
+        .update(taskAssignments)
+        .set({ position: sql`${taskAssignments.position} - 1` })
+        .where(
+          and(
+            eq(taskAssignments.engineerId, fromEngineerId),
+            sql`${taskAssignments.position} > ${fromPosition}`
+          )
+        );
+    }
+
+    if (toEngineerId !== undefined) {
+      // Shift tasks at destination down
+      await db
+        .update(taskAssignments)
+        .set({ position: sql`${taskAssignments.position} + 1` })
+        .where(
+          and(
+            eq(taskAssignments.engineerId, toEngineerId),
+            sql`${taskAssignments.position} >= ${toPosition}`
+          )
+        );
+
+      // Insert at new position
+      await db.insert(taskAssignments).values({
+        taskId,
+        engineerId: toEngineerId,
+        position: toPosition,
+        assignedBy: userId,
+      });
+
+      // Update task status
+      await db
+        .update(engineeringTasks)
+        .set({ status: "assigned", updatedAt: new Date() })
+        .where(eq(engineeringTasks.id, taskId));
+    } else {
+      // Unassigning task
+      await db
+        .update(engineeringTasks)
+        .set({ status: "unassigned", updatedAt: new Date() })
+        .where(eq(engineeringTasks.id, taskId));
+    }
+  }
+
+  // Recalculate schedules
+  if (fromEngineerId) await recalculateSchedule(fromEngineerId);
+  if (toEngineerId && toEngineerId !== fromEngineerId) {
+    await recalculateSchedule(toEngineerId);
+  }
+
+  // Create history
+  await createTaskHistory(
+    taskId,
+    "moved",
+    { fromEngineerId, toEngineerId, fromPosition, toPosition },
+    userId
+  );
+
+  revalidatePath("/engineering-schedule");
+};
+
+// Helper function to calculate working days
+function addWorkingDays(
+  startDate: Date,
+  days: number,
+  holidays: string[]
+): Date {
+  const result = new Date(startDate);
+  let daysAdded = 0;
+
+  while (daysAdded < days) {
+    result.setDate(result.getDate() + 1);
+    const dayOfWeek = result.getDay();
+    const dateStr = result.toISOString().split("T")[0];
+
+    // Skip weekends and holidays
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidays.includes(dateStr)) {
+      daysAdded++;
+    }
+  }
+
+  return result;
+}
+
+// Recalculate schedule for an engineer
+async function recalculateSchedule(engineerId: number) {
+  const holidays = [
+    "2024-12-23",
+    "2024-12-24",
+    "2024-12-25",
+    "2024-11-11",
+    "2024-11-28",
+    "2024-11-29",
+    "2025-01-01",
+    "2025-01-20",
+    "2025-02-10",
+    "2025-02-17",
+    "2025-04-18",
+    "2025-05-23",
+    "2025-05-26",
+    "2025-07-04",
+    "2025-07-07",
+    "2025-08-29",
+    "2025-09-01",
+    "2025-11-11",
+    "2025-11-27",
+    "2025-11-28",
+    "2025-12-25",
+    "2025-12-26",
+    "2026-01-01",
+    "2026-01-02",
+    "2026-01-19",
+    "2026-02-09",
+    "2026-02-16",
+    "2026-04-03",
+    "2026-05-25",
+    "2026-06-19",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-08-07",
+    "2026-09-04",
+    "2026-09-07",
+    "2026-11-11",
+    "2026-11-26",
+    "2026-11-27",
+    "2026-12-24",
+    "2026-12-25",
+    "2027-01-01",
+    "2027-01-18",
+    "2027-02-15",
+    "2027-03-26",
+    "2027-05-31",
+    "2027-05-28",
+    "2027-06-18",
+    "2027-07-05",
+    "2027-07-08",
+  ];
+
+  // Get all tasks for this engineer in order
+  const tasks = await db
+    .select({
+      assignment: taskAssignments,
+      task: engineeringTasks,
+    })
+    .from(taskAssignments)
+    .innerJoin(
+      engineeringTasks,
+      eq(taskAssignments.taskId, engineeringTasks.id)
+    )
+    .where(eq(taskAssignments.engineerId, engineerId))
+    .orderBy(taskAssignments.position);
+
+  let currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+
+  // Start from next working day if today is weekend/holiday
+  const dayOfWeek = currentDate.getDay();
+  const dateStr = currentDate.toISOString().split("T")[0];
+  if (dayOfWeek === 0 || dayOfWeek === 6 || holidays.includes(dateStr)) {
+    currentDate = addWorkingDays(currentDate, 1, holidays);
+  }
+
+  // Update each task's scheduled dates
+  for (const { assignment, task } of tasks) {
+    const endDate = addWorkingDays(
+      currentDate,
+      task.durationDays - 1,
+      holidays
+    );
+
+    await db
+      .update(taskAssignments)
+      .set({
+        scheduledStart: currentDate.toISOString().split("T")[0],
+        scheduledEnd: endDate.toISOString().split("T")[0],
+      })
+      .where(eq(taskAssignments.id, assignment.id));
+
+    currentDate = addWorkingDays(endDate, 1, holidays);
+  }
+}
+
+// Create task history entry
+async function createTaskHistory(
+  taskId: number,
+  action: string,
+  details: any,
+  userId: string
+) {
+  await db.insert(taskHistory).values({
+    taskId,
+    action,
+    details,
+    performedBy: userId,
+  });
+}
+
+// Get schedule data for the board
+export const getScheduleData = async (): Promise<ScheduleData> => {
+  const [engineersList, tasks] = await Promise.all([
+    getEngineers(),
+    getTasks(),
+  ]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Group tasks by engineer and check risk status
+  const engineersWithTasks: EngineerWithTasks[] = engineersList.map(
+    (engineer) => {
+      const engineerTasks = tasks
+        .filter((task) => task.assignment?.engineerId === engineer.id)
+        .sort((a, b) => a.assignment!.position - b.assignment!.position)
+        .map((task) => {
+          const dueDate = new Date(task.dueDate);
+          const scheduledEnd = task.assignment?.scheduledEnd
+            ? new Date(task.assignment.scheduledEnd)
+            : null;
+
+          return {
+            ...task,
+            project: {
+              ...task.project,
+              jobNumber: task.project.jobNumber || "", // Convert null to empty string
+            },
+            isOverdue: dueDate < today,
+            isAtRisk: scheduledEnd ? scheduledEnd > dueDate : false,
+          } as TaskWithAssignment;
+        });
+
+      return {
+        ...engineer,
+        tasks: engineerTasks,
+      };
+    }
+  );
+
+  // Get unassigned tasks
+  const unassignedTasks = tasks
+    .filter((task) => !task.assignment)
+    .map((task) => {
+      const dueDate = new Date(task.dueDate);
+
+      // Calculate if at risk (not enough time if started today)
+      const holidays = [
+        "2024-12-23",
+        "2024-12-24",
+        "2024-12-25",
+        "2024-11-11",
+        "2024-11-28",
+        "2024-11-29",
+        "2025-01-01",
+        "2025-01-20",
+        "2025-02-10",
+        "2025-02-17",
+        "2025-04-18",
+        "2025-05-23",
+        "2025-05-26",
+        "2025-07-04",
+        "2025-07-07",
+        "2025-08-29",
+        "2025-09-01",
+        "2025-11-11",
+        "2025-11-27",
+        "2025-11-28",
+        "2025-12-25",
+        "2025-12-26",
+        "2026-01-01",
+        "2026-01-02",
+        "2026-01-19",
+        "2026-02-09",
+        "2026-02-16",
+        "2026-04-03",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-07-06",
+        "2026-08-07",
+        "2026-09-04",
+        "2026-09-07",
+        "2026-11-11",
+        "2026-11-26",
+        "2026-11-27",
+        "2026-12-24",
+        "2026-12-25",
+        "2027-01-01",
+        "2027-01-18",
+        "2027-02-15",
+        "2027-03-26",
+        "2027-05-31",
+        "2027-05-28",
+        "2027-06-18",
+        "2027-07-05",
+        "2027-07-08",
+      ];
+
+      const wouldFinishBy = addWorkingDays(today, task.durationDays, holidays);
+
+      return {
+        ...task,
+        project: {
+          ...task.project,
+          jobNumber: task.project.jobNumber || "", // Convert null to empty string
+          description: task.project.description || undefined, // Convert null to undefined
+          endDate: task.project.endDate || undefined, // Convert null to undefined
+        },
+        assignment: task.assignment || undefined, // Convert null to undefined
+        isOverdue: dueDate < today,
+        isAtRisk: wouldFinishBy > dueDate,
+      } as TaskWithAssignment;
+    });
+
+  return {
+    engineers: engineersWithTasks,
+    unassignedTasks,
+  };
+};
+
+// Get archived tasks
+export const getArchivedTasks = async () => {
+  const tasks = await db
+    .select({
+      task: engineeringTasks,
+      project: projects,
+      assignment: taskAssignments,
+    })
+    .from(engineeringTasks)
+    .leftJoin(projects, eq(engineeringTasks.projectId, projects.id))
+    .leftJoin(taskAssignments, eq(engineeringTasks.id, taskAssignments.taskId))
+    .where(eq(engineeringTasks.status, "archived"))
+    .orderBy(desc(engineeringTasks.updatedAt));
+
+  return tasks.map((row) => ({
+    ...row.task,
+    project: row.project!,
+    assignment: row.assignment,
+  }));
+};
+
+// Get Gantt chart data
+export const getGanttData = async (
+  dateRange: DateRange
+): Promise<GanttTask[]> => {
+  const tasks = await getTasks();
+
+  return tasks
+    .filter((task) => task.assignment && task.assignment.scheduledStart)
+    .map((task) => {
+      const start = new Date(task.assignment!.scheduledStart!);
+      const end = new Date(task.assignment!.scheduledEnd!);
+      const dueDate = new Date(task.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      return {
+        id: task.id,
+        name: task.name,
+        engineerId: task.assignment!.engineerId,
+        engineerName: "", // Will be filled in by the component
+        start,
+        end,
+        status: task.status,
+        projectName: task.project.name,
+        isOverdue: dueDate < today,
+        isAtRisk: end > dueDate,
+      };
+    })
+    .filter((task) => {
+      // Filter by date range
+      return task.end >= dateRange.start && task.start <= dateRange.end;
+    });
+};

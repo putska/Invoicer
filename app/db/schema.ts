@@ -16,6 +16,7 @@ import {
   jsonb,
   primaryKey,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 
 import { sql } from "drizzle-orm";
@@ -474,3 +475,73 @@ export const glassTO = pgTable(
     uniqueIndex("dwg_handle_idx").on(table.dwgname, table.handle),
   ]
 );
+
+// Engineering schedule tables
+
+// Engineers table
+export const engineers = pgTable("engineers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  active: boolean("active").notNull().default(true),
+  order: integer("order").notNull().default(0), // For sorting engineers in UI
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Engineering tasks table
+export const engineeringTasks = pgTable("engineering_tasks", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  notes: text("notes"),
+  durationDays: integer("duration_days").notNull(),
+  dueDate: date("due_date").notNull(),
+  status: text("status").notNull().default("unassigned"), // unassigned, assigned, in_progress, completed, blocked, archived
+  isLastMinute: boolean("is_last_minute").notNull().default(false),
+  createdBy: text("created_by").notNull(), // Clerk user ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Task assignments table
+export const taskAssignments = pgTable("task_assignments", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => engineeringTasks.id, { onDelete: "cascade" }),
+  engineerId: integer("engineer_id")
+    .notNull()
+    .references(() => engineers.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(), // Order in the engineer's queue
+  scheduledStart: date("scheduled_start"),
+  scheduledEnd: date("scheduled_end"),
+  actualStart: date("actual_start"),
+  actualEnd: date("actual_end"),
+  assignedBy: text("assigned_by").notNull(), // Clerk user ID
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+});
+
+// Task history for audit trail
+export const taskHistory = pgTable("task_history", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => engineeringTasks.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // created, updated, assigned, unassigned, status_changed, moved
+  details: jsonb("details"), // Store old/new values, positions, etc.
+  performedBy: text("performed_by").notNull(), // Clerk user ID
+  performedAt: timestamp("performed_at").defaultNow().notNull(),
+});
+
+// TypeScript types for the tables
+export type Engineer = typeof engineers.$inferSelect;
+export type NewEngineer = typeof engineers.$inferInsert;
+export type EngineeringTask = typeof engineeringTasks.$inferSelect;
+export type NewEngineeringTask = typeof engineeringTasks.$inferInsert;
+export type TaskAssignment = typeof taskAssignments.$inferSelect;
+export type NewTaskAssignment = typeof taskAssignments.$inferInsert;
+export type TaskHistory = typeof taskHistory.$inferSelect;
+export type NewTaskHistory = typeof taskHistory.$inferInsert;

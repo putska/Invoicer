@@ -221,6 +221,14 @@ export default async function RootLayout({
                               </li>
                               <li>
                                 <Link
+                                  href="/modules/engineering-schedule"
+                                  className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
+                                >
+                                  Engineering Schedule
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
                                   href="/modules/engineering/training"
                                   className="block p-2 hover:bg-gray-100 rounded-md w-full text-left"
                                 >

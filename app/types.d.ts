@@ -16,7 +16,7 @@ interface Invoice {
   total_amount: number;
 }
 
-interface Customer {
+export interface Customer {
   user_id: string;
   name: string;
   email: string;
@@ -39,6 +39,7 @@ export interface Project {
   startDate: string;
   endDate?: string;
   status: string;
+  jobNumber?: string; // Optional, for backward compatibility
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -487,4 +488,124 @@ export interface ProcessedGlassData {
   Handle: string;
   MarkNumber: string;
   // Add other fields as needed
+}
+
+// Engineering Schedule Types
+
+export interface Engineer {
+  id: number;
+  name: string;
+  email: string;
+  active: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EngineeringTask {
+  id: number;
+  projectId: number;
+  name: string;
+  notes: string | null;
+  durationDays: number;
+  dueDate: string;
+  status: string;
+  isLastMinute: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TaskAssignment {
+  id: number;
+  taskId: number;
+  engineerId: number;
+  position: number;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  actualStart: string | null;
+  actualEnd: string | null;
+  assignedBy: string;
+  assignedAt: Date;
+}
+
+export interface TaskHistory {
+  id: number;
+  taskId: number;
+  action: string;
+  details: any;
+  performedBy: string;
+  performedAt: Date;
+}
+
+export interface EngineerWithTasks extends Engineer {
+  tasks: TaskWithAssignment[];
+}
+
+export interface TaskWithAssignment extends EngineeringTask {
+  project: Project | ProjectFromDB; // Allow both types
+  assignment?: TaskAssignment | null; // Allow both undefined and null
+  isAtRisk?: boolean;
+  isOverdue?: boolean;
+}
+
+export interface TaskMoveData {
+  taskId: number;
+  fromEngineerId?: number;
+  toEngineerId?: number;
+  fromPosition?: number;
+  toPosition: number;
+}
+
+export interface ScheduleData {
+  engineers: EngineerWithTasks[];
+  unassignedTasks: TaskWithAssignment[];
+}
+
+export interface GanttTask {
+  id: number;
+  name: string;
+  engineerId: number;
+  engineerName: string;
+  start: Date;
+  end: Date;
+  status: string;
+  projectName: string;
+  isOverdue: boolean;
+  isAtRisk: boolean;
+}
+
+export interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+// Form types for creating/updating
+export interface CreateTaskForm {
+  projectId: number;
+  name: string;
+  notes?: string;
+  durationDays: number;
+  dueDate: string;
+  isLastMinute?: boolean;
+}
+
+export interface UpdateTaskForm extends Partial<CreateTaskForm> {
+  status?: string;
+}
+
+export interface CreateEngineerForm {
+  name: string;
+  email: string;
+}
+
+// Helper type for history tracking
+export interface HistoryDetail {
+  field?: string;
+  oldValue?: any;
+  newValue?: any;
+  fromEngineerId?: number;
+  toEngineerId?: number;
+  fromPosition?: number;
+  toPosition?: number;
 }
