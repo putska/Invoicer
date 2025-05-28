@@ -13,12 +13,14 @@ interface EngineerContainerProps {
   engineer: EngineerWithTasks;
   onArchiveTask?: (taskId: number) => void;
   onEditTask?: (task: TaskWithAssignment) => void;
+  onDeleteTask?: (taskId: number) => void;
 }
 
 export function EngineerContainer({
   engineer,
   onArchiveTask,
   onEditTask,
+  onDeleteTask,
 }: EngineerContainerProps) {
   // Calculate total days of work
   const totalDays = engineer.tasks.reduce(
@@ -83,6 +85,7 @@ export function EngineerContainer({
                           isDragging={snapshot.isDragging}
                           onArchive={onArchiveTask}
                           onEdit={onEditTask}
+                          onDelete={onDeleteTask}
                         />
                       </div>
                     )}

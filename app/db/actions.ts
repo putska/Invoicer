@@ -37,6 +37,8 @@ import {
   engineeringTasks,
   taskAssignments,
   taskHistory,
+  engineeringTaskChecklists,
+  engineeringTaskChecklistItems,
 } from "./schema";
 import {
   Customer,
@@ -2419,6 +2421,7 @@ export async function getPanelOptimizationResults(
       rotated: panelPlacements.rotated,
       mark_no: panels.mark_no,
     })
+
     .from(panelPlacements)
     .leftJoin(panels, eq(panelPlacements.panelId, panels.id))
     .where(eq(panelPlacements.jobId, jobId));
@@ -2694,6 +2697,107 @@ export const getTasks = async () => {
   }));
 };
 
+// Get all tasks for a specific project (including archived)
+export const getProjectTasks = async (projectId: number) => {
+  const tasks = await db
+    .select({
+      task: engineeringTasks,
+      project: projects,
+      assignment: taskAssignments,
+    })
+    .from(engineeringTasks)
+    .leftJoin(projects, eq(engineeringTasks.projectId, projects.id))
+    .leftJoin(taskAssignments, eq(engineeringTasks.id, taskAssignments.taskId))
+    .where(eq(engineeringTasks.projectId, projectId))
+    .orderBy(desc(engineeringTasks.updatedAt));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return tasks.map((row) => {
+    const task = {
+      ...row.task,
+      project: row.project!,
+      assignment: row.assignment,
+    };
+
+    // Calculate risk status
+    const dueDate = new Date(task.dueDate);
+    const holidays = [
+      "2024-12-23",
+      "2024-12-24",
+      "2024-12-25",
+      "2024-11-11",
+      "2024-11-28",
+      "2024-11-29",
+      "2025-01-01",
+      "2025-01-20",
+      "2025-02-10",
+      "2025-02-17",
+      "2025-04-18",
+      "2025-05-23",
+      "2025-05-26",
+      "2025-07-04",
+      "2025-07-07",
+      "2025-08-29",
+      "2025-09-01",
+      "2025-11-11",
+      "2025-11-27",
+      "2025-11-28",
+      "2025-12-25",
+      "2025-12-26",
+      "2026-01-01",
+      "2026-01-02",
+      "2026-01-19",
+      "2026-02-09",
+      "2026-02-16",
+      "2026-04-03",
+      "2026-05-25",
+      "2026-06-19",
+      "2026-07-03",
+      "2026-07-06",
+      "2026-08-07",
+      "2026-09-04",
+      "2026-09-07",
+      "2026-11-11",
+      "2026-11-26",
+      "2026-11-27",
+      "2026-12-24",
+      "2026-12-25",
+      "2027-01-01",
+      "2027-01-18",
+      "2027-02-15",
+      "2027-03-26",
+      "2027-05-31",
+      "2027-05-28",
+      "2027-06-18",
+      "2027-07-05",
+      "2027-07-08",
+    ];
+
+    let isAtRisk = false;
+    let isOverdue = dueDate < today;
+
+    if (
+      !task.assignment &&
+      task.status !== "archived" &&
+      task.status !== "completed"
+    ) {
+      const wouldFinishBy = addWorkingDays(today, task.durationDays, holidays);
+      isAtRisk = wouldFinishBy > dueDate;
+    } else if (task.assignment?.scheduledEnd) {
+      const scheduledEnd = new Date(task.assignment.scheduledEnd);
+      isAtRisk = scheduledEnd > dueDate;
+    }
+
+    return {
+      ...task,
+      isOverdue,
+      isAtRisk,
+    };
+  });
+};
+
 export const createTask = async (task: CreateTaskForm, userId: string) => {
   const [newTask] = await db
     .insert(engineeringTasks)
@@ -2742,6 +2846,16 @@ export const updateTask = async (
   }
 
   return updated;
+};
+
+export const deleteTask = async (id: number, userId: string) => {
+  // Create history entry before deletion
+  await createTaskHistory(id, "deleted", null, userId);
+
+  // Delete task (cascades to assignments)
+  await db.delete(engineeringTasks).where(eq(engineeringTasks.id, id));
+
+  revalidatePath("/engineering-schedule");
 };
 
 export const assignTask = async (
@@ -3220,4 +3334,170 @@ export const getGanttData = async (
       // Filter by date range
       return task.end >= dateRange.start && task.start <= dateRange.end;
     });
+};
+
+// Checklist Actions
+
+// Get all checklists (with items) for a task
+export const getChecklistsByTaskId = async (taskId: number) => {
+  // Get all checklists for the task
+  const checklists = await db
+    .select()
+    .from(engineeringTaskChecklists)
+    .where(eq(engineeringTaskChecklists.taskId, taskId))
+    .orderBy(engineeringTaskChecklists.sortOrder);
+
+  // For each checklist, get its items
+  const checklistIds = checklists.map((cl) => cl.id);
+  let items: any[] = [];
+  if (checklistIds.length > 0) {
+    items = await db
+      .select()
+      .from(engineeringTaskChecklistItems)
+      .where(inArray(engineeringTaskChecklistItems.checklistId, checklistIds))
+      .orderBy(engineeringTaskChecklistItems.sortOrder);
+  }
+
+  // Group items by checklistId
+  const itemsByChecklist: Record<number, any[]> = {};
+  for (const item of items) {
+    if (!itemsByChecklist[item.checklistId])
+      itemsByChecklist[item.checklistId] = [];
+    itemsByChecklist[item.checklistId].push(item);
+  }
+
+  // Return checklists with their items
+  return checklists.map((cl) => ({
+    ...cl,
+    items: itemsByChecklist[cl.id] || [],
+  }));
+};
+
+// Create a new checklist for a task
+export const createChecklist = async (
+  taskId: number,
+  name: string,
+  sortOrder = 0
+) => {
+  const [checklist] = await db
+    .insert(engineeringTaskChecklists)
+    .values({ taskId, name, sortOrder })
+    .returning();
+  return checklist;
+};
+
+// Update a checklist (name or sortOrder)
+export const updateChecklist = async (
+  checklistId: number,
+  data: Partial<{ name: string; sortOrder: number }>
+) => {
+  const [updated] = await db
+    .update(engineeringTaskChecklists)
+    .set(data)
+    .where(eq(engineeringTaskChecklists.id, checklistId))
+    .returning();
+  return updated;
+};
+
+// Delete a checklist and its items
+export const deleteChecklist = async (checklistId: number) => {
+  await db
+    .delete(engineeringTaskChecklistItems)
+    .where(eq(engineeringTaskChecklistItems.checklistId, checklistId));
+  await db
+    .delete(engineeringTaskChecklists)
+    .where(eq(engineeringTaskChecklists.id, checklistId));
+};
+
+// Checklist Item Actions
+
+// Add an item to a checklist
+export const addChecklistItem = async (
+  checklistId: number,
+  text: string,
+  sortOrder?: number
+) => {
+  // Determine the next sortOrder if not provided
+  let order = sortOrder;
+  if (order === undefined) {
+    const lastItem = await db
+      .select()
+      .from(engineeringTaskChecklistItems)
+      .where(eq(engineeringTaskChecklistItems.checklistId, checklistId))
+      .orderBy(desc(engineeringTaskChecklistItems.sortOrder))
+      .limit(1);
+    order = lastItem.length > 0 ? (lastItem[0].sortOrder ?? 0) + 1 : 0;
+  }
+  const [item] = await db
+    .insert(engineeringTaskChecklistItems)
+    .values({ checklistId, text, sortOrder: order })
+    .returning();
+  return item;
+};
+
+// Update a checklist item (text, checked, sortOrder)
+export const updateChecklistItem = async (
+  itemId: number,
+  data: Partial<{ text: string; checked: boolean; sortOrder: number }>
+) => {
+  const [updated] = await db
+    .update(engineeringTaskChecklistItems)
+    .set(data)
+    .where(eq(engineeringTaskChecklistItems.id, itemId))
+    .returning();
+  return updated;
+};
+
+// Delete a checklist item
+export const deleteChecklistItem = async (itemId: number) => {
+  await db
+    .delete(engineeringTaskChecklistItems)
+    .where(eq(engineeringTaskChecklistItems.id, itemId));
+};
+
+// Reorder checklist items (bulk update)
+export const reorderChecklistItems = async (
+  checklistId: number,
+  orderedItemIds: number[]
+) => {
+  // Fetch all items for this checklist
+  const items = await db
+    .select()
+    .from(engineeringTaskChecklistItems)
+    .where(eq(engineeringTaskChecklistItems.checklistId, checklistId));
+
+  // Only update if the order is actually different
+  for (let i = 0; i < orderedItemIds.length; i++) {
+    const itemId = orderedItemIds[i];
+    const item = items.find((it) => it.id === itemId);
+    if (!item || item.sortOrder !== i) {
+      await db
+        .update(engineeringTaskChecklistItems)
+        .set({ sortOrder: i })
+        .where(
+          and(
+            eq(engineeringTaskChecklistItems.id, itemId),
+            eq(engineeringTaskChecklistItems.checklistId, checklistId)
+          )
+        );
+    }
+  }
+};
+
+// Reorder checklists (bulk update)
+export const reorderChecklists = async (
+  taskId: number,
+  orderedChecklistIds: number[]
+) => {
+  for (let i = 0; i < orderedChecklistIds.length; i++) {
+    await db
+      .update(engineeringTaskChecklists)
+      .set({ sortOrder: i })
+      .where(
+        and(
+          eq(engineeringTaskChecklists.id, orderedChecklistIds[i]),
+          eq(engineeringTaskChecklists.taskId, taskId)
+        )
+      );
+  }
 };

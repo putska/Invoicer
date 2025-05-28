@@ -536,6 +536,33 @@ export const taskHistory = pgTable("task_history", {
   performedAt: timestamp("performed_at").defaultNow().notNull(),
 });
 
+// Checklist table: one per checklist, linked to a task
+export const engineeringTaskChecklists = pgTable(
+  "engineering_task_checklists",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id")
+      .notNull()
+      .references(() => engineeringTasks.id),
+    name: varchar("name", { length: 128 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  }
+);
+
+// Checklist item table: one per item, linked to a checklist
+export const engineeringTaskChecklistItems = pgTable(
+  "engineering_task_checklist_items",
+  {
+    id: serial("id").primaryKey(),
+    checklistId: integer("checklist_id")
+      .notNull()
+      .references(() => engineeringTaskChecklists.id),
+    text: varchar("text", { length: 256 }).notNull(),
+    checked: boolean("checked").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+  }
+);
+
 // TypeScript types for the tables
 export type Engineer = typeof engineers.$inferSelect;
 export type NewEngineer = typeof engineers.$inferInsert;

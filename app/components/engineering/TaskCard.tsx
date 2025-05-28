@@ -20,6 +20,7 @@ import {
   MoreVertical,
   Archive,
   Edit,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ interface TaskCardProps {
   isDragging?: boolean;
   onArchive?: (taskId: number) => void;
   onEdit?: (task: TaskWithAssignment) => void;
+  onDelete?: (taskId: number) => void;
 }
 
 export function TaskCard({
@@ -39,6 +41,7 @@ export function TaskCard({
   isDragging,
   onArchive,
   onEdit,
+  onDelete,
 }: TaskCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -80,6 +83,13 @@ export function TaskCard({
     }, 50);
   };
 
+  const handleDelete = () => {
+    setDropdownOpen(false);
+    setTimeout(() => {
+      if (onDelete) onDelete(task.id);
+    }, 50);
+  };
+
   return (
     <Card
       className={cn(
@@ -100,7 +110,7 @@ export function TaskCard({
               </span>
             )}
             {getStatusIcon()}
-            {(onArchive || onEdit) && (
+            {(onArchive || onEdit || onDelete) && (
               <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -134,6 +144,18 @@ export function TaskCard({
                     >
                       <Archive className="h-4 w-4 mr-2" />
                       Archive
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        handleDelete();
+                      }}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

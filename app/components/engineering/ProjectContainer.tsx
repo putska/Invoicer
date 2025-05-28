@@ -27,6 +27,7 @@ interface ProjectContainerProps {
   onCreateTask: (task: CreateTaskForm) => Promise<void>;
   onArchiveTask?: (taskId: number) => void;
   onEditTask?: (task: TaskWithAssignment) => void;
+  onDeleteTask?: (taskId: number) => void;
 }
 
 export function ProjectContainer({
@@ -35,6 +36,7 @@ export function ProjectContainer({
   onCreateTask,
   onArchiveTask,
   onEditTask,
+  onDeleteTask,
 }: ProjectContainerProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -203,6 +205,7 @@ export function ProjectContainer({
                           isDragging={snapshot.isDragging}
                           onArchive={onArchiveTask}
                           onEdit={onEditTask}
+                          onDelete={onDeleteTask}
                         />
                       </div>
                     )}

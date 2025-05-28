@@ -17,7 +17,9 @@ import { ProjectContainer } from "../../components/engineering/ProjectContainer"
 import { GanttChart } from "../../components/engineering/GanttChart";
 import { EngineerManagement } from "../../components/engineering/EngineerManagement";
 import { ArchivedTasksView } from "../../components/engineering/ArchivedTasksView";
+import { JobHistoryView } from "../../components/engineering/JobHistoryView";
 import { TaskEditDialog } from "../../components/engineering/TaskEditDialog";
+import { DeleteConfirmationDialog } from "../../components/engineering/DeleteConfirmationDialog";
 import { useAuth } from "@clerk/nextjs";
 import type { DropResult } from "@hello-pangea/dnd";
 
@@ -90,6 +92,7 @@ export default function EngineeringSchedulePage() {
   const [editingTask, setEditingTask] = useState<TaskWithAssignment | null>(
     null
   );
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch initial data
@@ -376,6 +379,24 @@ export default function EngineeringSchedulePage() {
     }
   };
 
+  const handleDeleteTask = async () => {
+    if (!userId || !deletingTaskId) return;
+
+    try {
+      const response = await fetch(`/api/engineering/tasks/${deletingTaskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete task");
+
+      setDeletingTaskId(null);
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  };
+
   const handleEditTask = (task: TaskWithAssignment) => {
     setEditingTask(task);
   };
@@ -428,10 +449,13 @@ export default function EngineeringSchedulePage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Engineering Schedule</h1>
-        <ArchivedTasksView
-          tasks={archivedTasks}
-          onRestoreTask={handleRestoreTask}
-        />
+        <div className="flex items-center gap-2">
+          <JobHistoryView projects={projects} />
+          <ArchivedTasksView
+            tasks={archivedTasks}
+            onRestoreTask={handleRestoreTask}
+          />
+        </div>
       </div>
 
       {/* Gantt Chart */}
@@ -462,6 +486,7 @@ export default function EngineeringSchedulePage() {
                 engineer={engineer}
                 onArchiveTask={handleArchiveTask}
                 onEditTask={handleEditTask}
+                onDeleteTask={setDeletingTaskId}
               />
             ))}
           </div>
@@ -481,20 +506,31 @@ export default function EngineeringSchedulePage() {
                 onCreateTask={handleCreateTask}
                 onArchiveTask={handleArchiveTask}
                 onEditTask={handleEditTask}
+                onDeleteTask={setDeletingTaskId}
               />
             ))}
           </div>
         </div>
       </DragDropContext>
 
-      {/* Render dialog outside of DragDropContext */}
+      {/* Render dialogs outside of DragDropContext */}
       {typeof window !== "undefined" && (
-        <TaskEditDialog
-          task={editingTask}
-          isOpen={!!editingTask}
-          onClose={() => setEditingTask(null)}
-          onSave={handleUpdateTask}
-        />
+        <>
+          <TaskEditDialog
+            task={editingTask}
+            isOpen={!!editingTask}
+            onClose={() => setEditingTask(null)}
+            onSave={handleUpdateTask}
+          />
+
+          <DeleteConfirmationDialog
+            isOpen={!!deletingTaskId}
+            onClose={() => setDeletingTaskId(null)}
+            onConfirm={handleDeleteTask}
+            title="Delete Task?"
+            description="Are you sure you want to permanently delete this task? This action cannot be undone."
+          />
+        </>
       )}
     </div>
   );
