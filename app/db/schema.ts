@@ -572,3 +572,58 @@ export type TaskAssignment = typeof taskAssignments.$inferSelect;
 export type NewTaskAssignment = typeof taskAssignments.$inferInsert;
 export type TaskHistory = typeof taskHistory.$inferSelect;
 export type NewTaskHistory = typeof taskHistory.$inferInsert;
+
+// Engineering notes tables
+
+// Database Schema for Engineering Notes
+
+// Categories table - each category belongs to a project
+export const noteCategories = pgTable("note_categories", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g., "DA", "Shop Drawings", "Takeoffs", "Fabrication"
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Engineering Notes/Cards table
+export const engineeringNotes = pgTable("engineering_notes", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id")
+    .notNull()
+    .references(() => noteCategories.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content"), // Rich text content
+  status: text("status").notNull().default("draft"), // draft, in_progress, completed, blocked
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Checklists for engineering notes (reusing your structure)
+export const noteChecklists = pgTable("note_checklists", {
+  id: serial("id").primaryKey(),
+  noteId: integer("note_id")
+    .notNull()
+    .references(() => engineeringNotes.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Checklist items for engineering notes
+export const noteChecklistItems = pgTable("note_checklist_items", {
+  id: serial("id").primaryKey(),
+  checklistId: integer("checklist_id")
+    .notNull()
+    .references(() => noteChecklists.id, { onDelete: "cascade" }),
+  text: text("text").notNull(),
+  checked: boolean("checked").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

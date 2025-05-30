@@ -197,6 +197,16 @@ export default function SafetyFormListPage({
       case "fall-protection":
         router.push(`/modules/safety/fall-protection/${form.id}`);
         break;
+      case "fall-protection-horizontal-lifeline":
+        router.push(
+          `/modules/safety/fall-protection-horizontal-lifeline/${form.id}`
+        );
+        break;
+      case "fall-protection-selfretracting-lifeline":
+        router.push(
+          `/modules/safety/fall-protection-selfretracting-lifeline/${form.id}`
+        );
+        break;
       case "jha":
         router.push(`/modules/safety/jha/${form.id}`);
         break;
@@ -208,6 +218,9 @@ export default function SafetyFormListPage({
         break;
       case "witness-statement":
         router.push(`/modules/safety/witness-statement/${form.id}`);
+        break;
+      case "incident-report":
+        router.push(`/modules/safety/incident/${form.id}`);
         break;
       case "near-miss-report":
         router.push(`/modules/safety/near-miss/${form.id}`);
@@ -237,7 +250,7 @@ export default function SafetyFormListPage({
         router.push(`/modules/safety/accident-incident-report/${form.id}`);
         break;
       default:
-        console.error("Unknown form type");
+        console.error("Unknown form type", form.formName);
     }
   };
 

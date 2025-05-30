@@ -609,3 +609,140 @@ export interface HistoryDetail {
   fromPosition?: number;
   toPosition?: number;
 }
+
+// TypeScript interfaces for Engineering Notes
+
+// Note Category interfaces
+export interface NoteCategory {
+  id: number;
+  projectId: number;
+  name: string;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NoteCategoryWithProject extends NoteCategory {
+  project: Project;
+}
+
+export interface NoteCategoryWithNotes extends NoteCategory {
+  notes: EngineeringNote[];
+}
+
+// Engineering Note interfaces
+export interface EngineeringNote {
+  id: number;
+  categoryId: number;
+  title: string;
+  content: string | null;
+  status: "draft" | "in_progress" | "completed" | "blocked";
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EngineeringNoteWithCategory extends EngineeringNote {
+  category: NoteCategory;
+}
+
+export interface EngineeringNoteWithChecklists extends EngineeringNote {
+  checklists: NoteChecklistWithItems[];
+}
+
+// Checklist interfaces (similar to your existing structure)
+export interface NoteChecklist {
+  id: number;
+  noteId: number;
+  name: string;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NoteChecklistItem {
+  id: number;
+  checklistId: number;
+  text: string;
+  checked: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NoteChecklistWithItems extends NoteChecklist {
+  items: NoteChecklistItem[];
+}
+
+// Form interfaces for creating/updating
+export interface CreateNoteCategoryForm {
+  projectId: number;
+  name: string;
+}
+
+export interface UpdateNoteCategoryForm {
+  name?: string;
+  sortOrder?: number;
+}
+
+export interface CreateEngineeringNoteForm {
+  categoryId: number;
+  title: string;
+  content?: string;
+  status?: "draft" | "in_progress" | "completed" | "blocked";
+}
+
+export interface UpdateEngineeringNoteForm {
+  title?: string;
+  content?: string;
+  status?: "draft" | "in_progress" | "completed" | "blocked";
+  categoryId?: number; // For moving between categories
+  sortOrder?: number;
+}
+
+export interface CreateNoteChecklistForm {
+  noteId: number;
+  name: string;
+}
+
+export interface CreateNoteChecklistItemForm {
+  checklistId: number;
+  text: string;
+}
+
+export interface UpdateNoteChecklistItemForm {
+  text?: string;
+  checked?: boolean;
+  sortOrder?: number;
+}
+
+// Reorder interfaces
+export interface ReorderCategoriesForm {
+  projectId: number;
+  orderedCategoryIds: number[];
+}
+
+export interface ReorderNotesForm {
+  categoryId: number;
+  orderedNoteIds: number[];
+}
+
+export interface ReorderChecklistItemsForm {
+  checklistId: number;
+  orderedItemIds: number[];
+}
+
+// Summary interfaces
+export interface ChecklistSummary {
+  completedItems: number;
+  totalItems: number;
+}
+
+// API Response interfaces
+export interface EngineeringNotesResponse {
+  categories: NoteCategoryWithNotes[];
+}
+
+export interface ProjectsResponse {
+  projects: Project[];
+}

@@ -1,10 +1,46 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-England,Chris,787,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,,,0,0,0:00,"Rye V., Chris E.",Holiday
-Hart,David,839,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY- OFF
-Hendricks,Jon,689,Monday,05/26/25,Milvia,22-624,,,,Leadman,,,0,,,0,0,0:00,Jon Hendricks,Off Holiday
-Mason,Brandon,1164,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY-OFF
-Nakagawa,Elijah,1171,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Apprentice,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY-OFF
-Rolon,David,1162,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY -OFF
-Sanchez,Jaime,710,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY-OFF
-Velarde,David,1229,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,HOLIDAY-OFF
-Vierra,Rye,735,Monday,05/26/25,San Mateo Medical Center - Link,21-607L,,,,Leadman,,,0,,,0,0,0:00,"Rye V., Chris E.",Holiday
+Altringer,Garth,783,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Garth Altringer,
+Arias,Ozzie,683,Wednesday,05/28/25,Stanford GSE,20-592,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,6,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Arias,Ozzie,683,Wednesday,05/28/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Arias,Ozzie,683,Wednesday,05/28/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Becerra,Alvaro,1007,Wednesday,05/28/25,CCSF SSC,21-615,,,,Journeyman,,RT,7,06:00 AM,01:30 PM,0,1,0:30,Alvaro Becerra,
+Bracamonte,Julian,1133,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Julian Bracamonte,
+Bumgarner,Tom,,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-09 - Survey / Field Measure / Layout (A / B),11-09,,,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Tom Bumgarner,Holiday
+Calderon,Lucio,1177,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-11 - Welding (A / B),11-11,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Lucio Calderon,
+Carroll,Andrew,917,Wednesday,05/28/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Journeyman,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Carroll,Andrew,917,Wednesday,05/28/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Carroll,Andrew,917,Wednesday,05/28/25,Stanford GSE,20-592,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,2,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Carroll,Andrew,917,Wednesday,05/28/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,2,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Carroll,Andrew,917,Wednesday,05/28/25,Stanford GSE,20-592,11-18 - Install sunshades / Screens (A / B),11-18,,Journeyman,,RT,2,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Centeno,Paul,1158,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,2,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Centeno,Paul,1158,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,6,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Duran,Jose,1144,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jose Duran,
+England,Chris,787,Wednesday,05/28/25,Stanford GSE,20-592,11-18 - Install sunshades / Screens (A / B),11-18,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,6 hours high pay
+Esparza,Vincent,1057,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Ray,712,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,,,,Foreman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Hart,David,839,Wednesday,05/28/25,San Mateo Medical Center - Link,21-607L,11-37 - Supervision A/B,11-37,,Journeyman,,RT,8,06:45 AM,03:15 PM,0,1,0:30,SMMC-LINK,
+Hendricks,Jon,689,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Leadman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jon Hendricks,
+Hendricks,Kevin,1010,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,
+Hernandez (Garcia),Eleazar,1176,Wednesday,05/28/25,Stanford GSE,20-592,11-18 - Install sunshades / Screens (A / B),11-18,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,6 hours high pay
+James,Michael,754,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Michael James,Michael is being laid off due to lack of work.
+Johnson,Paul,983,Wednesday,05/28/25,CCSF SSC,21-615,,,,Apprentice,,RT,6,06:00 AM,12:30 PM,0,1,0:30,Paul Johnson,
+Mason,Brandon,1164,Wednesday,05/28/25,San Mateo Medical Center - Link,21-607L,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,8,06:45 AM,03:15 PM,0,1,0:30,Brandon Mason,Brandon was laid off due to lack of work
+Medina,Gilbert,812,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-28 - Install Handrail Metal (A / B),11-28,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,
+Meier,Eric,1223,Wednesday,05/28/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Molina,Rodrigo,870,Wednesday,05/28/25,San Mateo Medical Center - Link,21-607L,,,,Journeyman,,,0,06:45 AM,06:45 AM,0,0,0:00,SMMC-LINK,Non work related injury
+Moore,Jakob,1202,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-30 - Install Material Protection (A /B),11-30,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jakob Moore,
+Nakagawa,Elijah,1171,Wednesday,05/28/25,SFO ITB Phase 2,24-647,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Noguera,Jovany,813,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
+Pelletier,Teejay,1181,Wednesday,05/28/25,Stanford GSE,20-592,11-20 - Install Unitized CW (G),11-20,,Apprentice,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Pelletier,Teejay,1181,Wednesday,05/28/25,Stanford GSE,20-592,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Apprentice,,RT,6,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Pelletier,Teejay,1181,Wednesday,05/28/25,Stanford GSE,20-592,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,1,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Ramirez,Hector,1206,Wednesday,05/28/25,Stanford GSE,20-592,11-35 - Punch list (A / B),11-35,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,
+Ramos,John,1190,Wednesday,05/28/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,John Ramos,
+Rodriguez,Luis,874,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,11-19 - Install Unitized CW Starter Sill (A / B),11-19,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Rolon,David,1162,Wednesday,05/28/25,San Mateo Medical Center - Link,21-607L,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:45 AM,03:15 PM,0,1,0:30,David Rolon,David was laid off due to lack of work
+Sanchez,Jaime,710,Wednesday,05/28/25,SFO ITB Phase 2,24-647,11-35 - Punch list (A / B),11-35,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Sousa,Mike,257,Wednesday,05/28/25,Santa Clara Medical Center - Behavioral,22-634,,,,Journeyman,,,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Vacation
+Sousa,Wagner,1188,Wednesday,05/28/25,Stanford GSE,20-592,11-18 - Install sunshades / Screens (A / B),11-18,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,6 hours high pay
+Velarde,David,1229,Wednesday,05/28/25,San Mateo Medical Center - Link,21-607L,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:45 AM,03:15 PM,0,1,0:30,SMMC-LINK,
+Vierra,Rye,735,Wednesday,05/28/25,Stanford GSE,20-592,11-18 - Install sunshades / Screens (A / B),11-18,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Stanford,6 hours high pay

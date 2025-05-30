@@ -39,6 +39,10 @@ import {
   taskHistory,
   engineeringTaskChecklists,
   engineeringTaskChecklistItems,
+  noteCategories,
+  engineeringNotes,
+  noteChecklists,
+  noteChecklistItems,
 } from "./schema";
 import {
   Customer,
@@ -68,12 +72,37 @@ import {
   UpdateTaskForm,
   EngineerWithTasks,
   ScheduleData,
-  Engineer, // <-- Add this import
-  DateRange, // <-- Add this import
-  GanttTask, // <-- Add this import
+  Engineer,
+  DateRange,
+  GanttTask,
   TaskWithAssignment,
+  CreateNoteCategoryForm,
+  UpdateNoteCategoryForm,
+  CreateEngineeringNoteForm,
+  UpdateEngineeringNoteForm,
+  CreateNoteChecklistForm,
+  CreateNoteChecklistItemForm,
+  UpdateNoteChecklistItemForm,
+  ReorderCategoriesForm,
+  ReorderNotesForm,
+  ReorderChecklistItemsForm,
+  NoteCategoryWithNotes,
+  EngineeringNoteWithChecklists,
+  NoteChecklistWithItems,
+  ChecklistSummary,
 } from "../types";
-import { desc, eq, and, inArray, sql, max, not, or, ilike } from "drizzle-orm";
+import {
+  desc,
+  eq,
+  and,
+  inArray,
+  sql,
+  max,
+  not,
+  or,
+  ilike,
+  asc,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
 
@@ -2708,7 +2737,12 @@ export const getProjectTasks = async (projectId: number) => {
     .from(engineeringTasks)
     .leftJoin(projects, eq(engineeringTasks.projectId, projects.id))
     .leftJoin(taskAssignments, eq(engineeringTasks.id, taskAssignments.taskId))
-    .where(eq(engineeringTasks.projectId, projectId))
+    .where(
+      and(
+        eq(engineeringTasks.projectId, projectId), // project filter
+        eq(engineeringTasks.status, "active") // status filter
+      )
+    )
     .orderBy(desc(engineeringTasks.updatedAt));
 
   const today = new Date();
@@ -3373,6 +3407,36 @@ export const getChecklistsByTaskId = async (taskId: number) => {
   }));
 };
 
+/**
+ * Quick counter for one task’s checklists.
+ * Uses SQL aggregation so we don’t pull every item into Node.
+ */
+export const getChecklistSummaryByTaskId = async (taskId: number) => {
+  const [row] = await db
+    .select({
+      completedItems: sql<number>`
+        coalesce(sum(case when ${engineeringTaskChecklistItems.checked} then 1 else 0 end), 0)
+      `.mapWith(Number),
+      totalItems:
+        sql<number>`count(${engineeringTaskChecklistItems.id})`.mapWith(Number),
+    })
+    .from(engineeringTaskChecklists)
+    .leftJoin(
+      engineeringTaskChecklistItems,
+      eq(
+        engineeringTaskChecklistItems.checklistId,
+        engineeringTaskChecklists.id
+      )
+    )
+    .where(eq(engineeringTaskChecklists.taskId, taskId));
+
+  // `row` can be undefined if the task has no checklists yet
+  return {
+    completedItems: row?.completedItems ?? 0,
+    totalItems: row?.totalItems ?? 0,
+  };
+};
+
 // Create a new checklist for a task
 export const createChecklist = async (
   taskId: number,
@@ -3501,3 +3565,351 @@ export const reorderChecklists = async (
       );
   }
 };
+
+// Engineering Notes Actions
+
+// ===== CATEGORY ACTIONS =====
+
+export async function getActiveProjects() {
+  return await db
+    .select()
+    .from(projects)
+    .where(eq(projects.status, "active"))
+    .orderBy(asc(projects.name));
+}
+
+export async function getCategoriesWithNotes(
+  projectId: number
+): Promise<NoteCategoryWithNotes[]> {
+  const categories = await db
+    .select()
+    .from(noteCategories)
+    .where(eq(noteCategories.projectId, projectId))
+    .orderBy(asc(noteCategories.sortOrder));
+
+  const categoriesWithNotes = await Promise.all(
+    categories.map(async (category) => {
+      const notes = await db
+        .select()
+        .from(engineeringNotes)
+        .where(eq(engineeringNotes.categoryId, category.id))
+        .orderBy(asc(engineeringNotes.sortOrder));
+
+      // Map status to the correct union type
+      const mappedNotes = notes.map((note) => ({
+        ...note,
+        status: note.status as
+          | "completed"
+          | "draft"
+          | "in_progress"
+          | "blocked",
+      }));
+
+      return {
+        ...category,
+        notes: mappedNotes,
+      };
+    })
+  );
+
+  return categoriesWithNotes;
+}
+
+export async function addNoteCategory(data: CreateNoteCategoryForm) {
+  // Get the highest sort order for this project
+  const lastCategory = await db
+    .select({ sortOrder: noteCategories.sortOrder })
+    .from(noteCategories)
+    .where(eq(noteCategories.projectId, data.projectId))
+    .orderBy(desc(noteCategories.sortOrder))
+    .limit(1);
+
+  const nextSortOrder =
+    lastCategory.length > 0 ? lastCategory[0].sortOrder + 1 : 0;
+
+  const [newCategory] = await db
+    .insert(noteCategories)
+    .values({
+      projectId: data.projectId,
+      name: data.name,
+      sortOrder: nextSortOrder,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newCategory;
+}
+
+export async function updateNoteCategory(
+  categoryId: number,
+  data: UpdateNoteCategoryForm
+) {
+  const [updatedCategory] = await db
+    .update(noteCategories)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(noteCategories.id, categoryId))
+    .returning();
+
+  return updatedCategory;
+}
+
+export async function deleteNoteCategory(categoryId: number) {
+  await db.delete(noteCategories).where(eq(noteCategories.id, categoryId));
+}
+
+export async function reorderCategories(data: ReorderCategoriesForm) {
+  // Update each category with its new sort order
+  const updates = data.orderedCategoryIds.map((categoryId, index) =>
+    db
+      .update(noteCategories)
+      .set({
+        sortOrder: index,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(noteCategories.id, categoryId),
+          eq(noteCategories.projectId, data.projectId)
+        )
+      )
+  );
+
+  await Promise.all(updates);
+}
+
+// ===== NOTE ACTIONS =====
+
+export async function addEngineeringNote(data: CreateEngineeringNoteForm) {
+  // Get the highest sort order for this category
+  const lastNote = await db
+    .select({ sortOrder: engineeringNotes.sortOrder })
+    .from(engineeringNotes)
+    .where(eq(engineeringNotes.categoryId, data.categoryId))
+    .orderBy(desc(engineeringNotes.sortOrder))
+    .limit(1);
+
+  const nextSortOrder = lastNote.length > 0 ? lastNote[0].sortOrder + 1 : 0;
+
+  const [newNote] = await db
+    .insert(engineeringNotes)
+    .values({
+      categoryId: data.categoryId,
+      title: data.title,
+      content: data.content || "",
+      status: data.status || "draft",
+      sortOrder: nextSortOrder,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newNote;
+}
+
+export async function updateEngineeringNote(
+  noteId: number,
+  data: UpdateEngineeringNoteForm
+) {
+  const [updatedNote] = await db
+    .update(engineeringNotes)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(engineeringNotes.id, noteId))
+    .returning();
+
+  return updatedNote;
+}
+
+export async function deleteEngineeringNote(noteId: number) {
+  await db.delete(engineeringNotes).where(eq(engineeringNotes.id, noteId));
+}
+
+export async function getEngineeringNoteWithChecklists(
+  noteId: number
+): Promise<EngineeringNoteWithChecklists | null> {
+  const [note] = await db
+    .select()
+    .from(engineeringNotes)
+    .where(eq(engineeringNotes.id, noteId));
+
+  if (!note) return null;
+
+  const checklists = await getChecklistsForNote(noteId);
+
+  return {
+    ...note,
+    status: note.status as "completed" | "draft" | "in_progress" | "blocked",
+    checklists,
+  };
+}
+
+export async function reorderNotes(data: ReorderNotesForm) {
+  // Update each note with its new sort order
+  const updates = data.orderedNoteIds.map((noteId, index) =>
+    db
+      .update(engineeringNotes)
+      .set({
+        sortOrder: index,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(engineeringNotes.id, noteId),
+          eq(engineeringNotes.categoryId, data.categoryId)
+        )
+      )
+  );
+
+  await Promise.all(updates);
+}
+
+// ===== CHECKLIST ACTIONS =====
+
+export async function getChecklistsForNote(
+  noteId: number
+): Promise<NoteChecklistWithItems[]> {
+  const checklists = await db
+    .select()
+    .from(noteChecklists)
+    .where(eq(noteChecklists.noteId, noteId))
+    .orderBy(asc(noteChecklists.sortOrder));
+
+  const checklistsWithItems = await Promise.all(
+    checklists.map(async (checklist) => {
+      const items = await db
+        .select()
+        .from(noteChecklistItems)
+        .where(eq(noteChecklistItems.checklistId, checklist.id))
+        .orderBy(asc(noteChecklistItems.sortOrder));
+
+      return {
+        ...checklist,
+        items,
+      };
+    })
+  );
+
+  return checklistsWithItems;
+}
+
+export async function addNoteChecklist(data: CreateNoteChecklistForm) {
+  // Get the highest sort order for this note
+  const lastChecklist = await db
+    .select({ sortOrder: noteChecklists.sortOrder })
+    .from(noteChecklists)
+    .where(eq(noteChecklists.noteId, data.noteId))
+    .orderBy(desc(noteChecklists.sortOrder))
+    .limit(1);
+
+  const nextSortOrder =
+    lastChecklist.length > 0 ? lastChecklist[0].sortOrder + 1 : 0;
+
+  const [newChecklist] = await db
+    .insert(noteChecklists)
+    .values({
+      noteId: data.noteId,
+      name: data.name,
+      sortOrder: nextSortOrder,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newChecklist;
+}
+
+export async function deleteNoteChecklist(checklistId: number) {
+  await db.delete(noteChecklists).where(eq(noteChecklists.id, checklistId));
+}
+
+export async function addNoteChecklistItem(data: CreateNoteChecklistItemForm) {
+  // Get the highest sort order for this checklist
+  const lastItem = await db
+    .select({ sortOrder: noteChecklistItems.sortOrder })
+    .from(noteChecklistItems)
+    .where(eq(noteChecklistItems.checklistId, data.checklistId))
+    .orderBy(desc(noteChecklistItems.sortOrder))
+    .limit(1);
+
+  const nextSortOrder = lastItem.length > 0 ? lastItem[0].sortOrder + 1 : 0;
+
+  const [newItem] = await db
+    .insert(noteChecklistItems)
+    .values({
+      checklistId: data.checklistId,
+      text: data.text,
+      sortOrder: nextSortOrder,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newItem;
+}
+
+export async function updateNoteChecklistItem(
+  itemId: number,
+  data: UpdateNoteChecklistItemForm
+) {
+  const [updatedItem] = await db
+    .update(noteChecklistItems)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(noteChecklistItems.id, itemId))
+    .returning();
+
+  return updatedItem;
+}
+
+export async function deleteNoteChecklistItem(itemId: number) {
+  await db.delete(noteChecklistItems).where(eq(noteChecklistItems.id, itemId));
+}
+
+export async function reorderNotesChecklistItems(
+  data: ReorderChecklistItemsForm
+) {
+  // Update each item with its new sort order
+  const updates = data.orderedItemIds.map((itemId, index) =>
+    db
+      .update(noteChecklistItems)
+      .set({
+        sortOrder: index,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(noteChecklistItems.id, itemId),
+          eq(noteChecklistItems.checklistId, data.checklistId)
+        )
+      )
+  );
+
+  await Promise.all(updates);
+}
+
+// ===== SUMMARY ACTIONS =====
+
+export async function getChecklistSummaryForNote(
+  noteId: number
+): Promise<ChecklistSummary> {
+  const items = await db
+    .select({ checked: noteChecklistItems.checked })
+    .from(noteChecklistItems)
+    .leftJoin(
+      noteChecklists,
+      eq(noteChecklistItems.checklistId, noteChecklists.id)
+    )
+    .where(eq(noteChecklists.noteId, noteId));
+
+  const totalItems = items.length;
+  const completedItems = items.filter((item) => item.checked).length;
+
+  return {
+    completedItems,
+    totalItems,
+  };
+}

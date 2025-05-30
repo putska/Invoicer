@@ -25,6 +25,20 @@ export default function FormTypeSelector({ onClose }: FormTypeSelectorProps) {
           Fall Protection
         </button>
         <button
+          onClick={() => handleSelect("fall-protection-horizontal-lifeline")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Fall Protection - Horizontal Lifeline Inspection
+        </button>
+        <button
+          onClick={() =>
+            handleSelect("fall-protection-selfretracting-lifeline")
+          }
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Fall Protection - self Retracting Lifeline Inspection
+        </button>
+        <button
           onClick={() => handleSelect("jha")}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >
@@ -35,6 +49,12 @@ export default function FormTypeSelector({ onClose }: FormTypeSelectorProps) {
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >
           Task Hazard Analysis
+        </button>
+        <button
+          onClick={() => handleSelect("incident")}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+        >
+          Incident Report - short
         </button>
         <button
           onClick={() => handleSelect("mewp")}

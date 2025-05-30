@@ -1,3 +1,16 @@
+// notes for safety forms:
+// create your form
+// field names should be Text1, Text2, etc. for text fields
+// Check Box1, Check Box2, etc. for checkboxes
+// They should run left to right, top to bottom
+// If the form has multiple lines for a specific text box, you can use the fillMultiLineField from pdfHelper.ts
+// Add your form to the public folder in the root of the project
+// Add your form name to this file in the switch statement
+// Add your code to a new else if statement in the body of the code in this file
+// Add your form module to the modules/safety/formname/[id]/page.tsx file
+// Update the modules/safety/SafetyFormListPage.tsx file to include your form in the list of forms
+// Add your form to the /components/FormTypeSelector.tsx file
+
 // components/safetyPdfUtils.ts
 import { PDFDocument, rgb } from "pdf-lib";
 import { format } from "date-fns";
@@ -55,11 +68,20 @@ export const generatePDF = async (data: any) => {
       case "JHA":
         pdfPath = "/JHA.pdf";
         break;
+      case "Incident-Report":
+        pdfPath = "/IncidentReport.pdf";
+        break;
       case "THA":
         pdfPath = "/THA.pdf";
         break;
       case "Fall-Protection":
         pdfPath = "/FallProtection.pdf";
+        break;
+      case "Fall-Protection-Horizontal-Lifeline":
+        pdfPath = "/FallProtectionHorizontalLifeline.pdf";
+        break;
+      case "Fall-Protection-Selfretracting-Lifeline":
+        pdfPath = "/FallProtectionSelfretractingLifeline.pdf";
         break;
       case "Telehandler":
         pdfPath = "/Telehandler.pdf";
@@ -218,7 +240,868 @@ export const generatePDF = async (data: any) => {
         data.formData.supervisorSignature || ""
       );
 
-      //************** Fall Protection Inspection Form */
+      // *****************  Incident-Report Form ***********************************/
+    } else if (data.formName === "Incident-Report") {
+      // Basic Incident Information (Top section)
+      console.log("Filling Incident Report fields", data.formData);
+      safeSetTextField(
+        form,
+        "Text1",
+        formatDate(data.formData.dateOfIncident) || ""
+      );
+      safeSetTextField(form, "Text2", data.formData.timeOfIncident || "");
+      safeSetTextField(
+        form,
+        "Text3",
+        formatDate(data.formData.statementDate) || ""
+      );
+      safeSetTextField(form, "Text4", data.formData.locationOfIncident || "");
+      safeSetTextField(form, "Text5", data.formData.statementTime || "");
+      safeSetTextField(form, "Text6", data.formData.superintendentName || "");
+      safeSetTextField(form, "Text7", data.formData.jobNumber || "");
+
+      // Employee Information
+      safeSetTextField(form, "Text8", data.formData.employeeName || "");
+      safeSetTextField(form, "Text9", data.formData.employeePhone || "");
+
+      // Type of Incident Checkboxes (right to left, top to bottom)
+      if (data.formData.incidentTypes) {
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          !!data.formData.incidentTypes.nearMiss
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          !!data.formData.incidentTypes.firstAid
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          !!data.formData.incidentTypes.motorVehicle
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          !!data.formData.incidentTypes.propertyDamage
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          !!data.formData.incidentTypes.nonWorkRelated
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          !!data.formData.incidentTypes.other
+        );
+      }
+
+      // Other incident type specification
+      safeSetTextField(form, "Text10", data.formData.otherIncidentType || "");
+
+      // Incident Description (large text area)
+      safeSetTextField(form, "Text11", data.formData.incidentDescription || "");
+
+      // Witnesses
+      safeSetTextField(form, "Text12", data.formData.witnesses || "");
+
+      // Contributing Factors
+      safeSetTextField(form, "Text13", data.formData.contributingFactors || "");
+
+      // Root Cause
+      safeSetTextField(form, "Text14", data.formData.rootCause || "");
+
+      // Prevention Suggestion
+      safeSetTextField(
+        form,
+        "Text15",
+        data.formData.preventionSuggestion || ""
+      );
+
+      // Prevention Action
+      safeSetTextField(form, "Text16", data.formData.preventionAction || "");
+
+      // Medical Treatment Checkboxes
+      safeSetCheckBox(
+        form,
+        "Check Box7",
+        data.formData.wantsMedicalTreatment === "yes"
+      );
+      safeSetCheckBox(
+        form,
+        "Check Box8",
+        data.formData.wantsMedicalTreatment === "no"
+      );
+
+      // Employee Initials for medical treatment
+      safeSetTextField(form, "Text17", data.formData.employeeInitials || "");
+      safeSetTextField(form, "Text18", data.formData.employeeInitials || ""); // Duplicate for second checkbox
+
+      // Employee Signature Section
+      safeSetTextField(form, "Text19", data.formData.employeeSignature || "");
+      safeSetTextField(
+        form,
+        "Text20",
+        formatDate(data.formData.employeeSignatureDate) || ""
+      );
+
+      // Superintendent Signature Section
+      safeSetTextField(form, "Text21", data.formData.superintendentName || ""); // Duplicate for signature section
+      safeSetTextField(
+        form,
+        "Text22",
+        data.formData.superintendentSignature || ""
+      );
+      safeSetTextField(
+        form,
+        "Text23",
+        formatDate(data.formData.superintendentSignatureDate) || ""
+      );
+      //*****************  Fall Protection Horizontal Lifeline ***********************************/
+    } else if (data.formName === "Fall-Protection-Horizontal-Lifeline") {
+      // Equipment Information (Top section)
+      safeSetTextField(form, "Text1", data.formData.manufacturer || "");
+      safeSetTextField(
+        form,
+        "Text2",
+        formatDate(data.formData.dateOfManufacture) || ""
+      );
+      safeSetTextField(form, "Text3", data.formData.serialNumber || "");
+      safeSetTextField(form, "Text4", data.formData.modelNumber || "");
+
+      // Lifeline Material Checkboxes
+      if (data.formData.lifelineMaterial) {
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          !!data.formData.lifelineMaterial.cable
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          !!data.formData.lifelineMaterial.polyester
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          !!data.formData.lifelineMaterial.kernmantle
+        );
+      }
+
+      // Length and Diameter
+      safeSetTextField(form, "Text5", data.formData.length || "");
+      safeSetTextField(form, "Text6", data.formData.diameter || "");
+
+      // Inspection Details
+      safeSetTextField(
+        form,
+        "Text7",
+        formatDate(data.formData.inspectionDate) || ""
+      );
+      safeSetTextField(
+        form,
+        "Text8",
+        formatDate(data.formData.inServiceDate) || ""
+      );
+      safeSetTextField(form, "Text9", data.formData.nameOfUser || "");
+      safeSetTextField(
+        form,
+        "Text10",
+        data.formData.nameOfCompetentPerson || ""
+      );
+
+      // Labels & Markings Section - Pass/Fail Checkboxes
+      if (data.formData.labelsMarkings) {
+        // Label (legible/intact)
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          data.formData.labelsMarkings.labelLegible?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          data.formData.labelsMarkings.labelLegible?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text11",
+          data.formData.labelsMarkings.labelLegible?.note || ""
+        );
+
+        // Appropriate (ANSI/OSHA) Markings
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          data.formData.labelsMarkings.appropriateMarkings?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box7",
+          data.formData.labelsMarkings.appropriateMarkings?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text12",
+          data.formData.labelsMarkings.appropriateMarkings?.note || ""
+        );
+
+        // Date of First Use
+        safeSetCheckBox(
+          form,
+          "Check Box8",
+          data.formData.labelsMarkings.dateOfFirstUse?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box9",
+          data.formData.labelsMarkings.dateOfFirstUse?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text13",
+          data.formData.labelsMarkings.dateOfFirstUse?.note || ""
+        );
+
+        // Inspections Current / Up to Date
+        safeSetCheckBox(
+          form,
+          "Check Box10",
+          data.formData.labelsMarkings.inspectionsCurrent?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box11",
+          data.formData.labelsMarkings.inspectionsCurrent?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text14",
+          data.formData.labelsMarkings.inspectionsCurrent?.note || ""
+        );
+      }
+
+      // Hardware Section
+      if (data.formData.hardware) {
+        // Connector (self closing & locking)
+        safeSetCheckBox(
+          form,
+          "Check Box12",
+          data.formData.hardware.connector?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box13",
+          data.formData.hardware.connector?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text15",
+          data.formData.hardware.connector?.note || ""
+        );
+
+        // Hook Gate / Tensioner / Rivets
+        safeSetCheckBox(
+          form,
+          "Check Box14",
+          data.formData.hardware.hookGate?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box15",
+          data.formData.hardware.hookGate?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text16",
+          data.formData.hardware.hookGate?.note || ""
+        );
+
+        // Corrosion
+        safeSetCheckBox(
+          form,
+          "Check Box16",
+          data.formData.hardware.corrosion?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box17",
+          data.formData.hardware.corrosion?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text17",
+          data.formData.hardware.corrosion?.note || ""
+        );
+
+        // Pitting / Nicks
+        safeSetCheckBox(
+          form,
+          "Check Box18",
+          data.formData.hardware.pitting?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box19",
+          data.formData.hardware.pitting?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text18",
+          data.formData.hardware.pitting?.note || ""
+        );
+      }
+
+      // Material Section (Web or Cable)
+      if (data.formData.material) {
+        // Confirm Proper Lifeline Threading
+        safeSetCheckBox(
+          form,
+          "Check Box20",
+          data.formData.material.properLifelineThreading?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box21",
+          data.formData.material.properLifelineThreading?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text19",
+          data.formData.material.properLifelineThreading?.note || ""
+        );
+
+        // Broken / Missing / Loose Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box22",
+          data.formData.material.brokenStitching?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box23",
+          data.formData.material.brokenStitching?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text20",
+          data.formData.material.brokenStitching?.note || ""
+        );
+
+        // Termination (Stitch, Splice or Swag)
+        safeSetCheckBox(
+          form,
+          "Check Box24",
+          data.formData.material.termination?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box25",
+          data.formData.material.termination?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text21",
+          data.formData.material.termination?.note || ""
+        );
+
+        // Kinks
+        safeSetCheckBox(
+          form,
+          "Check Box26",
+          data.formData.material.kinks?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box27",
+          data.formData.material.kinks?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text22",
+          data.formData.material.kinks?.note || ""
+        );
+
+        // Cuts / Burns / Holes
+        safeSetCheckBox(
+          form,
+          "Check Box28",
+          data.formData.material.cuts?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box29",
+          data.formData.material.cuts?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text23",
+          data.formData.material.cuts?.note || ""
+        );
+
+        // Separating / Bird-Caging
+        safeSetCheckBox(
+          form,
+          "Check Box30",
+          data.formData.material.separating?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box31",
+          data.formData.material.separating?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text24",
+          data.formData.material.separating?.note || ""
+        );
+
+        // Excessive Wear (Fraying or Broken Strands)
+        safeSetCheckBox(
+          form,
+          "Check Box32",
+          data.formData.material.excessiveWear?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box33",
+          data.formData.material.excessiveWear?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text25",
+          data.formData.material.excessiveWear?.note || ""
+        );
+      }
+
+      // Shock Pack Section (if present)
+      if (data.formData.shockPack) {
+        // Cover / Shrink Tube (Don't cut or remove)
+        safeSetCheckBox(
+          form,
+          "Check Box34",
+          data.formData.shockPack.coverShrinkTube?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box35",
+          data.formData.shockPack.coverShrinkTube?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text26",
+          data.formData.shockPack.coverShrinkTube?.note || ""
+        );
+
+        // Damage / Fraying / Broken Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box36",
+          data.formData.shockPack.damageFraying?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box37",
+          data.formData.shockPack.damageFraying?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text27",
+          data.formData.shockPack.damageFraying?.note || ""
+        );
+
+        // Impact Indicator (Signs of Deployment)
+        safeSetCheckBox(
+          form,
+          "Check Box38",
+          data.formData.shockPack.impactIndicator?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box39",
+          data.formData.shockPack.impactIndicator?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text28",
+          data.formData.shockPack.impactIndicator?.note || ""
+        );
+      }
+
+      // Additional Notes
+      safeSetTextField(form, "Text29", data.formData.additionalNotes || "");
+
+      //************** Fall Protection Selfretracting Lifeline *****************/
+    } else if (data.formName === "Fall-Protection-Selfretracting-Lifeline") {
+      // Equipment Information (Top section)
+      safeSetTextField(form, "Text1", data.formData.manufacturer || "");
+      safeSetTextField(
+        form,
+        "Text2",
+        formatDate(data.formData.dateOfManufacture) || ""
+      );
+      safeSetTextField(form, "Text3", data.formData.serialNumber || "");
+      safeSetTextField(form, "Text5", data.formData.modelNumber || "");
+
+      // Inspection Details
+      safeSetTextField(
+        form,
+        "Text7",
+        formatDate(data.formData.inspectionDate) || ""
+      );
+      safeSetTextField(
+        form,
+        "Text6",
+        formatDate(data.formData.inServiceDate) || ""
+      );
+      safeSetTextField(form, "Text8", data.formData.nameOfUser || "");
+      safeSetTextField(
+        form,
+        "Text9",
+        data.formData.nameOfCompetentPerson || ""
+      );
+
+      // Labels & Markings Section - Pass/Fail Checkboxes
+      if (data.formData.labelsMarkings) {
+        // Label (legible/intact)
+        safeSetCheckBox(
+          form,
+          "Check Box1",
+          data.formData.labelsMarkings.labelLegible?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box2",
+          data.formData.labelsMarkings.labelLegible?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text10",
+          data.formData.labelsMarkings.labelLegible?.note || ""
+        );
+
+        // Appropriate (ANSI/OSHA) Markings
+        safeSetCheckBox(
+          form,
+          "Check Box3",
+          data.formData.labelsMarkings.appropriateMarkings?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box4",
+          data.formData.labelsMarkings.appropriateMarkings?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text11",
+          data.formData.labelsMarkings.appropriateMarkings?.note || ""
+        );
+
+        // Date of First Use
+        safeSetCheckBox(
+          form,
+          "Check Box5",
+          data.formData.labelsMarkings.dateOfFirstUse?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box6",
+          data.formData.labelsMarkings.dateOfFirstUse?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text12",
+          data.formData.labelsMarkings.dateOfFirstUse?.note || ""
+        );
+
+        // Inspections Current / Up to Date
+        safeSetCheckBox(
+          form,
+          "Check Box7",
+          data.formData.labelsMarkings.inspectionsCurrent?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box8",
+          data.formData.labelsMarkings.inspectionsCurrent?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text13",
+          data.formData.labelsMarkings.inspectionsCurrent?.note || ""
+        );
+      }
+
+      // Housing & Connectors Section
+      if (data.formData.housingConnectors) {
+        // Cover/Shrink Tube (Don't Cut or Remove)
+        safeSetCheckBox(
+          form,
+          "Check Box9",
+          data.formData.housingConnectors.coverShrinkTube?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box10",
+          data.formData.housingConnectors.coverShrinkTube?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text14",
+          data.formData.housingConnectors.coverShrinkTube?.note || ""
+        );
+
+        // Nuts / Bolts / Hook Body / Rivets / Screws
+        safeSetCheckBox(
+          form,
+          "Check Box11",
+          data.formData.housingConnectors.nutsBolts?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box12",
+          data.formData.housingConnectors.nutsBolts?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text15",
+          data.formData.housingConnectors.nutsBolts?.note || ""
+        );
+
+        // Evidence of Damage (Dents, Cracks, Rust)
+        safeSetCheckBox(
+          form,
+          "Check Box13",
+          data.formData.housingConnectors.evidenceOfDamage?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box14",
+          data.formData.housingConnectors.evidenceOfDamage?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text16",
+          data.formData.housingConnectors.evidenceOfDamage?.note || ""
+        );
+
+        // Connector (Self Closing & Locking)
+        safeSetCheckBox(
+          form,
+          "Check Box15",
+          data.formData.housingConnectors.connector?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box16",
+          data.formData.housingConnectors.connector?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text17",
+          data.formData.housingConnectors.connector?.note || ""
+        );
+
+        // Pitting / Nicks / Corrosion
+        safeSetCheckBox(
+          form,
+          "Check Box17",
+          data.formData.housingConnectors.pitting?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box18",
+          data.formData.housingConnectors.pitting?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text18",
+          data.formData.housingConnectors.pitting?.note || ""
+        );
+      }
+
+      // Lifeline Section (Web or Cable)
+      if (data.formData.lifeline) {
+        // Entire Length Retracts Smoothly
+        safeSetCheckBox(
+          form,
+          "Check Box19",
+          data.formData.lifeline.entireLengthRetracts?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box20",
+          data.formData.lifeline.entireLengthRetracts?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text19",
+          data.formData.lifeline.entireLengthRetracts?.note || ""
+        );
+
+        // Test Braking / Locking Function
+        safeSetCheckBox(
+          form,
+          "Check Box21",
+          data.formData.lifeline.testBraking?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box22",
+          data.formData.lifeline.testBraking?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text20",
+          data.formData.lifeline.testBraking?.note || ""
+        );
+
+        // Termination (Stitch, Splice or Swage)
+        safeSetCheckBox(
+          form,
+          "Check Box23",
+          data.formData.lifeline.termination?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box24",
+          data.formData.lifeline.termination?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text21",
+          data.formData.lifeline.termination?.note || ""
+        );
+
+        // Excessive Wear / Kinks
+        safeSetCheckBox(
+          form,
+          "Check Box25",
+          data.formData.lifeline.excessiveWearKinks?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box26",
+          data.formData.lifeline.excessiveWearKinks?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text22",
+          data.formData.lifeline.excessiveWearKinks?.note || ""
+        );
+
+        // Cuts / Fraying / Broken Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box27",
+          data.formData.lifeline.cutsFraying?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box28",
+          data.formData.lifeline.cutsFraying?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text23",
+          data.formData.lifeline.cutsFraying?.note || ""
+        );
+
+        // Cable Separating / Bird-Caging
+        safeSetCheckBox(
+          form,
+          "Check Box29",
+          data.formData.lifeline.cableSeparating?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box30",
+          data.formData.lifeline.cableSeparating?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text24",
+          data.formData.lifeline.cableSeparating?.note || ""
+        );
+
+        // Excessive Wear
+        safeSetCheckBox(
+          form,
+          "Check Box31",
+          data.formData.lifeline.excessiveWear?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box32",
+          data.formData.lifeline.excessiveWear?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text25",
+          data.formData.lifeline.excessiveWear?.note || ""
+        );
+      }
+
+      // Shock Pack Section (if present)
+      if (data.formData.shockPack) {
+        // Cover / Shrink Tube (Don't cut or remove)
+        safeSetCheckBox(
+          form,
+          "Check Box33",
+          data.formData.shockPack.coverShrinkTube?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box34",
+          data.formData.shockPack.coverShrinkTube?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text26",
+          data.formData.shockPack.coverShrinkTube?.note || ""
+        );
+
+        // Damage / Fraying / Broken Stitching
+        safeSetCheckBox(
+          form,
+          "Check Box35",
+          data.formData.shockPack.damageFraying?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box36",
+          data.formData.shockPack.damageFraying?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text27",
+          data.formData.shockPack.damageFraying?.note || ""
+        );
+
+        // Impact Indicator (Signs of Deployment)
+        safeSetCheckBox(
+          form,
+          "Check Box37",
+          data.formData.shockPack.impactIndicator?.status === "pass"
+        );
+        safeSetCheckBox(
+          form,
+          "Check Box38",
+          data.formData.shockPack.impactIndicator?.status === "fail"
+        );
+        safeSetTextField(
+          form,
+          "Text28",
+          data.formData.shockPack.impactIndicator?.note || ""
+        );
+      }
+
+      // Additional Notes
+      safeSetTextField(form, "Text29", data.formData.additionalNotes || "");
+
+      //************** Fall Protection Inspection Form *************************/
     } else if (data.formName === "Fall-Protection") {
       // Fall Protection specific fields
       safeSetTextField(form, "Text1", data.formData.manufacturer || "");
