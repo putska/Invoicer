@@ -43,6 +43,8 @@ import {
   engineeringNotes,
   noteChecklists,
   noteChecklistItems,
+  noteStatuses,
+  noteStatusAssignments,
 } from "./schema";
 import {
   Customer,
@@ -90,6 +92,10 @@ import {
   EngineeringNoteWithChecklists,
   NoteChecklistWithItems,
   ChecklistSummary,
+  NoteStatus,
+  EngineeringNoteWithStatuses,
+  AssignStatusToNoteForm,
+  RemoveStatusFromNoteForm,
 } from "../types";
 import {
   desc,
@@ -3520,7 +3526,7 @@ export const deleteChecklistItem = async (itemId: number) => {
 };
 
 // Reorder checklist items (bulk update)
-export const reorderChecklistItems = async (
+export const reorderNotesChecklistItems = async (
   checklistId: number,
   orderedItemIds: number[]
 ) => {
@@ -3589,25 +3595,48 @@ export async function getCategoriesWithNotes(
 
   const categoriesWithNotes = await Promise.all(
     categories.map(async (category) => {
+      // Get notes for this category
       const notes = await db
         .select()
         .from(engineeringNotes)
         .where(eq(engineeringNotes.categoryId, category.id))
         .orderBy(asc(engineeringNotes.sortOrder));
 
-      // Map status to the correct union type
-      const mappedNotes = notes.map((note) => ({
-        ...note,
-        status: note.status as
-          | "completed"
-          | "draft"
-          | "in_progress"
-          | "blocked",
-      }));
+      // Get statuses for each note
+      const notesWithStatuses = await Promise.all(
+        notes.map(async (note) => {
+          const statusQuery = await db
+            .select({
+              status: noteStatuses,
+            })
+            .from(noteStatusAssignments)
+            .innerJoin(
+              noteStatuses,
+              eq(noteStatusAssignments.statusId, noteStatuses.id)
+            )
+            .where(eq(noteStatusAssignments.noteId, note.id))
+            .orderBy(asc(noteStatuses.sortOrder));
+
+          const statuses = statusQuery.map((row) => row.status);
+
+          return {
+            id: note.id,
+            categoryId: note.categoryId,
+            statusId: null, // Keep this for compatibility
+            title: note.title,
+            content: note.content,
+            sortOrder: note.sortOrder,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt,
+            status: null, // Add this for the old interface
+            statuses, // Add the new statuses array
+          };
+        })
+      );
 
       return {
         ...category,
-        notes: mappedNotes,
+        notes: notesWithStatuses,
       };
     })
   );
@@ -3682,8 +3711,23 @@ export async function reorderCategories(data: ReorderCategoriesForm) {
 
 // ===== NOTE ACTIONS =====
 
+export async function getDefaultStatusForProject(
+  projectId: number
+): Promise<NoteStatus | null> {
+  const [defaultStatus] = await db
+    .select()
+    .from(noteStatuses)
+    .where(
+      and(
+        eq(noteStatuses.projectId, projectId),
+        eq(noteStatuses.isDefault, true)
+      )
+    );
+
+  return defaultStatus || null;
+}
+
 export async function addEngineeringNote(data: CreateEngineeringNoteForm) {
-  // Get the highest sort order for this category
   const lastNote = await db
     .select({ sortOrder: engineeringNotes.sortOrder })
     .from(engineeringNotes)
@@ -3699,29 +3743,98 @@ export async function addEngineeringNote(data: CreateEngineeringNoteForm) {
       categoryId: data.categoryId,
       title: data.title,
       content: data.content || "",
-      status: data.status || "draft",
       sortOrder: nextSortOrder,
       updatedAt: new Date(),
     })
     .returning();
 
-  return newNote;
+  // Handle status assignment - check if the table exists and statusId is provided
+  if (data.statusId) {
+    try {
+      await db.insert(noteStatusAssignments).values({
+        noteId: newNote.id,
+        statusId: data.statusId,
+        createdAt: new Date(),
+      });
+    } catch (error) {
+      console.error("Error inserting status assignment:", error);
+      // Continue without failing if status assignment fails
+    }
+  }
+
+  // Get statuses for the note (with error handling)
+  let statuses: NoteStatus[] = [];
+  try {
+    statuses = await getStatusesForNote(newNote.id);
+  } catch (error) {
+    console.error("Error fetching statuses:", error);
+  }
+
+  return {
+    id: newNote.id,
+    categoryId: newNote.categoryId,
+    statusId: null,
+    title: newNote.title,
+    content: newNote.content,
+    sortOrder: newNote.sortOrder,
+    createdAt: newNote.createdAt,
+    updatedAt: newNote.updatedAt,
+    status: null,
+    statuses,
+  };
 }
 
 export async function updateEngineeringNote(
   noteId: number,
   data: UpdateEngineeringNoteForm
 ) {
+  // Update the note itself
+  const updateData = { ...data };
+  delete updateData.statusIds; // Remove statusIds from note update
+
   const [updatedNote] = await db
     .update(engineeringNotes)
     .set({
-      ...data,
+      ...updateData,
       updatedAt: new Date(),
     })
     .where(eq(engineeringNotes.id, noteId))
     .returning();
 
-  return updatedNote;
+  // Update status assignments if provided
+  if (data.statusIds !== undefined) {
+    // Remove existing status assignments
+    await db
+      .delete(noteStatusAssignments)
+      .where(eq(noteStatusAssignments.noteId, noteId));
+
+    // Add new status assignments
+    if (data.statusIds.length > 0) {
+      const statusAssignments = data.statusIds.map((statusId) => ({
+        noteId,
+        statusId,
+        createdAt: new Date(),
+      }));
+
+      await db.insert(noteStatusAssignments).values(statusAssignments);
+    }
+  }
+
+  // Get the note with statuses for return
+  const statuses = await getStatusesForNote(noteId);
+
+  return {
+    id: updatedNote.id,
+    categoryId: updatedNote.categoryId,
+    statusId: null,
+    title: updatedNote.title,
+    content: updatedNote.content,
+    sortOrder: updatedNote.sortOrder,
+    createdAt: updatedNote.createdAt,
+    updatedAt: updatedNote.updatedAt,
+    status: null,
+    statuses,
+  };
 }
 
 export async function deleteEngineeringNote(noteId: number) {
@@ -3739,11 +3852,20 @@ export async function getEngineeringNoteWithChecklists(
   if (!note) return null;
 
   const checklists = await getChecklistsForNote(noteId);
+  const statuses = await getStatusesForNote(noteId);
 
   return {
-    ...note,
-    status: note.status as "completed" | "draft" | "in_progress" | "blocked",
+    id: note.id,
+    categoryId: note.categoryId,
+    statusId: null, // Keep for compatibility
+    title: note.title,
+    content: note.content,
+    sortOrder: note.sortOrder,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+    status: null, // Add for old interface compatibility
     checklists,
+    statuses,
   };
 }
 
@@ -3767,7 +3889,334 @@ export async function reorderNotes(data: ReorderNotesForm) {
   await Promise.all(updates);
 }
 
-// ===== CHECKLIST ACTIONS =====
+// ===== STATUS ACTIONS =====
+
+// ===== STATUS ASSIGNMENT ACTIONS =====
+
+export async function getStatusesForNote(
+  noteId: number
+): Promise<NoteStatus[]> {
+  const statusQuery = await db
+    .select({
+      status: noteStatuses,
+    })
+    .from(noteStatusAssignments)
+    .innerJoin(
+      noteStatuses,
+      eq(noteStatusAssignments.statusId, noteStatuses.id)
+    )
+    .where(eq(noteStatusAssignments.noteId, noteId))
+    .orderBy(asc(noteStatuses.sortOrder));
+
+  return statusQuery.map((row) => row.status);
+}
+
+export async function assignStatusToNote(data: AssignStatusToNoteForm) {
+  // Check if assignment already exists
+  const existing = await db
+    .select()
+    .from(noteStatusAssignments)
+    .where(
+      and(
+        eq(noteStatusAssignments.noteId, data.noteId),
+        eq(noteStatusAssignments.statusId, data.statusId)
+      )
+    );
+
+  if (existing.length === 0) {
+    await db.insert(noteStatusAssignments).values({
+      noteId: data.noteId,
+      statusId: data.statusId,
+      createdAt: new Date(),
+    });
+  }
+}
+
+export async function removeStatusFromNote(data: RemoveStatusFromNoteForm) {
+  await db
+    .delete(noteStatusAssignments)
+    .where(
+      and(
+        eq(noteStatusAssignments.noteId, data.noteId),
+        eq(noteStatusAssignments.statusId, data.statusId)
+      )
+    );
+}
+
+export async function getStatusesForProject(
+  projectId: number
+): Promise<NoteStatus[]> {
+  return await db
+    .select()
+    .from(noteStatuses)
+    .where(eq(noteStatuses.projectId, projectId))
+    .orderBy(asc(noteStatuses.sortOrder));
+}
+
+export async function addNoteStatus(data: any) {
+  // Get the highest sort order for this project
+  const lastStatus = await db
+    .select({ sortOrder: noteStatuses.sortOrder })
+    .from(noteStatuses)
+    .where(eq(noteStatuses.projectId, data.projectId))
+    .orderBy(desc(noteStatuses.sortOrder))
+    .limit(1);
+
+  const nextSortOrder = lastStatus.length > 0 ? lastStatus[0].sortOrder + 1 : 0;
+
+  // Find color configuration from STATUS_COLOR_OPTIONS
+  const STATUS_COLOR_OPTIONS = [
+    {
+      value: "blue",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-800",
+    },
+    {
+      value: "pink",
+      bgColor: "bg-pink-50",
+      borderColor: "border-pink-200",
+      textColor: "text-pink-800",
+    },
+    {
+      value: "green",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-800",
+    },
+    {
+      value: "red",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
+      textColor: "text-red-800",
+    },
+    {
+      value: "yellow",
+      bgColor: "bg-yellow-50",
+      borderColor: "border-yellow-200",
+      textColor: "text-yellow-800",
+    },
+    {
+      value: "purple",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+      textColor: "text-purple-800",
+    },
+    {
+      value: "indigo",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200",
+      textColor: "text-indigo-800",
+    },
+    {
+      value: "gray",
+      bgColor: "bg-gray-50",
+      borderColor: "border-gray-200",
+      textColor: "text-gray-800",
+    },
+    {
+      value: "orange",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-800",
+    },
+    {
+      value: "teal",
+      bgColor: "bg-teal-50",
+      borderColor: "border-teal-200",
+      textColor: "text-teal-800",
+    },
+  ];
+
+  const colorConfig = STATUS_COLOR_OPTIONS.find((c) => c.value === data.color);
+  if (!colorConfig) {
+    throw new Error("Invalid color selection");
+  }
+
+  // Check if this should be the default (first status for project)
+  const existingStatuses = await getStatusesForProject(data.projectId);
+  const isDefault = existingStatuses.length === 0;
+
+  const [newStatus] = await db
+    .insert(noteStatuses)
+    .values({
+      projectId: data.projectId,
+      name: data.name,
+      color: data.color,
+      bgColor: colorConfig.bgColor,
+      borderColor: colorConfig.borderColor,
+      textColor: colorConfig.textColor,
+      isDefault,
+      sortOrder: nextSortOrder,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  return newStatus;
+}
+
+export async function updateNoteStatus(statusId: number, data: any) {
+  const STATUS_COLOR_OPTIONS = [
+    {
+      value: "blue",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-800",
+    },
+    {
+      value: "pink",
+      bgColor: "bg-pink-50",
+      borderColor: "border-pink-200",
+      textColor: "text-pink-800",
+    },
+    {
+      value: "green",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-800",
+    },
+    {
+      value: "red",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
+      textColor: "text-red-800",
+    },
+    {
+      value: "yellow",
+      bgColor: "bg-yellow-50",
+      borderColor: "border-yellow-200",
+      textColor: "text-yellow-800",
+    },
+    {
+      value: "purple",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+      textColor: "text-purple-800",
+    },
+    {
+      value: "indigo",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200",
+      textColor: "text-indigo-800",
+    },
+    {
+      value: "gray",
+      bgColor: "bg-gray-50",
+      borderColor: "border-gray-200",
+      textColor: "text-gray-800",
+    },
+    {
+      value: "orange",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-800",
+    },
+    {
+      value: "teal",
+      bgColor: "bg-teal-50",
+      borderColor: "border-teal-200",
+      textColor: "text-teal-800",
+    },
+  ];
+
+  const updateData: any = { ...data, updatedAt: new Date() };
+
+  // If updating color, update related color fields
+  if (data.color) {
+    const colorConfig = STATUS_COLOR_OPTIONS.find(
+      (c) => c.value === data.color
+    );
+    if (colorConfig) {
+      updateData.bgColor = colorConfig.bgColor;
+      updateData.borderColor = colorConfig.borderColor;
+      updateData.textColor = colorConfig.textColor;
+    }
+  }
+
+  // If setting as default, unset other defaults for this project
+  if (data.isDefault) {
+    const [status] = await db
+      .select({ projectId: noteStatuses.projectId })
+      .from(noteStatuses)
+      .where(eq(noteStatuses.id, statusId));
+
+    if (status) {
+      await db
+        .update(noteStatuses)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(
+          and(
+            eq(noteStatuses.projectId, status.projectId),
+            eq(noteStatuses.isDefault, true)
+          )
+        );
+    }
+  }
+
+  const [updatedStatus] = await db
+    .update(noteStatuses)
+    .set(updateData)
+    .where(eq(noteStatuses.id, statusId))
+    .returning();
+
+  return updatedStatus;
+}
+
+export async function deleteNoteStatus(statusId: number) {
+  // Get the status to check if it's default
+  const [status] = await db
+    .select()
+    .from(noteStatuses)
+    .where(eq(noteStatuses.id, statusId));
+
+  if (!status) throw new Error("Status not found");
+
+  // Remove all assignments of this status (instead of setting statusId to null)
+  await db
+    .delete(noteStatusAssignments)
+    .where(eq(noteStatusAssignments.statusId, statusId));
+
+  // Delete the status
+  await db.delete(noteStatuses).where(eq(noteStatuses.id, statusId));
+
+  // If this was the default status, set another status as default
+  if (status.isDefault) {
+    const [nextStatus] = await db
+      .select()
+      .from(noteStatuses)
+      .where(eq(noteStatuses.projectId, status.projectId))
+      .orderBy(asc(noteStatuses.sortOrder))
+      .limit(1);
+
+    if (nextStatus) {
+      await db
+        .update(noteStatuses)
+        .set({ isDefault: true, updatedAt: new Date() })
+        .where(eq(noteStatuses.id, nextStatus.id));
+    }
+  }
+}
+
+export async function reorderStatuses(data: any) {
+  const updates = data.orderedStatusIds.map((statusId: number, index: number) =>
+    db
+      .update(noteStatuses)
+      .set({
+        sortOrder: index,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(noteStatuses.id, statusId),
+          eq(noteStatuses.projectId, data.projectId)
+        )
+      )
+  );
+
+  await Promise.all(updates);
+}
+
+// ===== CHECKLIST ACTIONS (Unchanged) =====
 
 export async function getChecklistsForNote(
   noteId: number
@@ -3869,9 +4318,7 @@ export async function deleteNoteChecklistItem(itemId: number) {
   await db.delete(noteChecklistItems).where(eq(noteChecklistItems.id, itemId));
 }
 
-export async function reorderNotesChecklistItems(
-  data: ReorderChecklistItemsForm
-) {
+export async function reorderChecklistItems(data: ReorderChecklistItemsForm) {
   // Update each item with its new sort order
   const updates = data.orderedItemIds.map((itemId, index) =>
     db
@@ -3891,7 +4338,7 @@ export async function reorderNotesChecklistItems(
   await Promise.all(updates);
 }
 
-// ===== SUMMARY ACTIONS =====
+// ===== SUMMARY ACTIONS (Unchanged) =====
 
 export async function getChecklistSummaryForNote(
   noteId: number

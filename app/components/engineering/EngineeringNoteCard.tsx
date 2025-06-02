@@ -11,81 +11,41 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  MoreVertical,
-  Edit,
-  Trash2,
-  CheckSquare,
-  Circle,
-} from "lucide-react";
+import { MoreVertical, Edit, Trash2, CheckSquare, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { EngineeringNote, ChecklistSummary } from "../../types";
+import {
+  EngineeringNoteWithStatuses,
+  NoteStatus,
+  ChecklistSummary,
+} from "../../types";
 
 interface EngineeringNoteCardProps {
-  note: EngineeringNote;
+  note: EngineeringNoteWithStatuses;
   index: number;
   isDragging?: boolean;
-  onEdit?: (note: EngineeringNote) => void;
+  isCollapsed?: boolean; // Add collapsed prop
+  availableStatuses?: NoteStatus[];
+  onEdit?: (note: EngineeringNoteWithStatuses) => void;
   onDelete?: (noteId: number) => void;
+  onStatusAdd?: (noteId: number, statusId: number) => void;
+  onStatusRemove?: (noteId: number, statusId: number) => void;
 }
 
 export function EngineeringNoteCard({
   note,
   index,
   isDragging,
+  isCollapsed = false, // Default to expanded
+  availableStatuses = [],
   onEdit,
   onDelete,
+  onStatusAdd,
+  onStatusRemove,
 }: EngineeringNoteCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [summary, setSummary] = useState<ChecklistSummary | null>(null);
-
-  // Determine card color based on status
-  const getCardColor = () => {
-    switch (note.status) {
-      case "completed":
-        return "bg-green-50 border-green-200";
-      case "blocked":
-        return "bg-gray-100 border-gray-300";
-      case "in_progress":
-        return "bg-blue-50 border-blue-300";
-      case "draft":
-      default:
-        return "bg-yellow-50 border-yellow-300";
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (note.status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "blocked":
-        return <XCircle className="h-4 w-4 text-gray-600" />;
-      case "in_progress":
-        return <Clock className="h-4 w-4 text-blue-600" />;
-      case "draft":
-      default:
-        return <Circle className="h-4 w-4 text-yellow-600" />;
-    }
-  };
-
-  const getStatusText = () => {
-    switch (note.status) {
-      case "completed":
-        return "Completed";
-      case "blocked":
-        return "Blocked";
-      case "in_progress":
-        return "In Progress";
-      case "draft":
-      default:
-        return "Draft";
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +85,22 @@ export function EngineeringNoteCard({
     }, 50);
   };
 
+  const handleAddStatus = (statusId: number) => {
+    setStatusDropdownOpen(false);
+    setTimeout(() => {
+      if (onStatusAdd) onStatusAdd(note.id, statusId);
+    }, 50);
+  };
+
+  const handleRemoveStatus = (statusId: number) => {
+    if (onStatusRemove) onStatusRemove(note.id, statusId);
+  };
+
+  // Get available statuses that aren't already assigned
+  const unassignedStatuses = availableStatuses.filter(
+    (status) => !note.statuses.some((noteStatus) => noteStatus.id === status.id)
+  );
+
   // Strip HTML tags for preview text
   const getPlainTextContent = (html: string) => {
     const div = document.createElement("div");
@@ -134,11 +110,143 @@ export function EngineeringNoteCard({
 
   const plainTextContent = getPlainTextContent(note.content || "");
 
+  // Collapsed view - show statuses above title in a stacked layout
+  if (isCollapsed) {
+    return (
+      <div
+        className={cn(
+          "mb-1 p-2 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow cursor-move",
+          isDragging && "opacity-50"
+        )}
+        draggable
+      >
+        <div className="space-y-1">
+          {/* Status Badges at the top */}
+          {note.statuses.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {note.statuses.map((status) => (
+                <div key={status.id} className="relative group">
+                  <Badge
+                    className={cn(
+                      status.bgColor,
+                      status.borderColor,
+                      status.textColor,
+                      "border text-xs cursor-pointer hover:opacity-80 transition-opacity"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveStatus(status.id);
+                    }}
+                    title={`Click to remove "${status.name}" status`}
+                  >
+                    {status.name}
+                    <X className="h-2 w-2 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Title and actions row */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium truncate flex-1">
+              {note.title}
+            </span>
+
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Add Status Button */}
+              {unassignedStatuses.length > 0 && (
+                <DropdownMenu
+                  open={statusDropdownOpen}
+                  onOpenChange={setStatusDropdownOpen}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Add status badge"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {unassignedStatuses.map((status) => (
+                      <DropdownMenuItem
+                        key={status.id}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleAddStatus(status.id);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-3 h-3 rounded ${status.bgColor} ${status.borderColor} border`}
+                          />
+                          {status.name}
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {/* Main Actions Menu */}
+              {(onEdit || onDelete) && (
+                <DropdownMenu
+                  open={dropdownOpen}
+                  onOpenChange={setDropdownOpen}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {onEdit && (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleEdit();
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onDelete && (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleDelete();
+                        }}
+                        className="text-red-6wn00"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Expanded view - original full card layout
   return (
     <Card
       className={cn(
-        "mb-2 shadow-sm hover:shadow-md transition-shadow cursor-move",
-        getCardColor(),
+        "mb-2 shadow-sm hover:shadow-md transition-shadow cursor-move bg-white border-gray-200",
         isDragging && "opacity-50"
       )}
       draggable
@@ -149,7 +257,45 @@ export function EngineeringNoteCard({
             {note.title}
           </CardTitle>
           <div className="flex items-center gap-1">
-            {getStatusIcon()}
+            {/* Add Status Button */}
+            {unassignedStatuses.length > 0 && (
+              <DropdownMenu
+                open={statusDropdownOpen}
+                onOpenChange={setStatusDropdownOpen}
+              >
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Add status badge"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {unassignedStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status.id}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        handleAddStatus(status.id);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-3 h-3 rounded ${status.bgColor} ${status.borderColor} border`}
+                        />
+                        {status.name}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Main Actions Menu */}
             {(onEdit || onDelete) && (
               <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                 <DropdownMenuTrigger asChild>
@@ -206,18 +352,36 @@ export function EngineeringNoteCard({
               <span>
                 {summary.completedItems}/{summary.totalItems}
               </span>
-              {summary.completedItems === summary.totalItems &&
-                summary.totalItems > 0 && (
-                  <CheckCircle className="h-3 w-3 text-green-600" />
-                )}
+            </div>
+          )}
+
+          {/* Status Badges */}
+          {note.statuses.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {note.statuses.map((status) => (
+                <div key={status.id} className="relative group">
+                  <Badge
+                    className={cn(
+                      status.bgColor,
+                      status.borderColor,
+                      status.textColor,
+                      "border text-xs cursor-pointer hover:opacity-80 transition-opacity"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveStatus(status.id);
+                    }}
+                    title={`Click to remove "${status.name}" status`}
+                  >
+                    {status.name}
+                    <X className="h-2 w-2 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Badge>
+                </div>
+              ))}
             </div>
           )}
 
           <div className="flex items-center justify-between text-xs">
-            <Badge variant="outline" className="text-xs">
-              {getStatusText()}
-            </Badge>
-
             <div className="flex items-center gap-1 text-gray-500">
               <span>{format(new Date(note.updatedAt), "MMM d, h:mm a")}</span>
             </div>

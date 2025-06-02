@@ -134,6 +134,27 @@
       "when": 1748637798066,
       "tag": "0018_early_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1748647422796,
+      "tag": "0019_ambitious_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1748650285403,
+      "tag": "0020_new_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1748718480791,
+      "tag": "0021_closed_war_machine",
+      "breakpoints": true
     }
   ]
 }

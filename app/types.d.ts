@@ -612,7 +612,54 @@ export interface HistoryDetail {
 
 // TypeScript interfaces for Engineering Notes
 
-// Note Category interfaces
+// Updated TypeScript interfaces for Custom Status System
+
+// Custom status interfaces
+export interface NoteStatus {
+  id: number;
+  projectId: number;
+  name: string;
+  color: string; // e.g., "blue", "pink", "green"
+  bgColor: string; // e.g., "bg-blue-50"
+  borderColor: string; // e.g., "border-blue-200"
+  textColor: string; // e.g., "text-blue-800"
+  isDefault: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Updated engineering note interfaces
+export interface EngineeringNote {
+  id: number;
+  categoryId: number;
+  statusId: number | null;
+  title: string;
+  content: string | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EngineeringNoteWithStatuses extends EngineeringNote {
+  statuses: NoteStatus[]; // Array of status badges
+}
+
+export interface EngineeringNoteWithStatus extends EngineeringNote {
+  status: NoteStatus | null;
+}
+
+export interface EngineeringNoteWithCategory extends EngineeringNote {
+  category: NoteCategory;
+  status: NoteStatus | null;
+}
+
+export interface EngineeringNoteWithChecklists extends EngineeringNote {
+  checklists: NoteChecklistWithItems[];
+  status: NoteStatus | null;
+  statuses: NoteStatus[]; // Array of status badges
+}
+
 export interface NoteCategory {
   id: number;
   projectId: number;
@@ -622,35 +669,10 @@ export interface NoteCategory {
   updatedAt: Date;
 }
 
-export interface NoteCategoryWithProject extends NoteCategory {
-  project: Project;
-}
-
 export interface NoteCategoryWithNotes extends NoteCategory {
-  notes: EngineeringNote[];
+  notes: EngineeringNoteWithStatuses[]; // Change this from EngineeringNoteWithStatus[]
 }
 
-// Engineering Note interfaces
-export interface EngineeringNote {
-  id: number;
-  categoryId: number;
-  title: string;
-  content: string | null;
-  status: "draft" | "in_progress" | "completed" | "blocked";
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface EngineeringNoteWithCategory extends EngineeringNote {
-  category: NoteCategory;
-}
-
-export interface EngineeringNoteWithChecklists extends EngineeringNote {
-  checklists: NoteChecklistWithItems[];
-}
-
-// Checklist interfaces (similar to your existing structure)
 export interface NoteChecklist {
   id: number;
   noteId: number;
@@ -674,14 +696,17 @@ export interface NoteChecklistWithItems extends NoteChecklist {
   items: NoteChecklistItem[];
 }
 
-// Form interfaces for creating/updating
-export interface CreateNoteCategoryForm {
+// Updated form interfaces
+export interface CreateNoteStatusForm {
   projectId: number;
   name: string;
+  color: string;
 }
 
-export interface UpdateNoteCategoryForm {
+export interface UpdateNoteStatusForm {
   name?: string;
+  color?: string;
+  isDefault?: boolean;
   sortOrder?: number;
 }
 
@@ -689,14 +714,36 @@ export interface CreateEngineeringNoteForm {
   categoryId: number;
   title: string;
   content?: string;
-  status?: "draft" | "in_progress" | "completed" | "blocked";
+  statusId?: number; // Changed from status string
 }
 
 export interface UpdateEngineeringNoteForm {
   title?: string;
   content?: string;
-  status?: "draft" | "in_progress" | "completed" | "blocked";
-  categoryId?: number; // For moving between categories
+  categoryId?: number;
+  sortOrder?: number;
+  statusIds?: number[]; // Array of status IDs to assign
+}
+
+// New interfaces for managing status assignments
+export interface AssignStatusToNoteForm {
+  noteId: number;
+  statusId: number;
+}
+
+export interface RemoveStatusFromNoteForm {
+  noteId: number;
+  statusId: number;
+}
+
+// Keep other existing form interfaces unchanged
+export interface CreateNoteCategoryForm {
+  projectId: number;
+  name: string;
+}
+
+export interface UpdateNoteCategoryForm {
+  name?: string;
   sortOrder?: number;
 }
 
@@ -716,7 +763,6 @@ export interface UpdateNoteChecklistItemForm {
   sortOrder?: number;
 }
 
-// Reorder interfaces
 export interface ReorderCategoriesForm {
   projectId: number;
   orderedCategoryIds: number[];
@@ -732,17 +778,96 @@ export interface ReorderChecklistItemsForm {
   orderedItemIds: number[];
 }
 
-// Summary interfaces
+export interface ReorderStatusesForm {
+  projectId: number;
+  orderedStatusIds: number[];
+}
+
 export interface ChecklistSummary {
   completedItems: number;
   totalItems: number;
 }
 
-// API Response interfaces
-export interface EngineeringNotesResponse {
-  categories: NoteCategoryWithNotes[];
-}
-
-export interface ProjectsResponse {
-  projects: Project[];
-}
+// Color options for status creation
+export const STATUS_COLOR_OPTIONS = [
+  {
+    value: "blue",
+    label: "Blue",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    textColor: "text-blue-800",
+    preview: "bg-blue-500",
+  },
+  {
+    value: "pink",
+    label: "Pink",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-200",
+    textColor: "text-pink-800",
+    preview: "bg-pink-500",
+  },
+  {
+    value: "green",
+    label: "Green",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    textColor: "text-green-800",
+    preview: "bg-green-500",
+  },
+  {
+    value: "red",
+    label: "Red",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    textColor: "text-red-800",
+    preview: "bg-red-500",
+  },
+  {
+    value: "yellow",
+    label: "Yellow",
+    bgColor: "bg-yellow-50",
+    borderColor: "border-yellow-200",
+    textColor: "text-yellow-800",
+    preview: "bg-yellow-500",
+  },
+  {
+    value: "purple",
+    label: "Purple",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    textColor: "text-purple-800",
+    preview: "bg-purple-500",
+  },
+  {
+    value: "indigo",
+    label: "Indigo",
+    bgColor: "bg-indigo-50",
+    borderColor: "border-indigo-200",
+    textColor: "text-indigo-800",
+    preview: "bg-indigo-500",
+  },
+  {
+    value: "gray",
+    label: "Gray",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+    textColor: "text-gray-800",
+    preview: "bg-gray-500",
+  },
+  {
+    value: "orange",
+    label: "Orange",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    textColor: "text-orange-800",
+    preview: "bg-orange-500",
+  },
+  {
+    value: "teal",
+    label: "Teal",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    textColor: "text-teal-800",
+    preview: "bg-teal-500",
+  },
+] as const;

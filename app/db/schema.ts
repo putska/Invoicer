@@ -16,6 +16,7 @@ import {
   jsonb,
   primaryKey,
   uniqueIndex,
+  unique,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -577,19 +578,19 @@ export type NewTaskHistory = typeof taskHistory.$inferInsert;
 
 // Database Schema for Engineering Notes
 
-// Categories table - each category belongs to a project
+// Existing note categories table (unchanged)
 export const noteCategories = pgTable("note_categories", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
-  name: text("name").notNull(), // e.g., "DA", "Shop Drawings", "Takeoffs", "Fabrication"
+  name: text("name").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Engineering Notes/Cards table
+// UPDATED: Engineering notes table - removed statusId field
 export const engineeringNotes = pgTable("engineering_notes", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id")
@@ -597,13 +598,48 @@ export const engineeringNotes = pgTable("engineering_notes", {
     .references(() => noteCategories.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   content: text("content"), // Rich text content
-  status: text("status").notNull().default("draft"), // draft, in_progress, completed, blocked
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Checklists for engineering notes (reusing your structure)
+// Existing note statuses table (unchanged)
+export const noteStatuses = pgTable("note_statuses", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  bgColor: text("bg_color").notNull(),
+  borderColor: text("border_color").notNull(),
+  textColor: text("text_color").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// NEW: Junction table for many-to-many note-status relationships
+export const noteStatusAssignments = pgTable(
+  "note_status_assignments",
+  {
+    id: serial("id").primaryKey(),
+    noteId: integer("note_id")
+      .notNull()
+      .references(() => engineeringNotes.id, { onDelete: "cascade" }),
+    statusId: integer("status_id")
+      .notNull()
+      .references(() => noteStatuses.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    // Unique constraint to prevent duplicate note-status assignments
+    uniqueNoteStatus: unique().on(table.noteId, table.statusId),
+  })
+);
+
+// Existing checklist tables (unchanged)
 export const noteChecklists = pgTable("note_checklists", {
   id: serial("id").primaryKey(),
   noteId: integer("note_id")
@@ -615,7 +651,6 @@ export const noteChecklists = pgTable("note_checklists", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Checklist items for engineering notes
 export const noteChecklistItems = pgTable("note_checklist_items", {
   id: serial("id").primaryKey(),
   checklistId: integer("checklist_id")

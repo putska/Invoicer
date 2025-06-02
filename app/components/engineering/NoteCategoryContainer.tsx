@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   NoteCategoryWithNotes,
-  EngineeringNote,
+  EngineeringNoteWithStatuses,
   CreateEngineeringNoteForm,
 } from "../../types";
 import { EngineeringNoteCard } from "./EngineeringNoteCard";
@@ -31,19 +31,32 @@ import { EngineeringNoteCard } from "./EngineeringNoteCard";
 interface NoteCategoryContainerProps {
   category: NoteCategoryWithNotes;
   isDragging?: boolean;
+  draggedNoteId?: number | null;
+  availableStatuses?: any[]; // Add available statuses prop
   onAddNote: (data: CreateEngineeringNoteForm) => Promise<void>;
-  onEditNote: (note: EngineeringNote) => void;
+  onEditNote: (note: EngineeringNoteWithStatuses) => void;
   onDeleteNote: (noteId: number) => Promise<void>;
   onEditCategory: (categoryId: number, name: string) => Promise<void>;
   onDeleteCategory: (categoryId: number) => Promise<void>;
-  onNoteDragStart: (e: React.DragEvent, note: EngineeringNote) => void;
+  onNoteDragStart: (
+    e: React.DragEvent,
+    note: EngineeringNoteWithStatuses
+  ) => void;
   onNoteDragOver: (e: React.DragEvent) => void;
-  onNoteDrop: (e: React.DragEvent, categoryId: number) => void;
+  onNoteDrop: (
+    e: React.DragEvent,
+    categoryId: number,
+    dropIndex?: number
+  ) => void;
+  onStatusAdd?: (noteId: number, statusId: number) => void; // Add status handlers
+  onStatusRemove?: (noteId: number, statusId: number) => void;
 }
 
 export function NoteCategoryContainer({
   category,
   isDragging,
+  draggedNoteId,
+  availableStatuses = [],
   onAddNote,
   onEditNote,
   onDeleteNote,
@@ -52,6 +65,8 @@ export function NoteCategoryContainer({
   onNoteDragStart,
   onNoteDragOver,
   onNoteDrop,
+  onStatusAdd,
+  onStatusRemove,
 }: NoteCategoryContainerProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -59,6 +74,8 @@ export function NoteCategoryContainer({
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isDragOverCategory, setIsDragOverCategory] = useState(false);
 
   const handleSaveEdit = async () => {
     if (editName.trim() && editName !== category.name) {
@@ -80,7 +97,7 @@ export function NoteCategoryContainer({
       categoryId: category.id,
       title: newNoteTitle.trim(),
       content: "",
-      status: "draft",
+      // statusId will be automatically set to the default project status in the backend
     });
 
     setNewNoteTitle("");
@@ -103,15 +120,71 @@ export function NoteCategoryContainer({
     }
   };
 
+  const handleCategoryDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setIsDragOverCategory(true);
+
+    // Only set to end position if we're not over a specific note
+    // (this gets overridden by individual note drag over handlers)
+    //setDragOverIndex(category.notes.length);
+
+    onNoteDragOver(e); // Call the original handler
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear the drag state if we're leaving the category entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverIndex(null);
+      setIsDragOverCategory(false);
+    }
+  };
+
+  // Only hide the dragged note if we're in a different category and actively dragging over it
+  const isDraggedNoteInThisCategory =
+    draggedNoteId && category.notes.some((note) => note.id === draggedNoteId);
+  const shouldHideDraggedNote =
+    draggedNoteId && !isDraggedNoteInThisCategory && isDragOverCategory;
+
+  const visibleNotes = shouldHideDraggedNote
+    ? category.notes.filter((note) => note.id !== draggedNoteId)
+    : category.notes;
+
+  // Get the original position of the dragged note in this category
+  const draggedNoteOriginalIndex = draggedNoteId
+    ? category.notes.findIndex((note) => note.id === draggedNoteId)
+    : -1;
+
+  const isDraggedNoteFromThisCategory = draggedNoteOriginalIndex !== -1;
+
   return (
     <Card
       className={cn(
-        "w-80 flex-shrink-0 bg-gray-50 border-2",
-        isDragging && "opacity-50"
+        "w-80 flex-shrink-0 bg-gray-50 border-2 transition-all duration-200",
+        isDragging && "opacity-50",
+        isDragOverCategory && "ring-2 ring-blue-400 ring-opacity-50 bg-blue-50" // <- ADD THIS LINE
       )}
       draggable
-      onDragOver={onNoteDragOver}
-      onDrop={(e) => onNoteDrop(e, category.id)}
+      onDragOver={handleCategoryDragOver}
+      onDragLeave={handleDragLeave} // <- ADD THIS LINE
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Capture the drop index BEFORE clearing state
+        const finalDropIndex = dragOverIndex;
+
+        // Clear drag state
+        setDragOverIndex(null);
+        setIsDragOverCategory(false);
+
+        onNoteDrop(
+          e,
+          category.id,
+          finalDropIndex !== null ? finalDropIndex : undefined
+        );
+      }}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -253,32 +326,150 @@ export function NoteCategoryContainer({
         )}
       </CardHeader>
 
-      {isExpanded && (
-        <CardContent className="pt-0">
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {category.notes.length === 0 ? (
-              <div className="text-center text-gray-500 text-sm py-4">
-                No notes yet. Click the + button to add one.
-              </div>
-            ) : (
-              category.notes.map((note, index) => (
+      {/* Always show the CardContent, but vary the content based on expanded state */}
+      <CardContent className="pt-0">
+        <div
+          className={cn(
+            "space-y-2 overflow-y-auto",
+            isExpanded ? "max-h-[calc(100vh-200px)]" : "max-h-48"
+          )}
+        >
+          {visibleNotes.length === 0 && !draggedNoteId ? (
+            <div className="text-center text-gray-500 text-sm py-4">
+              No notes yet. Click the + button to add one.
+            </div>
+          ) : visibleNotes.length === 0 && draggedNoteId ? (
+            // Empty container while dragging - show drop zone
+            <div className="h-20 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
+              <span className="text-blue-600 text-sm font-medium">
+                Drop here
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Show drop indicator at the beginning if dragging over index 0 */}
+              {dragOverIndex === 0 &&
+                draggedNoteId &&
+                (!isDraggedNoteFromThisCategory ||
+                  draggedNoteOriginalIndex > 0) && (
+                  <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-medium">
+                      Drop here
+                    </span>
+                  </div>
+                )}
+
+              {visibleNotes.map((note, index) => {
+                const actualIndex = category.notes.findIndex(
+                  (n) => n.id === note.id
+                );
+                return (
+                  <div key={note.id}>
+                    <div
+                      draggable
+                      onDragStart={(e) => {
+                        // Reset any previous drag state first
+                        setDragOverIndex(null);
+                        e.stopPropagation(); // Prevent category drag
+                        e.dataTransfer.setData(
+                          "text/plain",
+                          note.id.toString()
+                        );
+                        onNoteDragStart(e, note);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = "move";
+
+                        // Calculate drop position based on mouse position within the card
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const mouseY = e.clientY - rect.top;
+                        const cardHeight = rect.height;
+
+                        // If hovering over top half, drop before this card; bottom half, drop after
+                        const dropIndex =
+                          mouseY < cardHeight / 2
+                            ? actualIndex
+                            : actualIndex + 1;
+                        setDragOverIndex(dropIndex);
+                        setIsDragOverCategory(true);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Capture the drop index BEFORE clearing state
+                        const finalDropIndex = dragOverIndex;
+
+                        // Clear drag state
+                        setDragOverIndex(null);
+                        setIsDragOverCategory(false);
+
+                        onNoteDrop(
+                          e,
+                          category.id,
+                          finalDropIndex !== null ? finalDropIndex : undefined
+                        );
+                      }}
+                    >
+                      <EngineeringNoteCard
+                        note={note}
+                        index={actualIndex}
+                        isCollapsed={!isExpanded}
+                        availableStatuses={availableStatuses}
+                        onEdit={onEditNote}
+                        onDelete={onDeleteNote}
+                        onStatusAdd={onStatusAdd}
+                        onStatusRemove={onStatusRemove}
+                      />
+                    </div>
+
+                    {/* Show drop indicator after this note if dragging over the next index */}
+                    {dragOverIndex === actualIndex + 1 &&
+                      draggedNoteId &&
+                      actualIndex + 1 < category.notes.length && // <- ADD THIS LINE
+                      (!isDraggedNoteFromThisCategory ||
+                        (draggedNoteOriginalIndex !== actualIndex &&
+                          draggedNoteOriginalIndex !== actualIndex + 1)) && (
+                        <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
+                          <span className="text-blue-600 text-sm font-medium">
+                            Drop here
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                );
+              })}
+
+              {/* Empty space at the end for dropping */}
+              {visibleNotes.length > 0 && (
                 <div
-                  key={note.id}
-                  draggable
-                  onDragStart={(e) => onNoteDragStart(e, note)}
-                >
-                  <EngineeringNoteCard
-                    note={note}
-                    index={index}
-                    onEdit={onEditNote}
-                    onDelete={onDeleteNote}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      )}
+                  className="h-4 w-full"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragOverIndex(category.notes.length);
+                    setIsDragOverCategory(true);
+                  }}
+                />
+              )}
+
+              {/* Show drop indicator at the end if dragging over the last position */}
+              {dragOverIndex === category.notes.length &&
+                draggedNoteId &&
+                (!isDraggedNoteFromThisCategory ||
+                  draggedNoteOriginalIndex < category.notes.length - 1) && (
+                  <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-medium">
+                      Drop here
+                    </span>
+                  </div>
+                )}
+            </>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }

@@ -2,11 +2,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  EngineeringNote,
-  UpdateEngineeringNoteForm,
-  NoteCategory,
-} from "../../types";
+
+// Temporary types (normally imported)
+interface NoteStatus {
+  id: number;
+  projectId: number;
+  name: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+  isDefault: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface EngineeringNoteWithStatuses {
+  id: number;
+  categoryId: number;
+  title: string;
+  content: string | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  statuses: NoteStatus[];
+}
+
+interface NoteCategory {
+  id: number;
+  projectId: number;
+  name: string;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UpdateEngineeringNoteForm {
+  title?: string;
+  content?: string;
+  categoryId?: number;
+  sortOrder?: number;
+  statusIds?: number[];
+}
 import {
   Dialog,
   DialogContent,
@@ -27,8 +65,9 @@ import {
 import { RichTextEditor } from "./RichTextEditor";
 
 interface EngineeringNoteEditDialogProps {
-  note: EngineeringNote | null;
+  note: EngineeringNoteWithStatuses | null;
   categories: NoteCategory[];
+  statuses: NoteStatus[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (noteId: number, updates: UpdateEngineeringNoteForm) => Promise<void>;
@@ -51,6 +90,7 @@ type Checklist = {
 export function EngineeringNoteEditDialog({
   note,
   categories,
+  statuses,
   isOpen,
   onClose,
   onSave,
@@ -70,8 +110,8 @@ export function EngineeringNoteEditDialog({
       setFormData({
         title: note.title,
         content: note.content || "",
-        status: note.status,
         categoryId: note.categoryId,
+        // Remove statusIds from here since we manage statuses on the card
       });
     }
   }, [note]);
@@ -303,52 +343,27 @@ export function EngineeringNoteEditDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={formData.status || note.status}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, status: value as any })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="blocked">Blocked</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-category">Category</Label>
-              <Select
-                value={
-                  formData.categoryId?.toString() || note.categoryId.toString()
-                }
-                onValueChange={(value) =>
-                  setFormData({ ...formData, categoryId: parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                    >
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="edit-category">Category</Label>
+            <Select
+              value={
+                formData.categoryId?.toString() || note.categoryId.toString()
+              }
+              onValueChange={(value) =>
+                setFormData({ ...formData, categoryId: parseInt(value) })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Checklist Section */}

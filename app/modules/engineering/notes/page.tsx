@@ -17,12 +17,14 @@ import { cn } from "@/lib/utils";
 import {
   Project,
   NoteCategoryWithNotes,
-  EngineeringNote,
+  EngineeringNoteWithStatuses,
+  NoteStatus,
   CreateNoteCategoryForm,
   CreateEngineeringNoteForm,
   UpdateEngineeringNoteForm,
 } from "../../../types";
 import { NoteCategoryContainer } from "../../../components/engineering/NoteCategoryContainer";
+import { StatusManagement } from "../../../components/engineering/StatusManagement";
 import { EngineeringNoteEditDialog } from "../../../components/engineering/EngineeringNoteEditDialog";
 
 export default function EngineeringNotesPage() {
@@ -31,11 +33,14 @@ export default function EngineeringNotesPage() {
     null
   );
   const [categories, setCategories] = useState<NoteCategoryWithNotes[]>([]);
+  const [statuses, setStatuses] = useState<NoteStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [editingNote, setEditingNote] = useState<EngineeringNote | null>(null);
-  const [draggedNote, setDraggedNote] = useState<EngineeringNote | null>(null);
+  const [editingNote, setEditingNote] =
+    useState<EngineeringNoteWithStatuses | null>(null);
+  const [draggedNote, setDraggedNote] =
+    useState<EngineeringNoteWithStatuses | null>(null);
   const [draggedCategory, setDraggedCategory] =
     useState<NoteCategoryWithNotes | null>(null);
 
@@ -44,12 +49,14 @@ export default function EngineeringNotesPage() {
     fetchProjects();
   }, []);
 
-  // Fetch categories when project changes
+  // Fetch categories and statuses when project changes
   useEffect(() => {
     if (selectedProjectId) {
       fetchCategories(selectedProjectId);
+      fetchStatuses(selectedProjectId);
     } else {
       setCategories([]);
+      setStatuses([]);
     }
   }, [selectedProjectId]);
 
@@ -61,6 +68,20 @@ export default function EngineeringNotesPage() {
       setProjects(data.projects || []);
     } catch (error) {
       console.error("Error fetching projects:", error);
+    }
+  };
+
+  const fetchStatuses = async (projectId: number) => {
+    try {
+      const res = await fetch(
+        `/api/engineering/notes/statuses?projectId=${projectId}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch statuses");
+      const data = await res.json();
+      setStatuses(data.statuses || []);
+    } catch (error) {
+      console.error("Error fetching statuses:", error);
+      setStatuses([]);
     }
   };
 
@@ -173,7 +194,7 @@ export default function EngineeringNotesPage() {
     }
   };
 
-  const handleEditNote = (note: EngineeringNote) => {
+  const handleEditNote = (note: EngineeringNoteWithStatuses) => {
     setEditingNote(note);
   };
 
@@ -190,26 +211,9 @@ export default function EngineeringNotesPage() {
 
       if (!res.ok) throw new Error("Failed to update note");
 
-      const data = await res.json();
-      const updatedNote = data.note;
-
-      setCategories((prev) =>
-        prev.map((cat) => ({
-          ...cat,
-          notes: cat.notes.map((note) =>
-            note.id === noteId ? updatedNote : note
-          ),
-        }))
-      );
-
-      // If the note was moved to a different category, refresh the data
-      if (
-        updates.categoryId &&
-        updates.categoryId !== editingNote?.categoryId
-      ) {
-        if (selectedProjectId) {
-          fetchCategories(selectedProjectId);
-        }
+      // Refresh the categories to get updated note with statuses
+      if (selectedProjectId) {
+        fetchCategories(selectedProjectId);
       }
 
       setEditingNote(null);
@@ -239,8 +243,51 @@ export default function EngineeringNotesPage() {
     }
   };
 
+  // Add handlers for status badge management
+  const handleStatusAdd = async (noteId: number, statusId: number) => {
+    try {
+      console.log("Adding status:", { noteId, statusId });
+      const res = await fetch("/api/engineering/notes/status-assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noteId, statusId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to add status");
+
+      // Refresh categories to show updated status badges
+      if (selectedProjectId) {
+        fetchCategories(selectedProjectId);
+      }
+    } catch (error) {
+      console.error("Error adding status:", error);
+    }
+  };
+
+  const handleStatusRemove = async (noteId: number, statusId: number) => {
+    try {
+      const res = await fetch("/api/engineering/notes/status-assignments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noteId, statusId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to remove status");
+
+      // Refresh categories to show updated status badges
+      if (selectedProjectId) {
+        fetchCategories(selectedProjectId);
+      }
+    } catch (error) {
+      console.error("Error removing status:", error);
+    }
+  };
+
   // Drag and drop handlers for notes
-  const handleNoteDragStart = (e: React.DragEvent, note: EngineeringNote) => {
+  const handleNoteDragStart = (
+    e: React.DragEvent,
+    note: EngineeringNoteWithStatuses
+  ) => {
     setDraggedNote(note);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -250,52 +297,116 @@ export default function EngineeringNotesPage() {
     e.dataTransfer.dropEffect = "move";
   };
 
+  // Add this new function for reordering notes within the same category
+  const handleNoteReorder = async (
+    categoryId: number,
+    sourceIndex: number,
+    targetIndex: number
+  ) => {
+    if (sourceIndex === targetIndex) return;
+
+    try {
+      // Find the category and reorder its notes
+      const category = categories.find((cat) => cat.id === categoryId);
+      if (!category) return;
+
+      const newNotes = [...category.notes];
+      const [movedNote] = newNotes.splice(sourceIndex, 1);
+      newNotes.splice(targetIndex, 0, movedNote);
+
+      // Update local state immediately
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.id === categoryId ? { ...cat, notes: newNotes } : cat
+        )
+      );
+
+      // Send reorder request to server
+      const orderedNoteIds = newNotes.map((note) => note.id);
+      await fetch("/api/engineering/notes/notes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryId,
+          orderedNoteIds,
+        }),
+      });
+    } catch (error) {
+      console.error("Error reordering notes:", error);
+      // Revert on error
+      if (selectedProjectId) {
+        fetchCategories(selectedProjectId);
+      }
+    }
+  };
+
+  // Update the handleNoteDrop function with simpler logic
   const handleNoteDrop = async (
     e: React.DragEvent,
-    targetCategoryId: number
+    targetCategoryId: number,
+    dropIndex?: number
   ) => {
     e.preventDefault();
 
-    if (!draggedNote || draggedNote.categoryId === targetCategoryId) {
+    if (!draggedNote) {
       setDraggedNote(null);
       return;
     }
 
+    // If dropping in the same category, handle reordering
+    if (draggedNote.categoryId === targetCategoryId) {
+      const category = categories.find((cat) => cat.id === targetCategoryId);
+      if (!category) return;
+
+      const sourceIndex = category.notes.findIndex(
+        (note) => note.id === draggedNote.id
+      );
+
+      // Adjust drop index for same-category moves
+      let targetIndex;
+      if (dropIndex !== undefined) {
+        // If dropping after the source position, adjust for the removal of the source card
+        targetIndex = dropIndex > sourceIndex ? dropIndex - 1 : dropIndex;
+      } else {
+        targetIndex = sourceIndex;
+      }
+
+      console.log("Drop debug:", {
+        dropIndex,
+        sourceIndex,
+        targetIndex,
+        adjusted: dropIndex !== undefined && dropIndex > sourceIndex,
+      });
+
+      if (sourceIndex !== targetIndex) {
+        await handleNoteReorder(targetCategoryId, sourceIndex, targetIndex);
+      }
+
+      setDraggedNote(null);
+      return;
+    }
+
+    // If dropping in a different category, handle moving
     try {
-      // Update the note's category
+      const moveData: any = { categoryId: targetCategoryId };
+
+      console.log("Cross-category move:", { dropIndex });
+
       const res = await fetch(
         `/api/engineering/notes/notes/${draggedNote.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ categoryId: targetCategoryId }),
+          body: JSON.stringify(moveData),
         }
       );
 
       if (!res.ok) throw new Error("Failed to move note");
 
-      const data = await res.json();
-      const updatedNote = data.note;
-
-      // Update local state
-      setCategories((prev) =>
-        prev.map((cat) => {
-          if (cat.id === draggedNote.categoryId) {
-            // Remove from old category
-            return {
-              ...cat,
-              notes: cat.notes.filter((note) => note.id !== draggedNote.id),
-            };
-          } else if (cat.id === targetCategoryId) {
-            // Add to new category
-            return {
-              ...cat,
-              notes: [...cat.notes, updatedNote],
-            };
-          }
-          return cat;
-        })
-      );
+      // Refresh categories to get updated data
+      if (selectedProjectId) {
+        fetchCategories(selectedProjectId);
+      }
     } catch (error) {
       console.error("Error moving note:", error);
     } finally {
@@ -393,13 +504,21 @@ export default function EngineeringNotesPage() {
           </div>
 
           {selectedProjectId && (
-            <Button
-              onClick={() => setIsAddingCategory(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Category
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsAddingCategory(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Category
+              </Button>
+
+              <StatusManagement
+                projectId={selectedProjectId}
+                statuses={statuses}
+                onStatusesChange={setStatuses}
+              />
+            </div>
           )}
         </div>
 
@@ -471,6 +590,8 @@ export default function EngineeringNotesPage() {
                 <NoteCategoryContainer
                   category={category}
                   isDragging={draggedCategory?.id === category.id}
+                  draggedNoteId={draggedNote?.id || null}
+                  availableStatuses={statuses}
                   onAddNote={handleAddNote}
                   onEditNote={handleEditNote}
                   onDeleteNote={handleDeleteNote}
@@ -479,6 +600,8 @@ export default function EngineeringNotesPage() {
                   onNoteDragStart={handleNoteDragStart}
                   onNoteDragOver={handleNoteDragOver}
                   onNoteDrop={handleNoteDrop}
+                  onStatusAdd={handleStatusAdd} // Add this line
+                  onStatusRemove={handleStatusRemove} // Add this line
                 />
               </div>
             ))
@@ -490,6 +613,7 @@ export default function EngineeringNotesPage() {
       <EngineeringNoteEditDialog
         note={editingNote}
         categories={categories}
+        statuses={statuses}
         isOpen={!!editingNote}
         onClose={() => setEditingNote(null)}
         onSave={handleSaveNote}
