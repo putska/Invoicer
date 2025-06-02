@@ -25,6 +25,7 @@ import {
   NoteCategoryWithNotes,
   EngineeringNoteWithStatuses,
   CreateEngineeringNoteForm,
+  ChecklistSummary,
 } from "../../types";
 import { EngineeringNoteCard } from "./EngineeringNoteCard";
 
@@ -33,6 +34,7 @@ interface NoteCategoryContainerProps {
   isDragging?: boolean;
   draggedNoteId?: number | null;
   availableStatuses?: any[]; // Add available statuses prop
+  checklistSummaries?: Record<number, ChecklistSummary | null>;
   onAddNote: (data: CreateEngineeringNoteForm) => Promise<void>;
   onEditNote: (note: EngineeringNoteWithStatuses) => void;
   onDeleteNote: (noteId: number) => Promise<void>;
@@ -57,6 +59,7 @@ export function NoteCategoryContainer({
   isDragging,
   draggedNoteId,
   availableStatuses = [],
+  checklistSummaries = {},
   onAddNote,
   onEditNote,
   onDeleteNote,
@@ -347,16 +350,12 @@ export function NoteCategoryContainer({
             </div>
           ) : (
             <>
-              {/* Show drop indicator at the beginning if dragging over index 0 */}
+              {/* Show empty space at the beginning if dragging over index 0 */}
               {dragOverIndex === 0 &&
                 draggedNoteId &&
                 (!isDraggedNoteFromThisCategory ||
                   draggedNoteOriginalIndex > 0) && (
-                  <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
-                    <span className="text-blue-600 text-sm font-medium">
-                      Drop here
-                    </span>
-                  </div>
+                  <div className="h-20 transition-all duration-200"></div>
                 )}
 
               {visibleNotes.map((note, index) => {
@@ -418,6 +417,7 @@ export function NoteCategoryContainer({
                         index={actualIndex}
                         isCollapsed={!isExpanded}
                         availableStatuses={availableStatuses}
+                        checklistSummary={checklistSummaries[note.id] || null}
                         onEdit={onEditNote}
                         onDelete={onDeleteNote}
                         onStatusAdd={onStatusAdd}
@@ -425,18 +425,14 @@ export function NoteCategoryContainer({
                       />
                     </div>
 
-                    {/* Show drop indicator after this note if dragging over the next index */}
+                    {/* Show empty space after this note if dragging over the next index */}
                     {dragOverIndex === actualIndex + 1 &&
                       draggedNoteId &&
-                      actualIndex + 1 < category.notes.length && // <- ADD THIS LINE
+                      actualIndex + 1 < category.notes.length &&
                       (!isDraggedNoteFromThisCategory ||
                         (draggedNoteOriginalIndex !== actualIndex &&
                           draggedNoteOriginalIndex !== actualIndex + 1)) && (
-                        <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
-                          <span className="text-blue-600 text-sm font-medium">
-                            Drop here
-                          </span>
-                        </div>
+                        <div className="h-20 transition-all duration-200"></div>
                       )}
                   </div>
                 );
@@ -455,16 +451,12 @@ export function NoteCategoryContainer({
                 />
               )}
 
-              {/* Show drop indicator at the end if dragging over the last position */}
+              {/* Show empty space at the end if dragging over the last position */}
               {dragOverIndex === category.notes.length &&
                 draggedNoteId &&
                 (!isDraggedNoteFromThisCategory ||
                   draggedNoteOriginalIndex < category.notes.length - 1) && (
-                  <div className="h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 mx-2 transition-all duration-200 flex items-center justify-center">
-                    <span className="text-blue-600 text-sm font-medium">
-                      Drop here
-                    </span>
-                  </div>
+                  <div className="h-20 transition-all duration-200"></div>
                 )}
             </>
           )}

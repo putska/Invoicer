@@ -22,6 +22,7 @@ import {
   CreateNoteCategoryForm,
   CreateEngineeringNoteForm,
   UpdateEngineeringNoteForm,
+  ChecklistSummary,
 } from "../../../types";
 import { NoteCategoryContainer } from "../../../components/engineering/NoteCategoryContainer";
 import { StatusManagement } from "../../../components/engineering/StatusManagement";
@@ -35,6 +36,9 @@ export default function EngineeringNotesPage() {
   const [categories, setCategories] = useState<NoteCategoryWithNotes[]>([]);
   const [statuses, setStatuses] = useState<NoteStatus[]>([]);
   const [loading, setLoading] = useState(false);
+  const [checklistSummaries, setChecklistSummaries] = useState<
+    Record<number, ChecklistSummary | null>
+  >({});
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingNote, setEditingNote] =
@@ -85,18 +89,112 @@ export default function EngineeringNotesPage() {
     }
   };
 
-  const fetchCategories = async (projectId: number) => {
+  const fetchCategories = async (
+    projectId: number,
+    shouldRefreshSummaries = false
+  ) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/engineering/notes?projectId=${projectId}`);
       if (!res.ok) throw new Error("Failed to fetch categories");
       const data = await res.json();
-      setCategories(data.categories || []);
+      const newCategories = data.categories || [];
+      setCategories(newCategories);
+
+      // Only fetch summaries if explicitly requested or if we don't have them yet
+      if (
+        shouldRefreshSummaries ||
+        Object.keys(checklistSummaries).length === 0
+      ) {
+        const allNoteIds = newCategories.flatMap((cat: any) =>
+          cat.notes.map((note: any) => note.id)
+        );
+
+        if (allNoteIds.length > 0) {
+          await fetchChecklistSummaries(allNoteIds);
+        }
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
       setCategories([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChecklistSummaries = async (noteIds: number[]) => {
+    try {
+      // Fetch summaries for all notes in parallel
+      const summaryPromises = noteIds.map(async (noteId) => {
+        try {
+          const res = await fetch(
+            `/api/engineering/notes/checklists/summary/${noteId}`
+          );
+          if (!res.ok) return { noteId, summary: null };
+          const data = await res.json();
+          return { noteId, summary: data.summary };
+        } catch (error) {
+          console.error(`Error fetching summary for note ${noteId}:`, error);
+          return { noteId, summary: null };
+        }
+      });
+
+      const results = await Promise.all(summaryPromises);
+
+      // Convert to object format for easy lookup
+      const summariesMap: Record<number, ChecklistSummary | null> = {};
+      results.forEach(({ noteId, summary }) => {
+        summariesMap[noteId] = summary;
+      });
+
+      setChecklistSummaries((prev) => ({ ...prev, ...summariesMap }));
+    } catch (error) {
+      console.error("Error fetching checklist summaries:", error);
+    }
+  };
+
+  // Helper function to update local state immediately for cross-category moves
+  const updateLocalStateForCrossMove = (
+    movedNote: EngineeringNoteWithStatuses,
+    targetCategoryId: number,
+    dropIndex: number
+  ) => {
+    setCategories((prev) => {
+      const newCategories = prev.map((cat) => {
+        // Remove note from source category
+        if (cat.id === movedNote.categoryId) {
+          return {
+            ...cat,
+            notes: cat.notes.filter((note) => note.id !== movedNote.id),
+          };
+        }
+
+        // Add note to target category at correct position
+        if (cat.id === targetCategoryId) {
+          const newNotes = [...cat.notes];
+          const updatedNote = { ...movedNote, categoryId: targetCategoryId };
+
+          // Insert at the correct position
+          if (dropIndex >= newNotes.length) {
+            newNotes.push(updatedNote);
+          } else {
+            newNotes.splice(dropIndex, 0, updatedNote);
+          }
+
+          return { ...cat, notes: newNotes };
+        }
+
+        return cat;
+      });
+
+      return newCategories;
+    });
+  };
+
+  // Helper function to revert local state if API call fails
+  const revertToServerState = () => {
+    if (selectedProjectId !== null) {
+      fetchCategories(selectedProjectId, false);
     }
   };
 
@@ -387,30 +485,45 @@ export default function EngineeringNotesPage() {
     }
 
     // If dropping in a different category, handle moving
-    try {
-      const moveData: any = { categoryId: targetCategoryId };
+    if (draggedNote.categoryId !== targetCategoryId) {
+      console.log("Cross-category move:", {
+        dropIndex,
+        from: draggedNote.categoryId,
+        to: targetCategoryId,
+      });
 
-      console.log("Cross-category move:", { dropIndex });
-
-      const res = await fetch(
-        `/api/engineering/notes/notes/${draggedNote.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(moveData),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to move note");
-
-      // Refresh categories to get updated data
-      if (selectedProjectId) {
-        fetchCategories(selectedProjectId);
+      // Update local state immediately for instant visual feedback
+      if (dropIndex !== undefined) {
+        updateLocalStateForCrossMove(draggedNote, targetCategoryId, dropIndex);
       }
-    } catch (error) {
-      console.error("Error moving note:", error);
-    } finally {
-      setDraggedNote(null);
+
+      try {
+        const moveData: any = { categoryId: targetCategoryId };
+
+        const res = await fetch(
+          `/api/engineering/notes/notes/${draggedNote.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(moveData),
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to move note");
+
+        // If we didn't do optimistic positioning, refresh normally
+        if (dropIndex === undefined && selectedProjectId !== null) {
+          fetchCategories(selectedProjectId, false);
+        }
+        // If we did optimistic positioning, the UI is already updated!
+      } catch (error) {
+        console.error("Error moving note:", error);
+        // Revert to server state on error
+        revertToServerState();
+      } finally {
+        setDraggedNote(null);
+      }
+      return;
     }
   };
 
@@ -592,6 +705,7 @@ export default function EngineeringNotesPage() {
                   isDragging={draggedCategory?.id === category.id}
                   draggedNoteId={draggedNote?.id || null}
                   availableStatuses={statuses}
+                  checklistSummaries={checklistSummaries}
                   onAddNote={handleAddNote}
                   onEditNote={handleEditNote}
                   onDeleteNote={handleDeleteNote}

@@ -26,6 +26,7 @@ interface EngineeringNoteCardProps {
   isDragging?: boolean;
   isCollapsed?: boolean; // Add collapsed prop
   availableStatuses?: NoteStatus[];
+  checklistSummary?: ChecklistSummary | null;
   onEdit?: (note: EngineeringNoteWithStatuses) => void;
   onDelete?: (noteId: number) => void;
   onStatusAdd?: (noteId: number, statusId: number) => void;
@@ -38,6 +39,7 @@ export function EngineeringNoteCard({
   isDragging,
   isCollapsed = false, // Default to expanded
   availableStatuses = [],
+  checklistSummary,
   onEdit,
   onDelete,
   onStatusAdd,
@@ -45,31 +47,6 @@ export function EngineeringNoteCard({
 }: EngineeringNoteCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [summary, setSummary] = useState<ChecklistSummary | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchSummary() {
-      try {
-        const res = await fetch(
-          `/api/engineering/notes/checklists/summary/${note.id}`
-        );
-        if (!res.ok) {
-          throw new Error("Failed to fetch checklist summary");
-        }
-        const data = await res.json();
-        if (!cancelled) {
-          setSummary(data.summary);
-        }
-      } catch (error) {
-        console.error("Error fetching checklist summary:", error);
-      }
-    }
-    fetchSummary();
-    return () => {
-      cancelled = true;
-    };
-  }, [note.id]);
 
   const handleEdit = () => {
     setDropdownOpen(false);
@@ -346,11 +323,11 @@ export function EngineeringNoteCard({
             </p>
           )}
 
-          {summary && summary.totalItems > 0 && (
+          {checklistSummary && checklistSummary.totalItems > 0 && (
             <div className="flex items-center text-xs text-gray-500 gap-1">
               <CheckSquare className="h-4 w-4 shrink-0" />
               <span>
-                {summary.completedItems}/{summary.totalItems}
+                {checklistSummary.completedItems}/{checklistSummary.totalItems}
               </span>
             </div>
           )}
