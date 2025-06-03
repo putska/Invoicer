@@ -1,5 +1,5 @@
 // This file handles POST to create a checklist item and PUT to reorder items
-
+// /app/api/engineering/tasks/checklist-items/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
   addChecklistItem,
@@ -22,6 +22,9 @@ export async function PUT(req: NextRequest) {
   const { checklistId, orderedItemIds } = await req.json();
   if (!checklistId || !Array.isArray(orderedItemIds))
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  await reorderChecklistItems(checklistId, orderedItemIds);
+
+  // Pass as a single object that matches ReorderChecklistItemsForm
+  await reorderChecklistItems({ checklistId, orderedItemIds });
+
   return NextResponse.json({ success: true });
 }

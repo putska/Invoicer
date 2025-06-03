@@ -56,7 +56,11 @@ export async function PUT(req: NextRequest) {
     // Check if this is a reorder request
     if ("orderedItemIds" in body) {
       const reorderData = reorderChecklistItemsSchema.parse(body);
-      await reorderNotesChecklistItems(reorderData);
+
+      // Extract both required parameters
+      const { checklistId, orderedItemIds } = reorderData;
+
+      await reorderNotesChecklistItems(checklistId, orderedItemIds);
 
       return NextResponse.json(
         { message: "Checklist items reordered successfully!" },
