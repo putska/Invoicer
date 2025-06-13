@@ -20,8 +20,22 @@ import { ArchivedTasksView } from "../../components/engineering/ArchivedTasksVie
 import { JobHistoryView } from "../../components/engineering/JobHistoryView";
 import { TaskEditDialog } from "../../components/engineering/TaskEditDialog";
 import { DeleteConfirmationDialog } from "../../components/engineering/DeleteConfirmationDialog";
+import { PrintButton } from "../../components/engineering/PrintButton";
+import { PrintView } from "../../components/engineering/PrintView";
 import { useAuth } from "@clerk/nextjs";
 import type { DropResult } from "@hello-pangea/dnd";
+
+interface PrintGanttTask {
+  id: number;
+  name: string;
+  engineerId: number;
+  engineerName: string;
+  start: Date;
+  end: Date;
+  status: string;
+  projectName: string;
+  isLastMinute: boolean;
+}
 
 // Dynamically import DragDropContext to avoid SSR issues
 const DragDropContext = dynamic(
@@ -94,6 +108,9 @@ export default function EngineeringSchedulePage() {
   );
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [printType, setPrintType] = useState<
+    "full" | "engineers-only" | "projects-only"
+  >("full");
 
   // Fetch initial data
   useEffect(() => {
@@ -401,6 +418,13 @@ export default function EngineeringSchedulePage() {
     setEditingTask(task);
   };
 
+  const handlePrint = (
+    type: "full" | "engineers-only" | "projects-only" = "full"
+  ) => {
+    setPrintType(type);
+    // The PrintView component will be rendered and then window.print() will be called
+  };
+
   // Prepare Gantt data
   const ganttTasks =
     scheduleData?.engineers.flatMap((engineer) =>
@@ -415,8 +439,9 @@ export default function EngineeringSchedulePage() {
           end: new Date(task.assignment!.scheduledEnd!),
           status: task.status,
           projectName: task.project.name,
-          isOverdue: task.isOverdue || false,
-          isAtRisk: task.isAtRisk || false,
+          isLastMinute: task.isLastMinute || false,
+          isOverdue: false, // Add missing properties required by GanttTask
+          isAtRisk: false, // Add missing properties required by GanttTask
         }))
     ) || [];
 
@@ -450,6 +475,7 @@ export default function EngineeringSchedulePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Engineering Schedule</h1>
         <div className="flex items-center gap-2">
+          <PrintButton onPrint={() => handlePrint("full")} />
           <JobHistoryView projects={projects} />
           <ArchivedTasksView
             tasks={archivedTasks}
@@ -458,16 +484,29 @@ export default function EngineeringSchedulePage() {
         </div>
       </div>
 
-      {/* Gantt Chart */}
-      <GanttChart
-        engineers={scheduleData.engineers}
-        tasks={ganttTasks}
-        holidays={holidays}
-      />
+      {/* Print View - Hidden on screen, visible when printing */}
+      {scheduleData && (
+        <PrintView
+          scheduleData={scheduleData}
+          projects={projects}
+          printType={printType}
+          ganttTasks={ganttTasks}
+          holidays={holidays}
+        />
+      )}
+
+      {/* Gantt Chart - Hidden when printing */}
+      <div className="no-print">
+        <GanttChart
+          engineers={scheduleData.engineers}
+          tasks={ganttTasks}
+          holidays={holidays}
+        />
+      </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        {/* Engineer Management */}
-        <div>
+        {/* Engineer Management - Hidden when printing */}
+        <div className="no-print">
           <EngineerManagement
             engineers={scheduleData.engineers}
             onCreateEngineer={handleCreateEngineer}
@@ -476,8 +515,8 @@ export default function EngineeringSchedulePage() {
           />
         </div>
 
-        {/* Engineers Section */}
-        <div>
+        {/* Engineers Section - Hidden when printing */}
+        <div className="no-print">
           <h2 className="text-xl font-semibold mb-4">Engineers</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scheduleData.engineers.map((engineer) => (
@@ -492,8 +531,8 @@ export default function EngineeringSchedulePage() {
           </div>
         </div>
 
-        {/* Projects Section */}
-        <div>
+        {/* Projects Section - Hidden when printing */}
+        <div className="no-print">
           <h2 className="text-xl font-semibold mb-4">
             Unassigned Tasks by Project
           </h2>
@@ -513,9 +552,9 @@ export default function EngineeringSchedulePage() {
         </div>
       </DragDropContext>
 
-      {/* Render dialogs outside of DragDropContext */}
+      {/* Render dialogs outside of DragDropContext - Hidden when printing */}
       {typeof window !== "undefined" && (
-        <>
+        <div className="no-print">
           <TaskEditDialog
             task={editingTask}
             isOpen={!!editingTask}
@@ -530,7 +569,7 @@ export default function EngineeringSchedulePage() {
             title="Delete Task?"
             description="Are you sure you want to permanently delete this task? This action cannot be undone."
           />
-        </>
+        </div>
       )}
     </div>
   );

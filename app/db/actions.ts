@@ -45,6 +45,12 @@ import {
   noteChecklistItems,
   noteStatuses,
   noteStatusAssignments,
+  bimModels,
+  bimElements,
+  materialTakeoffs,
+  takeoffItems,
+  modelViews,
+  modelComments,
 } from "./schema";
 import {
   Customer,
@@ -96,6 +102,16 @@ import {
   EngineeringNoteWithStatuses,
   AssignStatusToNoteForm,
   RemoveStatusFromNoteForm,
+  BIMModel,
+  BIMElement,
+  MaterialTakeoff,
+  TakeoffItem,
+  ModelView, // ← Add this
+  NewModelView, // ← And this for the insert
+  CreateBIMModelInput,
+  CreateTakeoffInput,
+  CreateCommentInput,
+  IFCParseResult,
 } from "../types";
 import {
   desc,
@@ -111,6 +127,7 @@ import {
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
+import { redirect } from "next/navigation";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
@@ -4359,4 +4376,358 @@ export async function getChecklistSummaryForNote(
     completedItems,
     totalItems,
   };
+}
+
+// ****************** BIM Stuff ******************/
+
+// BIM Model Actions
+export async function createBIMModel(input: CreateBIMModelInput) {
+  try {
+    // TODO: Implement file upload to storage (S3, local, etc.)
+    const fileName = input.file.name;
+    const filePath = `/uploads/models/${Date.now()}-${input.file.name}`;
+
+    const [model] = await db
+      .insert(bimModels)
+      .values({
+        name: input.name,
+        description: input.description,
+        filePath: filePath,
+        fileName: fileName,
+        fileSize: input.file.size,
+        projectId: input.projectId,
+        // TODO: Extract these from actual IFC file
+        ifcSchema: "IFC4",
+        createdBy: 1, // TODO: Get from session
+      })
+      .returning();
+
+    revalidatePath("/bim");
+    return { success: true, data: model };
+  } catch (error) {
+    console.error("Error creating BIM model:", error);
+    return { success: false, error: "Failed to create BIM model" };
+  }
+}
+
+export async function getBIMModels(): Promise<BIMModel[]> {
+  try {
+    const models = await db
+      .select()
+      .from(bimModels)
+      .where(eq(bimModels.isActive, true))
+      .orderBy(desc(bimModels.uploadDate));
+
+    return models;
+  } catch (error) {
+    console.error("Error fetching BIM models:", error);
+    return [];
+  }
+}
+
+export async function getBIMModel(id: number): Promise<BIMModel | null> {
+  try {
+    const [model] = await db
+      .select()
+      .from(bimModels)
+      .where(and(eq(bimModels.id, id), eq(bimModels.isActive, true)));
+
+    return model || null;
+  } catch (error) {
+    console.error("Error fetching BIM model:", error);
+    return null;
+  }
+}
+
+export async function deleteBIMModel(id: number) {
+  try {
+    await db
+      .update(bimModels)
+      .set({ isActive: false })
+      .where(eq(bimModels.id, id));
+
+    revalidatePath("/bim");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting BIM model:", error);
+    return { success: false, error: "Failed to delete BIM model" };
+  }
+}
+
+// BIM Elements Actions
+export async function saveBIMElements(
+  modelId: number,
+  parseResult: IFCParseResult
+) {
+  try {
+    // Clear existing elements for this model
+    await db.delete(bimElements).where(eq(bimElements.modelId, modelId));
+
+    // Insert new elements in batches
+    const batchSize = 1000;
+    for (let i = 0; i < parseResult.elements.length; i += batchSize) {
+      const batch = parseResult.elements.slice(i, i + batchSize);
+      await db.insert(bimElements).values(
+        batch.map((element) => ({
+          modelId,
+          ifcId: element.ifcId,
+          elementType: element.elementType,
+          elementName: element.elementName,
+          level: element.level,
+          material: element.material,
+          properties: element.properties,
+          geometryData: element.geometryData,
+        }))
+      );
+    }
+
+    // Update model metadata
+    await db
+      .update(bimModels)
+      .set({ metadata: parseResult.metadata })
+      .where(eq(bimModels.id, modelId));
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving BIM elements:", error);
+    return { success: false, error: "Failed to save BIM elements" };
+  }
+}
+
+export async function getBIMElements(
+  modelId: number,
+  filters?: {
+    elementTypes?: string[];
+    levels?: string[];
+    page?: number;
+    pageSize?: number;
+  }
+) {
+  try {
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 100;
+    const offset = (page - 1) * pageSize;
+
+    let query = db
+      .select()
+      .from(bimElements)
+      .where(eq(bimElements.modelId, modelId));
+
+    // Apply filters
+    if (filters?.elementTypes?.length) {
+      // TODO: Add proper filtering
+    }
+
+    const elements = await query
+      .limit(pageSize)
+      .offset(offset)
+      .orderBy(asc(bimElements.elementType), asc(bimElements.elementName));
+
+    return {
+      success: true,
+      data: {
+        elements,
+        totalCount: elements.length,
+        pageSize,
+        currentPage: page,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching BIM elements:", error);
+    return { success: false, error: "Failed to fetch BIM elements" };
+  }
+}
+
+// Material Takeoff Actions
+export async function createMaterialTakeoff(input: CreateTakeoffInput) {
+  try {
+    const [takeoff] = await db
+      .insert(materialTakeoffs)
+      .values({
+        modelId: input.modelId,
+        takeoffName: input.takeoffName,
+        description: input.description,
+        createdBy: 1, // TODO: Get from session
+        status: "draft",
+      })
+      .returning();
+
+    // Generate takeoff items based on rules
+    const items = await generateTakeoffItems(takeoff.id, input.rules ?? []);
+
+    revalidatePath("/bim/takeoffs");
+    return { success: true, data: { takeoff, items } };
+  } catch (error) {
+    console.error("Error creating material takeoff:", error);
+    return { success: false, error: "Failed to create material takeoff" };
+  }
+}
+
+async function generateTakeoffItems(takeoffId: number, rules: any[]) {
+  // This would contain the logic to process BIM elements
+  // and generate takeoff items based on the rules
+  // For now, returning empty array as placeholder
+  return [];
+}
+
+export async function getTakeoffs(modelId: number) {
+  try {
+    const takeoffs = await db
+      .select()
+      .from(materialTakeoffs)
+      .where(eq(materialTakeoffs.modelId, modelId))
+      .orderBy(desc(materialTakeoffs.createdDate));
+
+    return takeoffs;
+  } catch (error) {
+    console.error("Error fetching takeoffs:", error);
+    return [];
+  }
+}
+
+export async function getTakeoffWithItems(takeoffId: number) {
+  try {
+    const [takeoff] = await db
+      .select()
+      .from(materialTakeoffs)
+      .where(eq(materialTakeoffs.id, takeoffId));
+
+    if (!takeoff) {
+      return { success: false, error: "Takeoff not found" };
+    }
+
+    const items = await db
+      .select()
+      .from(takeoffItems)
+      .where(eq(takeoffItems.takeoffId, takeoffId))
+      .orderBy(asc(takeoffItems.category), asc(takeoffItems.materialName));
+
+    const summary = {
+      totalItems: items.length,
+      totalCost: items.reduce(
+        (sum, item) => sum + Number(item.totalCost || 0),
+        0
+      ),
+      categoryTotals: items.reduce((acc, item) => {
+        const category = item.category || "Uncategorized";
+        acc[category] = (acc[category] || 0) + Number(item.totalCost || 0);
+        return acc;
+      }, {} as Record<string, number>),
+    };
+
+    return { success: true, data: { takeoff, items, summary } };
+  } catch (error) {
+    console.error("Error fetching takeoff with items:", error);
+    return { success: false, error: "Failed to fetch takeoff details" };
+  }
+}
+
+export async function updateTakeoffStatus(
+  takeoffId: number,
+  status: "draft" | "approved" | "exported"
+) {
+  try {
+    await db
+      .update(materialTakeoffs)
+      .set({ status })
+      .where(eq(materialTakeoffs.id, takeoffId));
+
+    revalidatePath("/bim/takeoffs");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating takeoff status:", error);
+    return { success: false, error: "Failed to update takeoff status" };
+  }
+}
+
+// Model Views Actions
+export async function saveModelView(
+  viewData: Omit<ModelView, "id" | "createdAt" | "createdBy">
+) {
+  try {
+    const [view] = await db
+      .insert(modelViews)
+      .values({
+        ...viewData,
+        createdBy: 1, // TODO: Get from session
+      })
+      .returning();
+
+    return { success: true, data: view };
+  } catch (error) {
+    console.error("Error saving model view:", error);
+    return { success: false, error: "Failed to save model view" };
+  }
+}
+
+export async function getModelViews(modelId: number) {
+  try {
+    const views = await db
+      .select()
+      .from(modelViews)
+      .where(eq(modelViews.modelId, modelId))
+      .orderBy(asc(modelViews.viewName));
+
+    return views;
+  } catch (error) {
+    console.error("Error fetching model views:", error);
+    return [];
+  }
+}
+
+// Comments Actions
+export async function createModelComment(input: CreateCommentInput) {
+  try {
+    const [comment] = await db
+      .insert(modelComments)
+      .values({
+        ...input,
+        createdBy: 1, // TODO: Get from session
+      })
+      .returning();
+
+    revalidatePath(`/bim/${input.modelId}`);
+    return { success: true, data: comment };
+  } catch (error) {
+    console.error("Error creating model comment:", error);
+    return { success: false, error: "Failed to create comment" };
+  }
+}
+
+export async function getModelComments(modelId: number) {
+  try {
+    const comments = await db
+      .select()
+      .from(modelComments)
+      .where(eq(modelComments.modelId, modelId))
+      .orderBy(desc(modelComments.createdAt));
+
+    return comments;
+  } catch (error) {
+    console.error("Error fetching model comments:", error);
+    return [];
+  }
+}
+
+export async function updateCommentStatus(
+  commentId: number,
+  status: "open" | "resolved" | "closed"
+) {
+  try {
+    const updateData: any = { status };
+    if (status === "resolved") {
+      updateData.resolvedAt = new Date();
+    }
+
+    await db
+      .update(modelComments)
+      .set(updateData)
+      .where(eq(modelComments.id, commentId));
+
+    revalidatePath("/bim");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating comment status:", error);
+    return { success: false, error: "Failed to update comment status" };
+  }
 }

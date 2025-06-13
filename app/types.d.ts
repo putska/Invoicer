@@ -1,3 +1,19 @@
+// Import the database types from schema
+import type {
+  BIMModel,
+  NewBIMModel,
+  BIMElement,
+  NewBIMElement,
+  MaterialTakeoff,
+  NewMaterialTakeoff,
+  TakeoffItem,
+  NewTakeoffItem,
+  ModelView,
+  NewModelView,
+  ModelComment,
+  NewModelComment,
+} from "./db/schema";
+
 interface Item {
   id: string;
   name: string;
@@ -871,3 +887,279 @@ export const STATUS_COLOR_OPTIONS = [
     preview: "bg-teal-500",
   },
 ] as const;
+
+// =============================================================================
+// API RESPONSE TYPES - Wrap database types for API responses
+// =============================================================================
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data?: {
+    items: T[];
+    totalCount: number;
+    pageSize: number;
+    currentPage: number;
+    totalPages: number;
+  };
+  error?: string;
+}
+
+// Specific API response types using schema types
+export type BIMModelResponse = ApiResponse<BIMModel>;
+export type BIMModelsResponse = ApiResponse<BIMModel[]>;
+export type BIMElementsResponse = PaginatedResponse<BIMElement>;
+export type TakeoffResponse = ApiResponse<{
+  takeoff: MaterialTakeoff;
+  items: TakeoffItem[];
+  summary: TakeoffSummary;
+}>;
+
+// =============================================================================
+// UI/COMPONENT SPECIFIC TYPES - Not in database
+// =============================================================================
+
+export interface BIMViewerProps {
+  modelId: number;
+  modelPath: string;
+  initialView?: ModelView;
+  showTakeoffTools?: boolean;
+  onElementSelect?: (element: BIMElement) => void;
+  onTakeoffUpdate?: (items: TakeoffItem[]) => void;
+  enableComments?: boolean;
+  enableMeasurement?: boolean;
+}
+
+export interface ViewerState {
+  isLoading: boolean;
+  selectedElement?: BIMElement;
+  activeView?: ModelView;
+  showProperties: boolean;
+  showTakeoffs: boolean;
+  measurementMode: boolean;
+  commentMode: boolean;
+}
+
+export interface CameraPosition {
+  x: number;
+  y: number;
+  z: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  upX?: number;
+  upY?: number;
+  upZ?: number;
+}
+
+export interface MeasurementResult {
+  type: "distance" | "area" | "volume";
+  value: number;
+  unit: string;
+  points: { x: number; y: number; z: number }[];
+}
+
+// =============================================================================
+// BUSINESS LOGIC TYPES - Extended from database types
+// =============================================================================
+
+// Extend database types with computed properties for UI
+export interface ExtendedBIMModel extends BIMModel {
+  // Computed fields not stored in database
+  displayName: string;
+  isProcessing: boolean;
+  elementCount: number;
+  processingProgress?: number;
+  canEdit: boolean;
+  formattedFileSize: string;
+  formattedUploadDate: string;
+}
+
+export interface ExtendedTakeoffItem extends TakeoffItem {
+  // Add computed fields for UI
+  isSelected?: boolean;
+  hasErrors?: boolean;
+  calculatedQuantity?: number;
+  pricePerUnit?: number;
+}
+
+// =============================================================================
+// FORM INPUT TYPES - For creating new records
+// =============================================================================
+
+// Use the NewBIMModel type from schema, but customize for file uploads
+export interface CreateBIMModelInput {
+  name: string;
+  description?: string;
+  projectId?: number;
+  file: File; // File object not stored in DB
+}
+
+// Extend schema type for takeoff creation
+export interface CreateTakeoffInput
+  extends Omit<NewMaterialTakeoff, "id" | "createdDate"> {
+  rules?: TakeoffRule[];
+  elementFilters?: ElementFilter[];
+}
+
+export interface CreateCommentInput
+  extends Omit<NewModelComment, "id" | "createdAt"> {
+  attachmentFiles?: File[]; // Files not stored directly in DB
+}
+
+// =============================================================================
+// PROCESSING & ANALYSIS TYPES
+// =============================================================================
+
+export interface IFCParseResult {
+  elements: NewBIMElement[]; // Use schema type for consistency
+  metadata: {
+    totalElements: number;
+    elementTypes: { [type: string]: number };
+    levels: string[];
+    materials: string[];
+    ifcSchema: string;
+    boundingBox?: {
+      min: { x: number; y: number; z: number };
+      max: { x: number; y: number; z: number };
+    };
+  };
+}
+
+export interface TakeoffRule {
+  elementType: string;
+  materialCategory: string;
+  quantityProperty: string; // Which IFC property to use for quantity
+  unit: string;
+  defaultUnitCost?: number;
+  calculationFormula?: string; // For complex calculations
+}
+
+export interface ElementFilter {
+  elementTypes?: string[];
+  levels?: string[];
+  materials?: string[];
+  properties?: { [key: string]: any };
+}
+
+export interface TakeoffSummary {
+  totalItems: number;
+  totalCost: number;
+  totalQuantity: number;
+  categoryTotals: { [category: string]: number };
+  materialTotals: { [material: string]: number };
+  unitTotals: { [unit: string]: number };
+}
+
+// =============================================================================
+// 3D VIEWER SPECIFIC TYPES
+// =============================================================================
+
+export interface ViewerControls {
+  orbit: boolean;
+  pan: boolean;
+  zoom: boolean;
+  select: boolean;
+}
+
+export interface RenderSettings {
+  showGrid: boolean;
+  showAxes: boolean;
+  wireframe: boolean;
+  transparency: number;
+  colorScheme: "default" | "by-type" | "by-material" | "by-level";
+  backgroundType: "gradient" | "solid" | "environment";
+}
+
+export interface SelectionInfo {
+  element?: BIMElement;
+  position: { x: number; y: number; z: number };
+  normal: { x: number; y: number; z: number };
+  distance: number;
+}
+
+// =============================================================================
+// FILE HANDLING TYPES
+// =============================================================================
+
+export interface FileUploadProgress {
+  fileName: string;
+  progress: number; // 0-100
+  stage: "uploading" | "processing" | "completed" | "error";
+  message?: string;
+}
+
+export interface ProcessingStatus {
+  modelId: number;
+  status: "pending" | "processing" | "completed" | "error";
+  progress: number; // 0-100
+  currentStep: string;
+  totalSteps: number;
+  estimatedTimeRemaining?: number; // seconds
+  errorMessage?: string;
+}
+
+// =============================================================================
+// UTILITY TYPES
+// =============================================================================
+
+// Helper type for partial updates
+export type PartialUpdate<T> = Partial<T> & { id: number };
+
+// For search and filtering
+export interface SearchParams {
+  query?: string;
+  elementType?: string;
+  material?: string;
+  level?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+// For bulk operations
+export interface BulkOperation<T> {
+  action: "create" | "update" | "delete";
+  items: T[];
+  options?: {
+    validateFirst?: boolean;
+    continueOnError?: boolean;
+  };
+}
+
+export interface BulkOperationResult<T> {
+  success: boolean;
+  processed: number;
+  failed: number;
+  results: T[];
+  errors: { index: number; error: string }[];
+}
+
+// =============================================================================
+// RE-EXPORT DATABASE TYPES for convenience
+// =============================================================================
+
+// Re-export the main database types so components can import from one place
+export type {
+  BIMModel,
+  NewBIMModel,
+  BIMElement,
+  NewBIMElement,
+  MaterialTakeoff,
+  NewMaterialTakeoff,
+  TakeoffItem,
+  NewTakeoffItem,
+  ModelView,
+  NewModelView,
+  ModelComment,
+  NewModelComment,
+};

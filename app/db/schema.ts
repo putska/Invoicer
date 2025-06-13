@@ -20,7 +20,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 
 //👇🏻 invoice table with its column types
 export const invoicesTable = pgTable("invoices", {
@@ -662,3 +662,301 @@ export const noteChecklistItems = pgTable("note_checklist_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+//**************** BIM Stuff */
+
+// BIM Models table - uploaded IFC files
+export const bimModels = pgTable(
+  "bim_models",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+
+    // File storage (local paths)
+    filePath: varchar("file_path", { length: 500 }).notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileSize: bigint("file_size", { mode: "number" }),
+    mimeType: varchar("mime_type", { length: 100 }),
+
+    // Upload tracking
+    uploadDate: timestamp("upload_date").defaultNow(),
+    uploadedBy: integer("uploaded_by"),
+
+    // Model metadata
+    version: varchar("version", { length: 50 }),
+    revitVersion: varchar("revit_version", { length: 50 }),
+    ifcSchema: varchar("ifc_schema", { length: 50 }),
+
+    // Project organization
+    projectId: integer("project_id"),
+
+    // System fields
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    createdBy: integer("created_by"),
+    isActive: boolean("is_active").default(true),
+
+    // IFC processing results (stored as JSON)
+    metadata: jsonb("metadata"), // {totalElements, elementTypes, levels, materials, etc}
+  },
+  (table) => ({
+    filePathIdx: index("bim_models_file_path_idx").on(table.filePath),
+    projectIdx: index("bim_models_project_idx").on(table.projectId),
+    createdAtIdx: index("bim_models_created_at_idx").on(table.createdAt),
+  })
+);
+
+// BIM Elements - extracted from IFC files
+export const bimElements = pgTable(
+  "bim_elements",
+  {
+    id: serial("id").primaryKey(),
+    modelId: integer("model_id")
+      .references(() => bimModels.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // IFC identifiers
+    ifcId: varchar("ifc_id", { length: 255 }).notNull(), // IFC Global ID
+    elementType: varchar("element_type", { length: 100 }), // Wall, Window, CurtainWall, etc.
+    elementName: varchar("element_name", { length: 255 }),
+
+    // Spatial information
+    level: varchar("level", { length: 100 }),
+    material: varchar("material", { length: 255 }),
+
+    // All IFC properties stored as JSON
+    properties: jsonb("properties"),
+
+    // Simplified geometry data for quick access
+    geometryData: jsonb("geometry_data"), // {boundingBox, volume, area, length}
+
+    // System fields
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    modelElementIdx: index("bim_elements_model_id_idx").on(table.modelId),
+    elementTypeIdx: index("bim_elements_type_idx").on(table.elementType),
+    ifcIdIdx: index("bim_elements_ifc_id_idx").on(table.ifcId),
+  })
+);
+
+// Material Takeoffs
+export const materialTakeoffs = pgTable(
+  "material_takeoffs",
+  {
+    id: serial("id").primaryKey(),
+    modelId: integer("model_id")
+      .references(() => bimModels.id, { onDelete: "cascade" })
+      .notNull(),
+
+    takeoffName: varchar("takeoff_name", { length: 255 }).notNull(),
+    description: text("description"),
+
+    // Status tracking
+    status: varchar("status", { length: 50 }).default("draft"), // draft, approved, exported
+
+    // Cost summary
+    totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+
+    // System fields
+    createdDate: timestamp("created_date").defaultNow(),
+    createdBy: integer("created_by"),
+
+    notes: text("notes"),
+  },
+  (table) => ({
+    modelTakeoffIdx: index("material_takeoffs_model_id_idx").on(table.modelId),
+    statusIdx: index("material_takeoffs_status_idx").on(table.status),
+  })
+);
+
+// Takeoff Items - line items in material takeoffs
+export const takeoffItems = pgTable(
+  "takeoff_items",
+  {
+    id: serial("id").primaryKey(),
+    takeoffId: integer("takeoff_id")
+      .references(() => materialTakeoffs.id, { onDelete: "cascade" })
+      .notNull(),
+    elementId: integer("element_id").references(() => bimElements.id),
+
+    // Material information
+    materialType: varchar("material_type", { length: 255 }),
+    materialName: varchar("material_name", { length: 255 }),
+
+    // Quantities
+    unit: varchar("unit", { length: 50 }), // SF, LF, EA, etc.
+    quantity: decimal("quantity", { precision: 12, scale: 4 }),
+
+    // Pricing
+    unitCost: decimal("unit_cost", { precision: 10, scale: 4 }),
+    totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+
+    // Supplier information
+    supplier: varchar("supplier", { length: 255 }),
+
+    // Organization
+    category: varchar("category", { length: 100 }), // Glazing, Framing, Seals, Hardware, etc.
+
+    notes: text("notes"),
+  },
+  (table) => ({
+    takeoffItemIdx: index("takeoff_items_takeoff_id_idx").on(table.takeoffId),
+    elementItemIdx: index("takeoff_items_element_id_idx").on(table.elementId),
+    categoryIdx: index("takeoff_items_category_idx").on(table.category),
+  })
+);
+
+// Model Views - saved camera positions and filters
+export const modelViews = pgTable(
+  "model_views",
+  {
+    id: serial("id").primaryKey(),
+    modelId: integer("model_id")
+      .references(() => bimModels.id, { onDelete: "cascade" })
+      .notNull(),
+
+    viewName: varchar("view_name", { length: 255 }).notNull(),
+
+    // Camera position
+    cameraPosition: jsonb("camera_position"), // {x, y, z, targetX, targetY, targetZ, upX, upY, upZ}
+
+    // Visibility settings
+    visibleElements: jsonb("visible_elements"), // Array of element IDs to show
+    filters: jsonb("filters"), // {elementTypes: [], levels: [], materials: []}
+
+    // Sharing
+    isPublic: boolean("is_public").default(false),
+
+    // System fields
+    createdAt: timestamp("created_at").defaultNow(),
+    createdBy: integer("created_by"),
+  },
+  (table) => ({
+    modelViewIdx: index("model_views_model_id_idx").on(table.modelId),
+    publicViewIdx: index("model_views_public_idx").on(table.isPublic),
+  })
+);
+
+// Model Comments - issues and collaboration
+export const modelComments = pgTable(
+  "model_comments",
+  {
+    id: serial("id").primaryKey(),
+    modelId: integer("model_id")
+      .references(() => bimModels.id, { onDelete: "cascade" })
+      .notNull(),
+    elementId: integer("element_id").references(() => bimElements.id),
+
+    commentText: text("comment_text").notNull(),
+
+    // 3D positioning
+    position: jsonb("position"), // {x, y, z} coordinates where comment was placed
+
+    // Issue tracking
+    status: varchar("status", { length: 50 }).default("open"), // open, resolved, closed
+    priority: varchar("priority", { length: 20 }).default("medium"), // low, medium, high, critical
+
+    // Assignment
+    assignedTo: integer("assigned_to"),
+
+    // System fields
+    createdAt: timestamp("created_at").defaultNow(),
+    createdBy: integer("created_by"),
+    resolvedAt: timestamp("resolved_at"),
+
+    // Attachments (file paths)
+    attachments: jsonb("attachments"), // Array of file paths
+  },
+  (table) => ({
+    modelCommentIdx: index("model_comments_model_id_idx").on(table.modelId),
+    statusIdx: index("model_comments_status_idx").on(table.status),
+    assignedIdx: index("model_comments_assigned_idx").on(table.assignedTo),
+  })
+);
+
+// =====================================
+// DRIZZLE RELATIONS
+// =====================================
+
+export const bimModelsRelations = relations(bimModels, ({ many }) => ({
+  elements: many(bimElements),
+  takeoffs: many(materialTakeoffs),
+  views: many(modelViews),
+  comments: many(modelComments),
+}));
+
+export const bimElementsRelations = relations(bimElements, ({ one, many }) => ({
+  model: one(bimModels, {
+    fields: [bimElements.modelId],
+    references: [bimModels.id],
+  }),
+  takeoffItems: many(takeoffItems),
+  comments: many(modelComments),
+}));
+
+export const materialTakeoffsRelations = relations(
+  materialTakeoffs,
+  ({ one, many }) => ({
+    model: one(bimModels, {
+      fields: [materialTakeoffs.modelId],
+      references: [bimModels.id],
+    }),
+    items: many(takeoffItems),
+  })
+);
+
+export const takeoffItemsRelations = relations(takeoffItems, ({ one }) => ({
+  takeoff: one(materialTakeoffs, {
+    fields: [takeoffItems.takeoffId],
+    references: [materialTakeoffs.id],
+  }),
+  element: one(bimElements, {
+    fields: [takeoffItems.elementId],
+    references: [bimElements.id],
+  }),
+}));
+
+export const modelViewsRelations = relations(modelViews, ({ one }) => ({
+  model: one(bimModels, {
+    fields: [modelViews.modelId],
+    references: [bimModels.id],
+  }),
+}));
+
+export const modelCommentsRelations = relations(
+  modelComments,
+  ({ one, many }) => ({
+    model: one(bimModels, {
+      fields: [modelComments.modelId],
+      references: [bimModels.id],
+    }),
+    element: one(bimElements, {
+      fields: [modelComments.elementId],
+      references: [bimElements.id],
+    }),
+  })
+);
+
+// =====================================
+// TYPESCRIPT TYPES (derived from schema)
+// =====================================
+
+export type BIMModel = typeof bimModels.$inferSelect;
+export type NewBIMModel = typeof bimModels.$inferInsert;
+
+export type BIMElement = typeof bimElements.$inferSelect;
+export type NewBIMElement = typeof bimElements.$inferInsert;
+
+export type MaterialTakeoff = typeof materialTakeoffs.$inferSelect;
+export type NewMaterialTakeoff = typeof materialTakeoffs.$inferInsert;
+
+export type TakeoffItem = typeof takeoffItems.$inferSelect;
+export type NewTakeoffItem = typeof takeoffItems.$inferInsert;
+
+export type ModelView = typeof modelViews.$inferSelect;
+export type NewModelView = typeof modelViews.$inferInsert;
+
+export type ModelComment = typeof modelComments.$inferSelect;
+export type NewModelComment = typeof modelComments.$inferInsert;

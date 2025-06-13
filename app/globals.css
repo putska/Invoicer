@@ -190,3 +190,297 @@ p {
 .retry-button:hover {
   background-color: #38a169;
 }
+
+@media print {
+  /* Hide elements that shouldn't print */
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Reset page margins and backgrounds */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 0.5in;
+    size: auto;
+  }
+
+  body {
+    font-size: 12px;
+    line-height: 1.3;
+    color: black;
+    background: white;
+  }
+
+  /* Ensure containers flow properly */
+  .container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Make cards more compact for print */
+  .print-card {
+    border: 1px solid #ccc;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    break-inside: avoid;
+    background: white;
+  }
+
+  /* Engineer sections */
+  .print-engineer {
+    margin-bottom: 1rem;
+    break-inside: avoid;
+  }
+
+  .print-engineer-header {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #333;
+  }
+
+  /* Task styling */
+  .print-task {
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+    border-left: 3px solid #666;
+    font-size: 11px;
+  }
+
+  .print-task-high {
+    border-left-color: #dc2626; /* Red for urgent/last minute tasks */
+  }
+
+  .print-task-medium {
+    border-left-color: #f59e0b; /* Orange for normal tasks */
+  }
+
+  /* Project sections */
+  .print-project {
+    margin-bottom: 1rem;
+    break-inside: avoid;
+  }
+
+  .print-project-header {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #666;
+  }
+
+  /* Grid layout for print */
+  .print-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Page breaks */
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* Hide Gantt chart on print or make it simpler */
+  .gantt-container {
+    display: none;
+  }
+
+  /* Print Gantt Chart Styles */
+  .print-gantt-container {
+    margin-bottom: 2rem;
+    page-break-inside: avoid;
+  }
+
+  .print-gantt-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-align: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+  }
+
+  .print-gantt-chart {
+    border: 1px solid #333;
+    font-size: 10px;
+  }
+
+  .print-gantt-header {
+    display: flex;
+    background: #f5f5f5;
+    border-bottom: 2px solid #333;
+    font-weight: bold;
+  }
+
+  .print-gantt-engineer-column {
+    width: 120px;
+    padding: 0.25rem;
+    border-right: 1px solid #333;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+  }
+
+  .print-gantt-timeline {
+    flex: 1;
+    display: flex;
+  }
+
+  .print-gantt-date {
+    flex: 1;
+    padding: 0.25rem 0.125rem;
+    text-align: center;
+    border-right: 1px solid #ccc;
+    font-size: 9px;
+  }
+
+  .print-gantt-today {
+    background: #dbeafe;
+    font-weight: bold;
+  }
+
+  .print-gantt-holiday {
+    background: #fef2f2;
+    color: #666;
+  }
+
+  .print-gantt-row {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    min-height: 2rem;
+  }
+
+  .print-gantt-engineer-name {
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .print-gantt-timeline-row {
+    flex: 1;
+    position: relative;
+    display: flex;
+    min-height: 2rem;
+  }
+
+  .print-gantt-day-cell {
+    flex: 1;
+    border-right: 1px solid #eee;
+  }
+
+  .print-gantt-today-bg {
+    background: #dbeafe;
+  }
+
+  .print-gantt-holiday-bg {
+    background: #fef2f2;
+  }
+
+  .print-gantt-task {
+    position: absolute;
+    top: 0.125rem;
+    height: 1.5rem;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 0.25rem;
+    font-size: 8px;
+    color: white;
+    overflow: hidden;
+  }
+
+  .print-gantt-task-urgent {
+    background: #dc2626;
+  }
+
+  .print-gantt-task-normal {
+    background: #2563eb;
+  }
+
+  .print-gantt-task-completed {
+    background: #10b981;
+    opacity: 0.8;
+  }
+
+  .print-gantt-task-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .print-gantt-task-name {
+    font-weight: bold;
+  }
+
+  .print-gantt-task-project {
+    font-weight: normal;
+    opacity: 0.9;
+    margin-left: 0.25rem;
+  }
+
+  .print-gantt-legend {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+  }
+
+  .print-gantt-legend-item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 1rem;
+    margin-left: 0.5rem;
+  }
+
+  .print-gantt-legend-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 0.25rem;
+    display: inline-block;
+  }
+
+  /* Title styling */
+  .print-title {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid #333;
+  }
+
+  .print-date {
+    font-size: 12px;
+    text-align: right;
+    margin-bottom: 1rem;
+    color: #666;
+  }
+}
+
+/* Print-specific task status indicators */
+@media print {
+  .print-status-overdue::before {
+    content: "⚠ ";
+    color: #dc2626;
+  }
+
+  .print-status-at-risk::before {
+    content: "⚡ ";
+    color: #f59e0b;
+  }
+
+  .print-status-completed::before {
+    content: "✓ ";
+    color: #10b981;
+  }
+}
