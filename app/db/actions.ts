@@ -3169,7 +3169,12 @@ async function recalculateSchedule(engineerId: number) {
       engineeringTasks,
       eq(taskAssignments.taskId, engineeringTasks.id)
     )
-    .where(eq(taskAssignments.engineerId, engineerId))
+    .where(
+      and(
+        eq(taskAssignments.engineerId, engineerId),
+        not(eq(engineeringTasks.status, "archived")) // Add this line
+      )
+    )
     .orderBy(taskAssignments.position);
 
   let currentDate = new Date();

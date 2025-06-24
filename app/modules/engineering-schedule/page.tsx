@@ -35,6 +35,8 @@ interface PrintGanttTask {
   status: string;
   projectName: string;
   isLastMinute: boolean;
+  isOverdue: boolean;
+  isAtRisk: boolean;
 }
 
 // Dynamically import DragDropContext to avoid SSR issues
@@ -425,25 +427,146 @@ export default function EngineeringSchedulePage() {
     // The PrintView component will be rendered and then window.print() will be called
   };
 
-  // Prepare Gantt data
-  const ganttTasks =
+  // Add risk calculations to engineer tasks
+  const enhancedScheduleData = scheduleData
+    ? {
+        ...scheduleData,
+        engineers: scheduleData.engineers.map((engineer) => ({
+          ...engineer,
+          tasks: engineer.tasks.map((task) => {
+            // Calculate if task is overdue (scheduled end is after due date)
+            const scheduledEnd = task.assignment?.scheduledEnd
+              ? new Date(task.assignment.scheduledEnd)
+              : null;
+            const dueDate = new Date(task.dueDate);
+            const isOverdue = scheduledEnd ? scheduledEnd > dueDate : false;
+
+            // Calculate if task is at risk (would finish late if started today)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Helper function to add working days
+            const addWorkingDays = (date: Date, days: number) => {
+              const result = new Date(date);
+              let remainingDays = days;
+
+              while (remainingDays > 0) {
+                result.setDate(result.getDate() + 1);
+                const dayOfWeek = result.getDay();
+                const dateStr = result.toISOString().split("T")[0];
+
+                // Skip weekends and holidays
+                if (
+                  dayOfWeek !== 0 &&
+                  dayOfWeek !== 6 &&
+                  !holidays.includes(dateStr)
+                ) {
+                  remainingDays--;
+                }
+              }
+              return result;
+            };
+
+            const wouldFinishBy = addWorkingDays(today, task.durationDays);
+            const isAtRisk = wouldFinishBy > dueDate;
+
+            return {
+              ...task,
+              isOverdue,
+              isAtRisk,
+            };
+          }),
+        })),
+      }
+    : null;
+  const ganttTasks: PrintGanttTask[] =
     scheduleData?.engineers.flatMap((engineer) =>
       engineer.tasks
         .filter((task) => task.assignment?.scheduledStart)
-        .map((task) => ({
-          id: task.id,
-          name: task.name,
-          engineerId: engineer.id,
-          engineerName: engineer.name,
-          start: new Date(task.assignment!.scheduledStart!),
-          end: new Date(task.assignment!.scheduledEnd!),
-          status: task.status,
-          projectName: task.project.name,
-          isLastMinute: task.isLastMinute || false,
-          isOverdue: false, // Add missing properties required by GanttTask
-          isAtRisk: false, // Add missing properties required by GanttTask
-        }))
+        .map((task) => {
+          // Calculate if task is overdue (scheduled end is after due date)
+          const scheduledEnd = new Date(task.assignment!.scheduledEnd!);
+          const dueDate = new Date(task.dueDate);
+          const isOverdue = scheduledEnd > dueDate;
+
+          // Calculate if task is at risk (would finish late if started today)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          // Helper function to add working days (matching your actions logic)
+          const addWorkingDays = (date: Date, days: number) => {
+            const result = new Date(date);
+            let remainingDays = days;
+
+            while (remainingDays > 0) {
+              result.setDate(result.getDate() + 1);
+              const dayOfWeek = result.getDay();
+              const dateStr = result.toISOString().split("T")[0];
+
+              // Skip weekends and holidays
+              if (
+                dayOfWeek !== 0 &&
+                dayOfWeek !== 6 &&
+                !holidays.includes(dateStr)
+              ) {
+                remainingDays--;
+              }
+            }
+            return result;
+          };
+
+          const wouldFinishBy = addWorkingDays(today, task.durationDays);
+          const isAtRisk = wouldFinishBy > dueDate;
+
+          return {
+            id: task.id,
+            name: task.name,
+            engineerId: engineer.id,
+            engineerName: engineer.name,
+            start: new Date(task.assignment!.scheduledStart!),
+            end: new Date(task.assignment!.scheduledEnd!),
+            status: task.status,
+            projectName: task.project.name,
+            isLastMinute: task.isLastMinute || false,
+            isOverdue: isOverdue,
+            isAtRisk: isAtRisk,
+          };
+        })
     ) || [];
+
+  // Debug logging
+  console.log("=== GANTT CHART DEBUG ===");
+  console.log(
+    "Schedule Data Engineers:",
+    scheduleData?.engineers.map((eng) => ({
+      name: eng.name,
+      taskCount: eng.tasks.length,
+      tasks: eng.tasks.map((task) => ({
+        id: task.id,
+        name: task.name,
+        status: task.status,
+        hasAssignment: !!task.assignment,
+        scheduledStart: task.assignment?.scheduledStart,
+        scheduledEnd: task.assignment?.scheduledEnd,
+      })),
+    }))
+  );
+
+  console.log(
+    "Filtered Gantt Tasks:",
+    ganttTasks.map((task) => ({
+      id: task.id,
+      name: task.name,
+      engineerName: task.engineerName,
+      status: task.status,
+      start: task.start.toISOString().split("T")[0],
+      end: task.end.toISOString().split("T")[0],
+      startDate: task.start,
+      endDate: task.end,
+    }))
+  );
+
+  console.log("Tasks being sent to Gantt Chart:", ganttTasks.length);
 
   if (isLoading) {
     return (
@@ -485,9 +608,9 @@ export default function EngineeringSchedulePage() {
       </div>
 
       {/* Print View - Hidden on screen, visible when printing */}
-      {scheduleData && (
+      {enhancedScheduleData && (
         <PrintView
-          scheduleData={scheduleData}
+          scheduleData={enhancedScheduleData}
           projects={projects}
           printType={printType}
           ganttTasks={ganttTasks}
@@ -498,7 +621,7 @@ export default function EngineeringSchedulePage() {
       {/* Gantt Chart - Hidden when printing */}
       <div className="no-print">
         <GanttChart
-          engineers={scheduleData.engineers}
+          engineers={enhancedScheduleData?.engineers || []}
           tasks={ganttTasks}
           holidays={holidays}
         />
@@ -519,7 +642,7 @@ export default function EngineeringSchedulePage() {
         <div className="no-print">
           <h2 className="text-xl font-semibold mb-4">Engineers</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {scheduleData.engineers.map((engineer) => (
+            {enhancedScheduleData?.engineers.map((engineer) => (
               <EngineerContainer
                 key={engineer.id}
                 engineer={engineer}
