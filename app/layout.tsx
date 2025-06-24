@@ -78,9 +78,12 @@ export default async function RootLayout({
 
                         {/* Projects dropdown */}
                         <div className="relative group">
-                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                          <Link
+                            href="/modules/projects"
+                            className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium block"
+                          >
                             Projects
-                          </button>
+                          </Link>
                           <div className="absolute left-0 top-full mt-1 w-[200px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
                             <ul className="grid gap-2">
                               <li>
@@ -113,9 +116,12 @@ export default async function RootLayout({
 
                         {/* Purchasing dropdown */}
                         <div className="relative group">
-                          <button className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium">
+                          <Link
+                            href="/modules/purchasing"
+                            className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium block"
+                          >
                             Purchasing
-                          </button>
+                          </Link>
                           <div className="absolute left-0 top-full mt-1 w-[220px] bg-white rounded-md shadow-lg border p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
                             <ul className="grid gap-2">
                               <li>

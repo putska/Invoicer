@@ -38,7 +38,7 @@ const poSchema = z.object({
   shortDescription: z
     .string()
     .min(1, "Short description is required")
-    .max(50, "Short description must be 50 characters or less"),
+    .max(100, "Short description must be 100 characters or less"),
   longDescription: z.string().optional(),
   notes: z.string().optional(),
   received: z.string().optional(),

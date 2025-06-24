@@ -109,12 +109,13 @@ export default function PurchaseOrderListPage() {
           new Date(dateA).getTime() - new Date(dateB).getTime(),
       },
       {
-        headerName: "Project",
-        field: "projectName",
+        headerName: "Vendor",
+        field: "vendorName",
         filter: "agTextColumnFilter",
         flex: 1,
         minWidth: 150,
       },
+
       {
         headerName: "Description",
         field: "shortDescription",
@@ -123,15 +124,8 @@ export default function PurchaseOrderListPage() {
         minWidth: 200,
       },
       {
-        headerName: "Project Manager",
-        field: "projectManager",
-        filter: "agTextColumnFilter",
-        flex: 1,
-        minWidth: 150,
-      },
-      {
-        headerName: "Ship To",
-        field: "shipTo",
+        headerName: "Project",
+        field: "projectName",
         filter: "agTextColumnFilter",
         flex: 1,
         minWidth: 150,
@@ -145,13 +139,22 @@ export default function PurchaseOrderListPage() {
         comparator: (dateA, dateB) =>
           new Date(dateA).getTime() - new Date(dateB).getTime(),
       },
+
       {
-        headerName: "Vendor",
-        field: "vendorName",
+        headerName: "Ship To",
+        field: "shipTo",
         filter: "agTextColumnFilter",
         flex: 1,
         minWidth: 150,
       },
+      {
+        headerName: "Project Manager",
+        field: "projectManager",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+
       {
         headerName: "Amount",
         field: "amount",
