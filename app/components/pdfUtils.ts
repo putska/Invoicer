@@ -7,6 +7,19 @@ const formatDate = (dateString: string): string => {
   return format(date, "MM-dd-yyyy");
 };
 
+// Helper function to get initials from full name
+function getInitials(fullName: string): string {
+  if (!fullName) return "";
+
+  const initials = fullName
+    .trim()
+    .split(" ")
+    .map((name) => name.charAt(0).toUpperCase())
+    .join("");
+
+  return `-${initials}`;
+}
+
 export const generatePDF = async (po: {
   poNumber: string;
   poDate: string;
@@ -25,9 +38,11 @@ export const generatePDF = async (po: {
     const pdfBytes = await pdfTemplate.arrayBuffer();
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const form = pdfDoc.getForm();
+    const initials = getInitials(po.projectManager);
 
     // Fill in the form fields with data
     form.getTextField("PO").setText(po.poNumber);
+    form.getTextField("POInitials").setText(initials);
     form.getTextField("Date").setText(formatDate(po.poDate || ""));
     form.getTextField("JobName").setText(po.projectName);
     form.getTextField("Description1").setText(po.shortDescription);

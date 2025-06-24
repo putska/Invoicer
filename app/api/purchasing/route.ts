@@ -22,14 +22,26 @@ const purchaseOrderSchema = z.object({
     .string()
     .optional()
     .nullable()
-    .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid due date") // Ensure valid date
-    .transform((val) => (val ? new Date(val) : undefined)), // Convert to Date object or undefined
+    .transform((val) => {
+      // Handle empty strings, null, undefined, or missing field
+      if (
+        val === undefined ||
+        val === null ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === "")
+      ) {
+        return undefined; // or null, depending on what your database expects
+      }
+      return val;
+    })
+    .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid due date")
+    .transform((val) => (val ? new Date(val) : undefined)), // Use undefined instead of null
   amount: z.string().optional(), // Total amount
   shipTo: z.string().optional(), // Shipping location
   costCode: z.string().optional(),
   shortDescription: z
     .string()
-    .max(50, "Short description must be under 50 characters"),
+    .max(100, "Short description must be under 100 characters"),
   longDescription: z.string().optional(),
   notes: z.string().optional(),
   received: z.string().optional(), // Added field for received information

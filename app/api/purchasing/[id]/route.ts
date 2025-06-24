@@ -8,7 +8,7 @@ import {
 } from "../../../db/actions";
 import { authenticate, authorize } from "../../../../app/api/admin/helpers";
 import { PurchaseOrderUpdate } from "../../../types";
-import { z } from "zod";
+import { nullable, z } from "zod";
 
 const purchaseOrderSchema = z.object({
   vendorId: z.number().int().positive(),
@@ -22,13 +22,27 @@ const purchaseOrderSchema = z.object({
   dueDate: z
     .string()
     .optional()
-    .refine((val) => !isNaN(Date.parse(val ?? "")), "Invalid due date"),
+    .nullable()
+    .transform((val) => {
+      // Handle empty strings, null, undefined, or missing field
+      if (
+        val === undefined ||
+        val === null ||
+        val === "" ||
+        (typeof val === "string" && val.trim() === "")
+      ) {
+        return undefined; // or null, depending on what your database expects
+      }
+      return val;
+    })
+    .refine((val) => !val || !isNaN(Date.parse(val)), "Invalid due date")
+    .transform((val) => (val ? new Date(val) : undefined)), // Use undefined instead of null
   shipTo: z.string().optional(), // Shipping location
   amount: z.string().optional(), // Total amount
   costCode: z.string().optional(),
   shortDescription: z
     .string()
-    .max(50, "Short description must be under 50 characters"),
+    .max(100, "Short description must be under 100 characters"),
   longDescription: z.string().optional().default(""), // Default to empty string
   notes: z.string().optional().default(""), // Default to empty string
   received: z.string().optional(), // Added field for received info

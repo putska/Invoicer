@@ -12,10 +12,10 @@ import { useFullNameFromDB } from "../../../components/useFullNameFromDB";
 // ---------------- Schema & Types ----------------
 
 const poSchema = z.object({
-  vendorId: z.number().min(1, "Vendor is required"),
+  vendorId: z.number().min(1, "Please select a vendor"),
   poNumber: z.string().optional(),
-  jobId: z.number().min(1, "Job ID is required"),
-  projectManager: z.string().min(1, "Project manager is required"),
+  jobId: z.number().min(1, "Please select a job"),
+  projectManager: z.string().min(1, "Project manager name is required"),
   poDate: z.string().min(1, "PO Date is required"),
   dueDate: z.string().optional(),
   amount: z
@@ -35,7 +35,10 @@ const poSchema = z.object({
   shipToState: z.string().optional(),
   shipToZip: z.string().optional(),
   costCode: z.string().optional(),
-  shortDescription: z.string().min(1, "Short description is required"),
+  shortDescription: z
+    .string()
+    .min(1, "Short description is required")
+    .max(50, "Short description must be 50 characters or less"),
   longDescription: z.string().optional(),
   notes: z.string().optional(),
   received: z.string().optional(),
@@ -81,9 +84,30 @@ interface FormFieldProps {
 
 const FormField = ({ label, error, children }: FormFieldProps) => (
   <div className="mb-4">
-    <label className="block text-gray-700 mb-1">{label}</label>
+    <label
+      className={`block mb-1 ${
+        error ? "text-red-700 font-medium" : "text-gray-700"
+      }`}
+    >
+      {label}
+    </label>
     {children}
-    {error && <span className="text-red-500 text-sm">{error}</span>}
+    {error && (
+      <div className="mt-1 flex items-center">
+        <svg
+          className="h-4 w-4 text-red-500 mr-1"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fillRule="evenodd"
+            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span className="text-red-600 text-sm font-medium">{error}</span>
+      </div>
+    )}
   </div>
 );
 
@@ -220,12 +244,17 @@ export default function PurchaseOrderFormPage() {
 
       // If we're editing (id exists and isn't "new"), show all projects.
       // Otherwise, for a new PO, show only active projects.
-      const projectsToSet =
+      const filteredProjects =
         id && id !== "new"
           ? result.projects
           : result.projects.filter((project) => project.status === "active");
 
-      setProjects(projectsToSet);
+      // Sort projects alphabetically by name
+      const sortedProjects = filteredProjects.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+
+      setProjects(sortedProjects);
     } catch (err) {
       console.error("Error fetching projects:", err);
     }
@@ -254,13 +283,13 @@ export default function PurchaseOrderFormPage() {
 
   const onSubmit = async (formData: PurchaseOrder) => {
     try {
+      // Clear any previous errors
+      setError(null);
+
       const updatedData = {
         ...formData,
         poDate: formData.poDate
           ? new Date(formData.poDate).toISOString().split("T")[0]
-          : null,
-        dueDate: formData.dueDate
-          ? new Date(formData.dueDate).toISOString().split("T")[0]
           : null,
         costCode: formData.costCode ?? "",
         received: formData.received ?? "",
@@ -268,12 +297,19 @@ export default function PurchaseOrderFormPage() {
         notes: formData.notes ?? "",
         longDescription: formData.longDescription ?? "",
       };
+
+      // Only add dueDate if it has a real value (not empty string)
+      if (formData.dueDate && formData.dueDate.trim() !== "") {
+        updatedData.dueDate = new Date(formData.dueDate)
+          .toISOString()
+          .split("T")[0];
+      }
+
       console.log("Saving with data:", updatedData);
       const isNewRecord = !id || id === "new";
       const method = isNewRecord ? "POST" : "PUT";
       const url = isNewRecord ? `/api/purchasing` : `/api/purchasing/${id}`;
 
-      // Retrieve vendor and project names from state for PDF generation
       const vendorName =
         vendors.find((v) => v.id === formData.vendorId)?.vendorName || "";
       const projectName =
@@ -282,14 +318,63 @@ export default function PurchaseOrderFormPage() {
       const payload = isNewRecord
         ? { ...updatedData, poNumber: undefined }
         : updatedData;
-      console.log("Saving  data:", payload);
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        // Check if it's a validation error
+        if (response.status === 400 && errorData.errors) {
+          // Handle Zod validation errors from the API
+          let validationMessages = [];
+
+          // Check if errors is the Zod format
+          if (typeof errorData.errors === "object") {
+            // Extract field names and error messages
+            for (const [fieldName, fieldErrors] of Object.entries(
+              errorData.errors
+            )) {
+              if (Array.isArray(fieldErrors)) {
+                // Handle array of errors per field
+                fieldErrors.forEach((error) => {
+                  validationMessages.push(`${fieldName}: ${error}`);
+                });
+              } else if (
+                typeof fieldErrors === "object" &&
+                fieldErrors !== null &&
+                "_errors" in fieldErrors &&
+                Array.isArray((fieldErrors as any)._errors)
+              ) {
+                // Handle Zod format: { fieldName: { _errors: ["message"] } }
+                (fieldErrors as any)._errors.forEach((error: string) => {
+                  validationMessages.push(`${fieldName}: ${error}`);
+                });
+              } else if (typeof fieldErrors === "string") {
+                // Handle simple string errors
+                validationMessages.push(`${fieldName}: ${fieldErrors}`);
+              }
+            }
+          }
+
+          if (validationMessages.length > 0) {
+            throw new Error(validationMessages.join("; "));
+          } else {
+            throw new Error(
+              `Validation errors: ${JSON.stringify(errorData.errors)}`
+            );
+          }
+        } else {
+          throw new Error(
+            errorData.message || `HTTP error! status: ${response.status}`
+          );
+        }
+      }
+
       const result = await response.json();
       console.log("Server Response:", result);
 
@@ -321,6 +406,43 @@ export default function PurchaseOrderFormPage() {
       <h1 className="text-2xl font-semibold text-gray-700 mb-6">
         {id && id !== "new" ? "Edit Purchase Order" : "Add Purchase Order"}
       </h1>
+      {/* INSERT THE ERROR DISPLAY HERE */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                There was an error saving the purchase order
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                {error.includes(";") ? (
+                  <ul className="list-disc list-inside space-y-1">
+                    {error.split(";").map((errorMsg, index) => (
+                      <li key={index}>{errorMsg.trim()}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{error}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* END OF ERROR DISPLAY */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Top Section */}
         <div className="grid grid-cols-2 gap-6">
@@ -360,7 +482,6 @@ export default function PurchaseOrderFormPage() {
             </div>
           </FormField>
         </div>
-
         {/* PO Number, Job, Cost Code, Project Manager */}
         <div className="grid grid-cols-2 gap-6">
           <FormField label="PO Number" error={errors.poNumber?.message}>
@@ -417,7 +538,6 @@ export default function PurchaseOrderFormPage() {
             </FormField>
           </div>
         </div>
-
         {/* Shipping Info */}
         <div className="grid grid-cols-2 gap-6">
           <FormField label="Due Date" error={errors.dueDate?.message}>
@@ -434,7 +554,6 @@ export default function PurchaseOrderFormPage() {
             />
           </FormField>
         </div>
-
         {/* Received */}
         <FormField label="Received" error={errors.received?.message}>
           <textarea
@@ -442,7 +561,6 @@ export default function PurchaseOrderFormPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
         </FormField>
-
         {/* Backorder */}
         <FormField label="Backorder" error={errors.backorder?.message}>
           <textarea
@@ -450,16 +568,29 @@ export default function PurchaseOrderFormPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
         </FormField>
-
         {/* Descriptions */}
+
         <FormField
-          label="Short Description"
+          label="Short Description (max 100 characters)"
           error={errors.shortDescription?.message}
         >
-          <input
-            {...register("shortDescription")}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
-          />
+          <div className="relative">
+            <input
+              {...register("shortDescription", {
+                maxLength: {
+                  value: 100,
+                  message: "Short description must be 100 characters or less",
+                },
+              })}
+              className={`w-full px-4 py-2 border ${
+                errors.shortDescription ? "border-red-500" : "border-gray-300"
+              } rounded-md focus:outline-none focus:ring focus:ring-indigo-100`}
+              maxLength={100}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              {watchedValues.shortDescription?.length || 0}/100 characters
+            </div>
+          </div>
         </FormField>
         <FormField
           label="Long Description"
@@ -476,7 +607,6 @@ export default function PurchaseOrderFormPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100"
           />
         </FormField>
-
         {/* Buttons */}
         {(!id || id === "new") && (
           <FormField label="">

@@ -97,7 +97,7 @@ export default function PurchaseOrderListPage() {
         field: "poNumber",
         filter: "agTextColumnFilter",
         flex: 1,
-        minWidth: 100,
+        minWidth: 50,
       },
       {
         headerName: "PO Date",
@@ -121,6 +121,29 @@ export default function PurchaseOrderListPage() {
         filter: "agTextColumnFilter",
         flex: 2,
         minWidth: 200,
+      },
+      {
+        headerName: "Project Manager",
+        field: "projectManager",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+      {
+        headerName: "Ship To",
+        field: "shipTo",
+        filter: "agTextColumnFilter",
+        flex: 1,
+        minWidth: 150,
+      },
+      {
+        headerName: "Due Date",
+        field: "dueDate",
+        filter: "agDateColumnFilter",
+        valueFormatter: ({ value }) =>
+          value ? format(new Date(value), "MM/dd/yyyy") : "",
+        comparator: (dateA, dateB) =>
+          new Date(dateA).getTime() - new Date(dateB).getTime(),
       },
       {
         headerName: "Vendor",
