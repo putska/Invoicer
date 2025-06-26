@@ -112,6 +112,7 @@ import {
   CreateTakeoffInput,
   CreateCommentInput,
   IFCParseResult,
+  DeleteImpactSummary,
 } from "../types";
 import {
   desc,
@@ -124,6 +125,7 @@ import {
   or,
   ilike,
   asc,
+  count,
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
@@ -486,17 +488,17 @@ export const updateCategory = async (
 };
 
 // Delete a category by ID
-export const deleteCategory = async (categoryId: number) => {
-  try {
-    const result = await db
-      .delete(categories)
-      .where(eq(categories.id, categoryId));
-    return result;
-  } catch (error) {
-    console.error("Error deleting category:", error);
-    throw new Error("Could not delete category");
-  }
-};
+// export const deleteCategory = async (categoryId: number) => {
+//   try {
+//     const result = await db
+//       .delete(categories)
+//       .where(eq(categories.id, categoryId));
+//     return result;
+//   } catch (error) {
+//     console.error("Error deleting category:", error);
+//     throw new Error("Could not delete category");
+//   }
+// };
 
 // Create a new activity
 export const createActivity = async (activity: {
@@ -560,17 +562,163 @@ export const updateActivity = async (
 };
 
 // Delete an activity by ID
-export const deleteActivity = async (activityId: number) => {
+// export const deleteActivity = async (activityId: number) => {
+//   try {
+//     const result = await db
+//       .delete(activities)
+//       .where(eq(activities.id, activityId));
+//     return result;
+//   } catch (error) {
+//     console.error("Error deleting activity:", error);
+//     throw new Error("Could not delete activity");
+//   }
+// };
+
+// Added functionality for cascading deletes in the Category and Activity tables (for manpopwer records)
+
+// Get manpower records for an activity
+export const getManpowerByActivityId = async (activityId: number) => {
   try {
+    const result = await db
+      .select()
+      .from(manpower)
+      .where(eq(manpower.activityId, activityId));
+    return result;
+  } catch (error) {
+    console.error("Error fetching manpower for activity:", error);
+    throw new Error("Could not fetch manpower records");
+  }
+};
+
+// Get all manpower records for activities in a category
+export const getManpowerByCategoryId = async (categoryId: number) => {
+  try {
+    const result = await db
+      .select({
+        id: manpower.id,
+        activityId: manpower.activityId,
+        date: manpower.date,
+        manpower: manpower.manpower,
+        createdAt: manpower.createdAt,
+        updatedAt: manpower.updatedAt,
+      })
+      .from(manpower)
+      .innerJoin(activities, eq(manpower.activityId, activities.id))
+      .where(eq(activities.categoryId, categoryId));
+    return result;
+  } catch (error) {
+    console.error("Error fetching manpower for category:", error);
+    throw new Error("Could not fetch manpower records for category");
+  }
+};
+
+// Calculate delete impact for an activity
+export const getActivityDeleteImpact = async (
+  activityId: number
+): Promise<DeleteImpactSummary> => {
+  try {
+    // Get activity details
+    const activity = await db
+      .select({
+        estimatedHours: activities.estimatedHours,
+      })
+      .from(activities)
+      .where(eq(activities.id, activityId))
+      .limit(1);
+
+    // Count manpower records
+    const manpowerCountResult = await db
+      .select({ count: count() })
+      .from(manpower)
+      .where(eq(manpower.activityId, activityId));
+
+    return {
+      activityCount: 1,
+      manpowerCount: manpowerCountResult[0]?.count || 0,
+      totalEstimatedHours: activity[0]?.estimatedHours || 0,
+    };
+  } catch (error) {
+    console.error("Error calculating activity delete impact:", error);
+    throw new Error("Could not calculate delete impact");
+  }
+};
+
+// Calculate delete impact for a category
+export const getCategoryDeleteImpact = async (
+  categoryId: number
+): Promise<DeleteImpactSummary> => {
+  try {
+    // Get all activities in the category
+    const categoryActivities = await db
+      .select({
+        id: activities.id,
+        estimatedHours: activities.estimatedHours,
+      })
+      .from(activities)
+      .where(eq(activities.categoryId, categoryId));
+
+    const activityIds = categoryActivities.map((a) => a.id);
+    const totalEstimatedHours = categoryActivities.reduce(
+      (sum, a) => sum + (a.estimatedHours || 0),
+      0
+    );
+
+    // Count total manpower records for all activities in the category
+    let manpowerCount = 0;
+    if (activityIds.length > 0) {
+      const manpowerCountResult = await db
+        .select({ count: count() })
+        .from(manpower)
+        .innerJoin(activities, eq(manpower.activityId, activities.id))
+        .where(eq(activities.categoryId, categoryId));
+
+      manpowerCount = manpowerCountResult[0]?.count || 0;
+    }
+
+    return {
+      categoryCount: 1,
+      activityCount: categoryActivities.length,
+      manpowerCount,
+      totalEstimatedHours,
+    };
+  } catch (error) {
+    console.error("Error calculating category delete impact:", error);
+    throw new Error("Could not calculate delete impact");
+  }
+};
+
+// Updated delete functions - these will now work with cascade deletes
+// Delete a category by ID (will cascade to activities and manpower)
+export const deleteCategoryWithCascade = async (categoryId: number) => {
+  try {
+    // The cascade deletes will handle activities and manpower automatically
+    const result = await db
+      .delete(categories)
+      .where(eq(categories.id, categoryId));
+    return result;
+  } catch (error) {
+    console.error("Error deleting category with cascade:", error);
+    throw new Error("Could not delete category");
+  }
+};
+
+// Delete an activity by ID (will cascade to manpower)
+export const deleteActivityWithCascade = async (activityId: number) => {
+  try {
+    // The cascade delete will handle manpower automatically
     const result = await db
       .delete(activities)
       .where(eq(activities.id, activityId));
     return result;
   } catch (error) {
-    console.error("Error deleting activity:", error);
+    console.error("Error deleting activity with cascade:", error);
     throw new Error("Could not delete activity");
   }
 };
+
+// Keep the original functions for backward compatibility
+export const deleteCategory = deleteCategoryWithCascade;
+export const deleteActivity = deleteActivityWithCascade;
 
 // Function to get all manpower records for a given projectId
 export const getManpowerByProjectId = async (projectId: number) => {

@@ -81,7 +81,7 @@ export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id")
     .notNull()
-    .references(() => categories.id), // Foreign key to categories
+    .references(() => categories.id, { onDelete: "cascade" }), // Foreign key to categories
   name: text("name").notNull(),
   costCode: text("cost_code"), // Field for cost code
   equipmentId: integer("equipment_id").references(() => equipment.id), // Foreign key to categories
@@ -97,7 +97,7 @@ export const manpower = pgTable("manpower", {
   id: serial("id").primaryKey(),
   activityId: integer("activity_id")
     .notNull()
-    .references(() => activities.id),
+    .references(() => activities.id, { onDelete: "cascade" }),
   date: date("date").notNull(), // Storing the actual date instead of offset
   manpower: integer("manpower").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState, useContext } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import ProjectsTable from "../../components/ProjectsGrid";
-import AddProjectModal from "../../components/AddProjectModal"; // Adding and Editing projects
+import AddProjectModal from "../../components/AddProjectModal";
+import StartDateConfirmationDialog from "../../components/StartDateConfirmationDialog"; // Add this import
 import { PermissionContext } from "../../context/PermissionContext";
 import { Project } from "../../types";
 
@@ -19,12 +20,18 @@ export default function Projects() {
     null
   );
 
+  // State for start date confirmation dialog
+  const [showStartDateDialog, setShowStartDateDialog] =
+    useState<boolean>(false);
+  const [pendingProjectUpdate, setPendingProjectUpdate] =
+    useState<Partial<Project> | null>(null);
+
   // Get the user's permission level
   const { hasWritePermission } = useContext(PermissionContext);
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await fetch(`/api/projects`); // Fetch all projects
+      const res = await fetch(`/api/projects`);
       const data = await res.json();
       setProjects(data.projects);
     } catch (err) {
@@ -34,7 +41,7 @@ export default function Projects() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      fetchProjects(); // Initial fetch when the component mounts
+      fetchProjects();
     }
   }, [isLoaded, isSignedIn, fetchProjects]);
 
@@ -53,7 +60,7 @@ export default function Projects() {
       });
       const result = await response.json();
       alert(result.message);
-      fetchProjects(); // Refresh the projects list
+      fetchProjects();
     } catch (err) {
       console.log(err);
     } finally {
@@ -61,41 +68,46 @@ export default function Projects() {
     }
   };
 
-  const updateProject = async (projectData: Partial<Project>) => {
-    if (!projectData.id) return; // Ensure the project has an ID
+  const performProjectUpdate = async (
+    projectData: Partial<Project>,
+    adjustLabor: boolean = false
+  ) => {
+    if (!projectData.id) return;
 
     setLoading(true);
 
     try {
-      // Check if the start date has changed
-      const originalProject = projects.find(
-        (proj) => proj.id === projectData.id
-      );
-      if (
-        originalProject &&
-        projectData.startDate &&
-        projectData.startDate !== originalProject.startDate
-      ) {
-        // Call the updateStartDate API route
-        const response = await fetch(`/api/projects/updateStartDate`, {
-          method: "PUT",
-          body: JSON.stringify({
-            projectId: projectData.id,
-            newStartDate: projectData.startDate,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+      // Check if we need to adjust labor and the start date has changed
+      if (adjustLabor) {
+        const originalProject = projects.find(
+          (proj) => proj.id === projectData.id
+        );
+        if (
+          originalProject &&
+          projectData.startDate &&
+          projectData.startDate !== originalProject.startDate
+        ) {
+          // Call the updateStartDate API route
+          const response = await fetch(`/api/projects/updateStartDate`, {
+            method: "PUT",
+            body: JSON.stringify({
+              projectId: projectData.id,
+              newStartDate: projectData.startDate,
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
 
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(
-            result.error || "Failed to update project start date"
-          );
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(
+              result.error || "Failed to update project start date"
+            );
+          }
+
+          console.log("Start date and manpower records updated successfully");
         }
-
-        console.log("Start date and manpower records updated successfully");
       }
 
       // Update the project as usual
@@ -119,6 +131,40 @@ export default function Projects() {
     }
   };
 
+  const updateProject = async (projectData: Partial<Project>) => {
+    if (!projectData.id) return;
+
+    // Check if the start date has changed
+    const originalProject = projects.find((proj) => proj.id === projectData.id);
+
+    const hasStartDateChanged =
+      originalProject &&
+      projectData.startDate &&
+      projectData.startDate !== originalProject.startDate;
+
+    if (hasStartDateChanged) {
+      // Show confirmation dialog
+      setPendingProjectUpdate(projectData);
+      setShowStartDateDialog(true);
+    } else {
+      // No start date change, proceed normally
+      await performProjectUpdate(projectData, false);
+    }
+  };
+
+  const handleStartDateConfirmation = async (adjustLabor: boolean) => {
+    if (pendingProjectUpdate) {
+      await performProjectUpdate(pendingProjectUpdate, adjustLabor);
+    }
+    setShowStartDateDialog(false);
+    setPendingProjectUpdate(null);
+  };
+
+  const handleStartDateCancel = () => {
+    setShowStartDateDialog(false);
+    setPendingProjectUpdate(null);
+  };
+
   const deleteProject = async (id: number) => {
     try {
       const response = await fetch(`/api/projects?id=${id}`, {
@@ -126,7 +172,7 @@ export default function Projects() {
       });
       const result = await response.json();
       alert(result.message);
-      fetchProjects(); // Refresh the projects list
+      fetchProjects();
     } catch (err) {
       console.log(err);
     }
@@ -163,12 +209,12 @@ export default function Projects() {
               <ProjectsTable
                 projects={projects}
                 deleteProject={deleteProject}
-                editProject={handleEditProject} // Pass the edit handler
+                editProject={handleEditProject}
                 defaultFilter={{
                   field: "status",
                   filter: "equals",
                   value: "active",
-                }} // Set default filter
+                }}
               />
             </div>
           </div>
@@ -186,15 +232,22 @@ export default function Projects() {
             </div>
           )}
 
-          {/* Modal and Link */}
+          {/* Add Project Modal */}
           {showModal && (
             <AddProjectModal
               onClose={() => setShowModal(false)}
               onSubmit={editMode ? updateProject : createProject}
-              project={currentProject} // Pass the current project if editing
-              isEditMode={editMode} // Indicate if we're in edit mode
+              project={currentProject}
+              isEditMode={editMode}
             />
           )}
+
+          {/* Start Date Confirmation Dialog */}
+          <StartDateConfirmationDialog
+            isOpen={showStartDateDialog}
+            onConfirm={handleStartDateConfirmation}
+            onCancel={handleStartDateCancel}
+          />
 
           <Link
             href="/modules/summary"

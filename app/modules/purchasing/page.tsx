@@ -289,6 +289,23 @@ export default function PurchaseOrderListPage() {
     loadPurchaseOrders();
   }, [loadPurchaseOrders]);
 
+  // Row style for backorder and received highlighting
+  // Backorder (pink) takes precedence over received (yellow)
+  const getRowStyle = useCallback((params: any) => {
+    const data = params.data;
+
+    // Priority: backorder (pink) takes precedence over received (yellow)
+    if (data?.backorder && data.backorder.trim() !== "") {
+      return { backgroundColor: "#fce7f3" }; // light pink
+    }
+
+    if (data?.received && data.received.trim() !== "") {
+      return { backgroundColor: "#fef3c7" }; // light yellow
+    }
+
+    return undefined;
+  }, []);
+
   if (loading) return <div className="p-6">Loading purchase orders...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
@@ -325,6 +342,7 @@ export default function PurchaseOrderListPage() {
           columnDefs={columnDefs}
           pagination={true}
           paginationPageSize={pageSize}
+          getRowStyle={getRowStyle}
         />
       </div>
 

@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getActivityById,
   updateActivity,
-  deleteActivity,
+  deleteActivityWithCascade,
+  getActivityDeleteImpact,
 } from "../../../db/actions";
 import { Activity } from "../../../types";
 import { authenticate, authorize } from "../../../../app/api/admin/helpers"; // Adjust the import path accordingly
@@ -131,7 +132,7 @@ export async function DELETE(
 
   const isAuthorized = authorize(user, ["admin", "write"]);
   if (isAuthorized !== true) {
-    return isAuthorized; // Response already sent in authorize()
+    return isAuthorized;
   }
 
   const activityId = parseInt(params.id, 10);
@@ -144,18 +145,34 @@ export async function DELETE(
   }
 
   try {
-    const success = await deleteActivity(activityId);
-    if (success) {
-      return NextResponse.json(
-        { message: "Activity deleted successfully" },
-        { status: 200 }
-      );
-    } else {
+    // First, get the delete impact
+    const impact = await getActivityDeleteImpact(activityId);
+
+    // Check if activity exists
+    const activity = await getActivityById(activityId);
+    if (!activity) {
       return NextResponse.json(
         { message: "Activity not found" },
         { status: 404 }
       );
     }
+
+    // Delete with cascade
+    const success = await deleteActivityWithCascade(activityId);
+    if (!success) {
+      return NextResponse.json(
+        { message: "Failed to delete activity" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        message: "Activity deleted successfully",
+        deletedImpact: impact,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error deleting activity:", error);
     return NextResponse.json(

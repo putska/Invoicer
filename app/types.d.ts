@@ -60,6 +60,29 @@ export interface Project {
   updatedAt?: Date;
 }
 
+export interface ManpowerRecord {
+  id: number;
+  activityId: number;
+  date: string;
+  manpower: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeleteImpactSummary {
+  categoryCount?: number;
+  activityCount: number;
+  manpowerCount: number;
+  totalEstimatedHours?: number;
+}
+
+export interface DeleteConfirmationData {
+  type: "category" | "activity";
+  id: number;
+  name: string;
+  impact: DeleteImpactSummary;
+}
+
 export interface Category {
   id?: number;
   projectId: number;
@@ -624,6 +647,13 @@ export interface HistoryDetail {
   toEngineerId?: number;
   fromPosition?: number;
   toPosition?: number;
+}
+
+export interface StartDateChangeConfirmation {
+  showDialog: boolean;
+  projectData: Partial<Project>;
+  onConfirm: (adjustLabor: boolean) => void;
+  onCancel: () => void;
 }
 
 // TypeScript interfaces for Engineering Notes

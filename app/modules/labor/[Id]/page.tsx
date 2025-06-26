@@ -1,5 +1,3 @@
-// app/modules/labor/[id]/
-
 "use client";
 
 import { useParams } from "next/navigation";
@@ -7,11 +5,62 @@ import React, { useState, useEffect, useContext } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { format, addDays } from "date-fns";
 import { PermissionContext } from "../../../context/PermissionContext";
 import { useSocket } from "../../../context/SocketContext";
 import { useRouter } from "next/navigation";
 import { GridApi } from "ag-grid-community";
+import {
+  ChevronDown,
+  ChevronUp,
+  ZoomIn,
+  ZoomOut,
+  Save,
+  ArrowRight,
+} from "lucide-react";
+
+// Using native Date methods instead of date-fns
+const format = (date: Date, formatStr: string): string => {
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  if (formatStr === "MMM yyyy") {
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+  if (formatStr === "d") {
+    return date.getDate().toString();
+  }
+  if (formatStr === "yyyy_MM_dd") {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}_${month}_${day}`;
+  }
+  if (formatStr === "yyyy-MM-dd") {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  return date.toString();
+};
+
+const addDays = (date: Date, days: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
 
 interface Category {
   categoryId: number;
@@ -41,11 +90,11 @@ interface Project {
 }
 
 interface RowData {
-  id: number | string; // This can be categoryId or activityId
+  id: number | string;
   name: string;
   level: number;
-  category?: boolean; // true for categories, undefined for activities
-  [key: string]: any; // Dynamic keys for day columns
+  category?: boolean;
+  [key: string]: any;
 }
 
 const LaborGrid: React.FC = () => {
@@ -60,73 +109,137 @@ const LaborGrid: React.FC = () => {
   const [rowData, setRowData] = useState<RowData[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
-  const socket = useSocket(); //Get the socket instance from the context
+  const socket = useSocket();
 
-  const onGridReady = (params: { api: GridApi }) => {
-    setGridApi(params.api); // Store the grid API instance
-  };
+  // New state for UI improvements
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [gridHeight, setGridHeight] = useState(600);
 
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
 
+  // Your existing holidays array
   const holidays = [
-    "2024-12-23", // DDO
-    "2024-12-24", // Christmas Eve
-    "2024-12-25", // Christmas
-    "2024-11-11", // Veterans Day
-    "2024-11-28", // Thanksgiving
-    "2024-11-29", // Day after Thanksgiving
-    "2025-01-01", // New Year
-    "2025-01-20", // MLK Day
-    "2025-02-10", // DDO
-    "2025-02-17", // Presidents Day
-    "2025-04-18", // DDO
-    "2025-05-23", // DDO
-    "2025-05-26", // Memorial Day
-    "2025-07-04", // Independence Day
-    "2025-07-07", // DDO
-    "2025-08-29", // DDO
-    "2025-09-01", // Labor Day
-    "2025-11-11", // Veterans Day
-    "2025-11-27", // Thanksgiving
-    "2025-11-28", // Day after Thanksgiving
-    "2025-12-25", // Christmas
-    "2025-12-26", // Christmas Day
-    "2026-01-01", // New Year
-    "2026-01-02", // DDO
-    "2026-01-19", // MLK Day
-    "2026-02-09", // DDO
-    "2026-02-16", // Presidents Day
-    "2026-04-03", // DDO
-    "2026-05-25", // Memorial Day
-    "2026-06-19", // Junteenth
-    "2026-07-03", // Independence Day
-    "2026-07-06", // DDO
-    "2026-08-07", // DDO
-    "2026-09-04", // DDO
-    "2026-09-07", // Labor Day
-    "2026-11-11", // Veterans Day
-    "2026-11-26", // Thanksgiving
-    "2026-11-27", // Day after Thanksgiving
-    "2026-12-24", // Christmas Eve
-    "2026-12-25", // Christmas
-    "2027-01-01", // New Year
-    "2027-01-18", // MLK Day
-    "2027-02-15", // Presidents Day
-    "2027-03-26", // DDO
-    "2027-05-31", // Memorial Day
-    "2027-05-28", // DDO
-    "2027-06-18", // Junteenth
-    "2027-07-05", // Independence Day
-    "2027-07-08", // DDO
+    "2024-12-23",
+    "2024-12-24",
+    "2024-12-25",
+    "2024-11-11",
+    "2024-11-28",
+    "2024-11-29",
+    "2025-01-01",
+    "2025-01-20",
+    "2025-02-10",
+    "2025-02-17",
+    "2025-04-18",
+    "2025-05-23",
+    "2025-05-26",
+    "2025-07-04",
+    "2025-07-07",
+    "2025-08-29",
+    "2025-09-01",
+    "2025-11-11",
+    "2025-11-27",
+    "2025-11-28",
+    "2025-12-25",
+    "2025-12-26",
+    "2026-01-01",
+    "2026-01-02",
+    "2026-01-19",
+    "2026-02-09",
+    "2026-02-16",
+    "2026-04-03",
+    "2026-05-25",
+    "2026-06-19",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-08-07",
+    "2026-09-04",
+    "2026-09-07",
+    "2026-11-11",
+    "2026-11-26",
+    "2026-11-27",
+    "2026-12-24",
+    "2026-12-25",
+    "2027-01-01",
+    "2027-01-18",
+    "2027-02-15",
+    "2027-03-26",
+    "2027-05-31",
+    "2027-05-28",
+    "2027-06-18",
+    "2027-07-05",
+    "2027-07-08",
   ];
 
+  const onGridReady = (params: { api: GridApi }) => {
+    setGridApi(params.api);
+  };
+
+  // Zoom functionality
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoomLevel + 0.1, 2);
+    setZoomLevel(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoomLevel - 0.1, 0.5);
+    setZoomLevel(newZoom);
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(1);
+  };
+
+  const calculateGridHeight = () => {
+    const headerHeight = isHeaderCollapsed ? 60 : 120;
+    const controlsHeight = 50;
+    const footerHeight = 30;
+    const scrollBarBuffer = 100; // Add buffer for horizontal scrollbar
+    const viewportHeight = window.innerHeight;
+    console.log(
+      `Calculated grid height: ${viewportHeight} - ${headerHeight} - ${controlsHeight} - ${footerHeight} - ${scrollBarBuffer} = ${
+        viewportHeight -
+        headerHeight -
+        controlsHeight -
+        footerHeight -
+        scrollBarBuffer
+      }`
+    );
+    return (
+      viewportHeight -
+      headerHeight -
+      controlsHeight -
+      footerHeight -
+      scrollBarBuffer
+    );
+  };
+
+  useEffect(() => {
+    const updateGridHeight = () => {
+      setGridHeight(calculateGridHeight());
+    };
+
+    // Initial calculation after DOM is ready
+    updateGridHeight();
+
+    // Also recalculate after a short delay to ensure proper layout
+    const timeoutId = setTimeout(updateGridHeight, 100);
+
+    window.addEventListener("resize", updateGridHeight);
+    return () => {
+      window.removeEventListener("resize", updateGridHeight);
+      clearTimeout(timeoutId);
+    };
+  }, [isHeaderCollapsed]);
+
+  // Your existing useEffect for setting selectedProject
   useEffect(() => {
     if (Id) {
       setSelectedProject(Number(Id));
     }
   }, [Id]);
 
-  // Fetch project data when selectedProject changes
+  // Your existing useEffect for fetching project data
   useEffect(() => {
     if (selectedProject) {
       const fetchProject = async () => {
@@ -137,7 +250,6 @@ const LaborGrid: React.FC = () => {
 
           if (Array.isArray(projectArray) && projectArray.length > 0) {
             const project = projectArray[0];
-
             setProject(project);
           } else {
             console.error("Invalid project data:", projectData);
@@ -152,7 +264,7 @@ const LaborGrid: React.FC = () => {
     }
   }, [selectedProject]);
 
-  // Fetch categories, activities, and manpower data when project data is available
+  // Your existing useEffect for fetching categories, activities, and manpower data
   useEffect(() => {
     if (project) {
       const fetchCategoriesAndActivities = async () => {
@@ -176,6 +288,8 @@ const LaborGrid: React.FC = () => {
           if (!Array.isArray(manpowerData)) {
             throw new Error("Manpower data is not an array");
           }
+
+          setCategories(fetchedCategories);
 
           // Generate columns based on project dates
           const dynamicColumns = generateDateColumns(
@@ -205,7 +319,18 @@ const LaborGrid: React.FC = () => {
     }
   }, [project]);
 
-  // Fetch snapshots when the project is selected
+  // Separate effect for zoom level changes
+  useEffect(() => {
+    if (project && categories.length > 0) {
+      const dynamicColumns = generateDateColumns(
+        new Date(project.startDate),
+        new Date(project.endDate)
+      );
+      setColumnDefs(generateColumnDefs(dynamicColumns));
+    }
+  }, [zoomLevel]);
+
+  // Your existing useEffect for fetching snapshots
   useEffect(() => {
     if (selectedProject) {
       const fetchSnapshots = async () => {
@@ -224,14 +349,11 @@ const LaborGrid: React.FC = () => {
     }
   }, [selectedProject]);
 
-  /* Socket Stuff!!!! */
-
-  // Listen for real-time updates from the WebSocket
+  // Your existing socket useEffect
   useEffect(() => {
     if (!socket) return;
 
     const handleExternalEdit = (data: any) => {
-      // Update the grid when receiving real-time data
       setRowData((prevRowData) => {
         return prevRowData.map((row) => {
           if (row.id === data.activityId) {
@@ -242,119 +364,65 @@ const LaborGrid: React.FC = () => {
       });
     };
 
-    // Listen for real-time "edit" events
     socket.on("edit", handleExternalEdit);
 
     return () => {
-      // Clean up the event listener on unmount
       socket.off("edit", handleExternalEdit);
     };
   }, [socket]);
 
-  const loadSnapshot = async (snapshotId: string) => {
-    try {
-      const res = await fetch(`/api/snapshot/${snapshotId}`);
-      const data = await res.json();
-      if (data.length > 0 && data[0].snapshotData) {
-        const snapshotData = JSON.parse(data[0].snapshotData);
-
-        // Generate columns based on project dates
-        if (project) {
-          const dynamicColumns = generateDateColumns(
-            new Date(project.startDate),
-            new Date(project.endDate)
-          );
-          setRowData(snapshotData.rowData);
-
-          setColumnDefs(snapshotData.columnDefs);
-          setColumnDefs(generateColumnDefs(dynamicColumns));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading snapshot:", error);
-    }
-  };
-
-  // Function to save the current state as a snapshot
-  const saveSnapshot = async () => {
-    if (!selectedProject) return;
-    const snapshotData = {
-      rowData,
-      columnDefs,
-    };
-    try {
-      const res = await fetch(`/api/snapshot`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectId: selectedProject,
-          snapshotData,
-        }),
-      });
-      if (res.ok) {
-        console.log("Snapshot saved successfully");
-      } else {
-        console.error("Failed to save snapshot");
-      }
-    } catch (error) {
-      console.error("Error saving snapshot:", error);
-    }
-  };
-
-  // IndentCellRenderer function defined inside the component
+  // IndentCellRenderer with zoom support
   const IndentCellRenderer = (props: any) => {
     const { value, data } = props;
     const level = data.level || 0;
-    const indent = level * 15; // Adjust 15 to change indentation size
+    const indent = level * 15 * zoomLevel;
 
     const style: React.CSSProperties = {
       paddingLeft: `${indent}px`,
-      fontWeight: data.category ? "bold" : "normal", // Bold text for categories
+      fontWeight: data.category ? "bold" : "normal",
+      fontSize: `${14 * zoomLevel}px`,
+      lineHeight: `${20 * zoomLevel}px`,
     };
 
     return <span style={style}>{value}</span>;
   };
 
-  // Generate columns for each day between start and end date
+  // Generate date columns without the "Days" header group
   const generateDateColumns = (startDate: Date, endDate: Date): any[] => {
     const columns: any[] = [];
     let currentDate = startDate;
     let currentMonth = "";
+
     while (currentDate <= endDate) {
       const monthYear = format(currentDate, "MMM yyyy");
 
       if (monthYear !== currentMonth) {
         currentMonth = monthYear;
-
         columns.push({
           headerName: monthYear,
-          children: [], // This will hold the day columns
+          children: [],
         });
       }
 
       const dayField = `day_${format(currentDate, "yyyy_MM_dd")}`;
       const dayHeader = format(currentDate, "d");
-      const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
-      const currentDateString = format(currentDate, "yyyy-MM-dd"); // Format current date to match holiday format
+      const dayOfWeek = currentDate.getDay();
+      const currentDateString = format(currentDate, "yyyy-MM-dd");
 
       columns[columns.length - 1].children.push({
         headerName: dayHeader,
         field: dayField,
-        width: 60,
+        width: Math.max(40, 60 * zoomLevel),
         cellStyle: () => {
-          // Determine if the current date is a weekend or holiday
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
           const isHoliday = holidays.includes(currentDateString);
-
           return isWeekend || isHoliday
-            ? { backgroundColor: "#f0f0f0" } // Light grey for weekends or holidays
-            : null;
+            ? { backgroundColor: "#f0f0f0", fontSize: `${12 * zoomLevel}px` }
+            : { fontSize: `${12 * zoomLevel}px` };
         },
         valueGetter: (params: any) => {
           const value = params.data?.[dayField];
-          return value === 0 ? "" : value; // Don't display 0, show as empty string
+          return value === 0 ? "" : value;
         },
       });
 
@@ -369,20 +437,18 @@ const LaborGrid: React.FC = () => {
       {
         headerName: "Category/Activity",
         field: "name",
-        width: 200,
+        width: Math.max(150, 200 * zoomLevel),
         pinned: "left",
-        cellRenderer: IndentCellRenderer, // Use 'cellRenderer' instead of 'cellRendererFramework'
-        editable: false, // Make the name column non-editable
+        cellRenderer: IndentCellRenderer,
+        editable: false,
       },
+      // Direct inclusion of dynamic columns without wrapper
+      ...dynamicColumns,
       {
-        headerName: "Days", // Header group for dynamic day columns
-        children: dynamicColumns, // Dynamic columns grouped under the "Days" header
-      },
-      {
-        headerName: "Total Manpower",
+        headerName: "Total MP",
         field: "totalManpower",
-        width: 150,
-        pinned: "left",
+        width: Math.max(80, 120 * zoomLevel),
+        pinned: "right",
         valueGetter: (params: any) => {
           return Object.keys(params.data).reduce((sum, key) => {
             if (key.startsWith("day_")) {
@@ -392,31 +458,33 @@ const LaborGrid: React.FC = () => {
           }, 0);
         },
         editable: false,
+        cellStyle: { fontSize: `${12 * zoomLevel}px` },
       },
       {
-        headerName: "Total Hours",
+        headerName: "Total Hrs",
         field: "totalHours",
-        width: 150,
-        pinned: "left",
+        width: Math.max(80, 120 * zoomLevel),
+        pinned: "right",
         valueGetter: (params: any) => params.getValue("totalManpower") * 8,
         editable: false,
+        cellStyle: { fontSize: `${12 * zoomLevel}px` },
       },
     ];
   };
 
-  // Generate row data based on categories and activities
+  // Your existing generateRowData function
   const generateRowData = (
     categories: Category[],
     dynamicColumns: any[],
     manpowerData: any[]
   ) => {
     const rows: RowData[] = [];
-    const totalRow: RowData = { id: "total", name: "Total", level: 0 }; // Initialize the total row
+    const totalRow: RowData = { id: "total", name: "Total", level: 0 };
 
     // Initialize totals for each day column
     dynamicColumns.forEach((month: any) => {
       month.children.forEach((day: any) => {
-        totalRow[day.field] = 0; // Initialize each day in the total row to 0
+        totalRow[day.field] = 0;
       });
     });
 
@@ -426,7 +494,7 @@ const LaborGrid: React.FC = () => {
         id: category.categoryId,
         name: category.categoryName,
         category: true,
-        level: 0, // Level 0 for categories
+        level: 0,
       });
 
       // Add each activity under the category
@@ -434,7 +502,7 @@ const LaborGrid: React.FC = () => {
         const activityRow: RowData = {
           id: activity.activityId,
           name: activity.activityName,
-          level: 1, // Level 1 for activities
+          level: 1,
         };
 
         // Loop through the columns to add manpower data for each day
@@ -469,14 +537,13 @@ const LaborGrid: React.FC = () => {
     return rows;
   };
 
-  // Handle new manpower entry
+  // Your existing handleCellEdit function
   const handleCellEdit = async (
     activityId: number,
     dateField: string,
     manpower: any
   ) => {
     const date = dateField.split("_").slice(1).join("-");
-
     const manpowerValue = parseFloat(manpower);
 
     let method;
@@ -484,11 +551,9 @@ const LaborGrid: React.FC = () => {
     let body;
 
     if (isNaN(manpowerValue) || manpowerValue === 0) {
-      // Delete manpower entry
       method = "DELETE";
       url += `?activityId=${activityId}&date=${encodeURIComponent(date)}`;
     } else {
-      // Create or update manpower entry
       method = "POST";
       body = JSON.stringify({
         activityId,
@@ -510,7 +575,6 @@ const LaborGrid: React.FC = () => {
       if (res.ok) {
         console.log(data.message);
 
-        //Emit the change to other users via WebSocket
         if (socket) {
           socket.emit("edit", {
             activityId,
@@ -526,16 +590,65 @@ const LaborGrid: React.FC = () => {
     }
   };
 
-  // Update your defaultColDef
+  // Your existing snapshot functions
+  const loadSnapshot = async (snapshotId: string) => {
+    try {
+      const res = await fetch(`/api/snapshot/${snapshotId}`);
+      const data = await res.json();
+      if (data.length > 0 && data[0].snapshotData) {
+        const snapshotData = JSON.parse(data[0].snapshotData);
+
+        if (project) {
+          const dynamicColumns = generateDateColumns(
+            new Date(project.startDate),
+            new Date(project.endDate)
+          );
+          setRowData(snapshotData.rowData);
+          setColumnDefs(generateColumnDefs(dynamicColumns));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading snapshot:", error);
+    }
+  };
+
+  const saveSnapshot = async () => {
+    if (!selectedProject) return;
+    const snapshotData = {
+      rowData,
+      columnDefs,
+    };
+    try {
+      const res = await fetch(`/api/snapshot`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: selectedProject,
+          snapshotData,
+        }),
+      });
+      if (res.ok) {
+        console.log("Snapshot saved successfully");
+        // Refresh snapshots list
+        const snapshotRes = await fetch(`/api/snapshot/all/${selectedProject}`);
+        const snapshotData = await snapshotRes.json();
+        setSnapshots(snapshotData.snapshots || []);
+      } else {
+        console.error("Failed to save snapshot");
+      }
+    } catch (error) {
+      console.error("Error saving snapshot:", error);
+    }
+  };
 
   const defaultColDef = {
     sortable: true,
     resizable: true,
-
     editable: (params: any) => {
       if (!params.data) return false;
       if (!isLoaded) return false;
-
       return (
         hasWritePermission &&
         !params.data.category &&
@@ -544,91 +657,179 @@ const LaborGrid: React.FC = () => {
     },
   };
 
-  const navigateToEquipment = (
-    router: any,
-    Id: string | string[] | undefined
-  ) => {
+  const navigateToEquipment = () => {
     if (!Id) {
       console.error("Project ID is undefined!");
       return;
     }
-
     router.push(`/modules/equipment/${Id}`);
   };
+
   // Handle loading state
   if (!isLoaded) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div>
-        <div className="mb-6 bg-blue-100 p-4 rounded-md">
-          <h1 className="text-3xl font-bold text-left text-blue-800">
-            {project?.name}
-          </h1>
-          <p className="text-gray-700 text-left">{project?.description}</p>
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Collapsible Header */}
+      <div
+        className={`bg-gradient-to-r from-blue-600 to-blue-700 text-white transition-all duration-300 ${
+          isHeaderCollapsed ? "p-2" : "p-4"
+        }`}
+      >
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1
+                className={`font-bold text-white transition-all duration-300 ${
+                  isHeaderCollapsed ? "text-lg" : "text-2xl"
+                }`}
+              >
+                {project?.name || "Loading..."}
+              </h1>
+              <button
+                onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+                className="p-1 hover:bg-blue-800 rounded transition-colors"
+              >
+                {isHeaderCollapsed ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronUp size={16} />
+                )}
+              </button>
+            </div>
+            {!isHeaderCollapsed && project?.description && (
+              <p className="text-blue-100 mt-1 text-sm">
+                {project.description}
+              </p>
+            )}
+          </div>
         </div>
       </div>
-      <div className="mb-4 flex items-center gap-4">
+
+      {/* Compact Controls Bar */}
+      <div className="bg-white border-b border-gray-200 p-2 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
+            <button
+              onClick={handleZoomOut}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span className="px-2 text-sm font-mono min-w-[3rem] text-center">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              onClick={handleZoomIn}
+              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              onClick={handleZoomReset}
+              className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+              title="Reset Zoom"
+            >
+              100%
+            </button>
+          </div>
+
+          {/* Snapshot Controls */}
+          <button
+            onClick={saveSnapshot}
+            className="flex items-center gap-1 px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors"
+          >
+            <Save size={14} />
+            Save
+          </button>
+
+          <select
+            className="px-2 py-1 border border-gray-300 rounded text-sm"
+            value={selectedSnapshot || ""}
+            onChange={(e) => {
+              const snapshotId = e.target.value;
+              if (snapshotId) {
+                loadSnapshot(snapshotId);
+                setSelectedSnapshot(snapshotId);
+              }
+            }}
+          >
+            <option value="">Load Snapshot...</option>
+            {snapshots.map((snapshot) => (
+              <option key={snapshot.snapshotId} value={snapshot.snapshotId}>
+                {snapshot.snapshotId}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button
-          onClick={saveSnapshot}
-          className="bg-green-500 text-white px-4 py-2 rounded"
+          onClick={navigateToEquipment}
+          className="flex items-center gap-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition-colors"
         >
-          Save Snapshot
+          Equipment View
+          <ArrowRight size={14} />
         </button>
-        <select
-          className="p-2 border border-gray-200 rounded-sm"
-          value={selectedSnapshot || ""}
-          onChange={(e) => {
-            const snapshotId = e.target.value;
-            if (snapshotId) {
-              loadSnapshot(snapshotId);
-              setSelectedSnapshot(snapshotId);
-            }
-          }}
-        >
-          <option value="">-- Select a Snapshot --</option>
-          {snapshots.map((snapshot) => (
-            <option key={snapshot.snapshotId} value={snapshot.snapshotId}>
-              {snapshot.snapshotId}
-            </option>
-          ))}
-        </select>
       </div>
-      <div
-        className="ag-theme-alpine"
-        style={{ height: "600px", width: "100%" }}
-      >
-        <AgGridReact
-          columnDefs={columnDefs}
-          rowData={rowData}
-          defaultColDef={defaultColDef}
-          getRowStyle={(params) => {
-            if (!params.data) return undefined; // Return undefined if no data
-            if (params.data.id === "total") {
-              return { fontWeight: "bold", backgroundColor: "#e0e0e0" }; // Valid RowStyle for total row
-            }
-            return undefined; // Return undefined for rows with no special style
-          }}
-          onCellValueChanged={(params) => {
-            if (params.data.category) return; // Ignore category rows
-            const activityId = Number(params.data.id); // Convert id to a number
-            const field = params.colDef.field;
-            const manpower = params.newValue;
-            if (!field) return; // Ignore rows without a field
-            if (!isNaN(activityId) && field.startsWith("day_")) {
-              handleCellEdit(activityId, field, manpower);
-            }
-          }}
-        />
+
+      {/* Main Grid */}
+      <div className="flex-1 overflow-hidden">
+        <div className="ag-theme-alpine h-full" style={{ height: gridHeight }}>
+          <AgGridReact
+            columnDefs={columnDefs}
+            rowData={rowData}
+            defaultColDef={defaultColDef}
+            onGridReady={onGridReady}
+            headerHeight={Math.max(24, 32 * zoomLevel)}
+            rowHeight={Math.max(24, 32 * zoomLevel)}
+            getRowStyle={(params) => {
+              if (!params.data) return undefined;
+              if (params.data.id === "total") {
+                return {
+                  fontWeight: "bold",
+                  backgroundColor: "#e0e0e0",
+                  fontSize: `${12 * zoomLevel}px`,
+                };
+              }
+              return {
+                fontSize: `${12 * zoomLevel}px`,
+                fontWeight: "normal",
+                backgroundColor: "transparent",
+              };
+            }}
+            onCellValueChanged={(params) => {
+              if (params.data.category) return;
+              const activityId = Number(params.data.id);
+              const field = params.colDef.field;
+              const manpower = params.newValue;
+              if (!field) return;
+              if (!isNaN(activityId) && field.startsWith("day_")) {
+                handleCellEdit(activityId, field, manpower);
+              }
+            }}
+            suppressHorizontalScroll={false}
+            suppressMovableColumns={true}
+            animateRows={true}
+          />
+        </div>
       </div>
-      <button
-        onClick={() => navigateToEquipment(router, Id)}
-        className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
-      >
-        Equipment View
-      </button>
+
+      {/* Compact Status Bar */}
+      <div className="bg-gray-100 border-t border-gray-200 px-3 py-1 text-xs text-gray-600 flex justify-between items-center">
+        <span>Ready • {rowData.length} rows</span>
+        <span>
+          {project?.startDate} - {project?.endDate}
+        </span>
+      </div>
     </div>
   );
 };

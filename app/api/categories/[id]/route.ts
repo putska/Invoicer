@@ -5,8 +5,9 @@ import { z } from "zod";
 import {
   getCategoryById,
   updateCategory,
-  deleteCategory,
-} from "../../../db/actions"; // Adjust the import path accordingly
+  deleteCategoryWithCascade,
+  getCategoryDeleteImpact,
+} from "../../../db/actions";
 import { authenticate, authorize } from "../../../../app/api/admin/helpers"; // Adjust the import path accordingly
 import { Category } from "../../../types";
 
@@ -125,7 +126,7 @@ export async function PUT(
 }
 
 /**
- * DELETE Route: Delete a specific category by ID
+ * DELETE Route: Delete a specific category by ID with cascade
  */
 export async function DELETE(
   req: NextRequest,
@@ -139,7 +140,7 @@ export async function DELETE(
 
   const isAuthorized = authorize(user, ["admin", "write"]);
   if (isAuthorized !== true) {
-    return isAuthorized; // Response already sent in authorize()
+    return isAuthorized;
   }
 
   const categoryId = parseInt(params.id, 10);
@@ -152,16 +153,32 @@ export async function DELETE(
   }
 
   try {
-    const success = await deleteCategory(categoryId);
-    if (!success) {
+    // First, get the delete impact
+    const impact = await getCategoryDeleteImpact(categoryId);
+
+    // Check if category exists
+    const category = await getCategoryById(categoryId);
+    if (!category) {
       return NextResponse.json(
         { message: "Category not found" },
         { status: 404 }
       );
     }
 
+    // Delete with cascade
+    const success = await deleteCategoryWithCascade(categoryId);
+    if (!success) {
+      return NextResponse.json(
+        { message: "Failed to delete category" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { message: "Category deleted successfully!" },
+      {
+        message: "Category deleted successfully!",
+        deletedImpact: impact,
+      },
       { status: 200 }
     );
   } catch (error) {

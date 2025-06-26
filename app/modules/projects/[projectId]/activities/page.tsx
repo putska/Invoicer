@@ -24,7 +24,9 @@ import {
   Equipment,
   CategorySortOrderUpdate,
   ActivitySortOrderUpdate,
+  DeleteConfirmationData,
 } from "../../../../types";
+import DeleteConfirmationDialog from "../../../../components/DeleteConfirmationDialog";
 
 interface Category {
   categoryId: number;
@@ -84,6 +86,13 @@ export default function ActivitiesPage({
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
     null
   );
+  // States added for cascading deletes and confirmation dialog
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] =
+    useState<boolean>(false);
+  const [deleteConfirmationData, setDeleteConfirmationData] =
+    useState<DeleteConfirmationData | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
+
   const previousCategoriesRef = useRef<Category[]>([]);
 
   // Get the user's permission level
@@ -435,52 +444,96 @@ export default function ActivitiesPage({
   };
 
   const handleDeleteCategory = async (categoryId: number) => {
-    if (!hasWritePermission) return; // Prevent deletion if no permission
+    if (!hasWritePermission) return;
 
     try {
-      const res = await fetch(`/api/categories/${categoryId}`, {
-        // Updated URL
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setCategories((prevCategories) =>
-          prevCategories.filter((cat) => cat.categoryId !== categoryId)
-        );
+      // Fetch delete impact
+      const res = await fetch(`/api/categories/${categoryId}/delete-impact`);
+      if (!res.ok) {
+        throw new Error("Failed to get delete impact");
       }
+
+      const confirmationData = await res.json();
+      setDeleteConfirmationData(confirmationData);
+      setDeleteConfirmationOpen(true);
     } catch (error) {
-      console.error("Error deleting category:", error);
+      console.error("Error getting delete impact:", error);
+      alert("Failed to get delete information. Please try again.");
     }
   };
 
+  // Updated delete activity function with confirmation
   const handleDeleteActivity = async (activityId: number) => {
-    if (!hasWritePermission) return; // Prevent deletion if no permission
+    if (!hasWritePermission) return;
 
     try {
-      const res = await fetch(`/api/activities/${activityId}`, {
-        // Updated URL
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setCategories((prevCategories) =>
-          prevCategories.map((cat) => ({
-            ...cat,
-            activities: cat.activities.filter(
-              (activity) => activity.activityId !== activityId
-            ),
-          }))
-        );
+      // Fetch delete impact
+      const res = await fetch(`/api/activities/${activityId}/delete-impact`);
+      if (!res.ok) {
+        throw new Error("Failed to get delete impact");
       }
+
+      const confirmationData = await res.json();
+      setDeleteConfirmationData(confirmationData);
+      setDeleteConfirmationOpen(true);
     } catch (error) {
-      console.error("Error deleting activity:", error);
+      console.error("Error getting delete impact:", error);
+      alert("Failed to get delete information. Please try again.");
     }
   };
 
-  //const handleEquipmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  //  const selectedId = Number(e.target.value);
-  //  const selected =
-  //    equipmentList.find((equipment) => equipment.id === selectedId) || null;
-  //  setSelectedEquipment(selected);
-  //};
+  // Handle confirmed delete
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmationData) return;
+
+    setDeleteLoading(true);
+    try {
+      const { type, id } = deleteConfirmationData;
+      const endpoint =
+        type === "category" ? `/api/categories/${id}` : `/api/activities/${id}`;
+
+      const res = await fetch(endpoint, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        if (type === "category") {
+          setCategories((prevCategories) =>
+            prevCategories.filter((cat) => cat.categoryId !== id)
+          );
+        } else {
+          setCategories((prevCategories) =>
+            prevCategories.map((cat) => ({
+              ...cat,
+              activities: cat.activities.filter(
+                (activity) => activity.activityId !== id
+              ),
+            }))
+          );
+        }
+
+        // Close the confirmation dialog
+        setDeleteConfirmationOpen(false);
+        setDeleteConfirmationData(null);
+      } else {
+        const errorData = await res.json();
+        alert(errorData.message || `Failed to delete ${type}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting ${deleteConfirmationData.type}:`, error);
+      alert(
+        `An error occurred while deleting the ${deleteConfirmationData.type}. Please try again.`
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Handle cancel delete
+  const handleCancelDelete = () => {
+    setDeleteConfirmationOpen(false);
+    setDeleteConfirmationData(null);
+  };
 
   const handleEquipmentChange = (value: string) => {
     const selected =
@@ -1084,6 +1137,15 @@ export default function ActivitiesPage({
                 </Button>
               </DialogActions>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <DeleteConfirmationDialog
+              open={deleteConfirmationOpen}
+              onClose={handleCancelDelete}
+              onConfirm={handleConfirmDelete}
+              data={deleteConfirmationData}
+              loading={deleteLoading}
+            />
           </div>
         </div>
       </main>
