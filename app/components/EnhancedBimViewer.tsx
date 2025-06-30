@@ -807,6 +807,36 @@ export default function EnhancedBIMViewer({
             // Apply the determined material
             child.material = materialToApply;
 
+            if (elementType === "panel" || elementType === "glazing") {
+              try {
+                const edges = new THREE.EdgesGeometry(child.geometry);
+                const edgeMaterial = new THREE.LineBasicMaterial({
+                  color: 0xaaaaaa,
+                  transparent: true,
+                  opacity: 0.4,
+                  depthTest: true,
+                  depthWrite: false,
+                });
+
+                const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+                edgeLines.position.copy(child.position);
+                edgeLines.rotation.copy(child.rotation);
+                edgeLines.scale.copy(child.scale);
+
+                // Optional: link to child or parent
+                if (child.parent) {
+                  child.parent.add(edgeLines);
+                } else if (sceneRef.current) {
+                  sceneRef.current.add(edgeLines);
+                }
+              } catch (error) {
+                console.warn(
+                  "Failed to generate edges for panel-type element:",
+                  error
+                );
+              }
+            }
+
             // Only log first few elements to avoid console spam
             if (child.userData.logCount === undefined) {
               child.userData.logCount = Math.random();

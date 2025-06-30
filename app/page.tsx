@@ -10,7 +10,9 @@ export default function Home() {
           C/S Erectors Corporate Portal
         </h2>
         <p className="opacity-70 mb-4 text-sm md:text-base leading-loose">
-          Log in to view labor status and monitors
+          {
+            // Log in to view labor status and monitors
+          }
         </p>
 
         <Link
