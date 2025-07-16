@@ -20,7 +20,7 @@ export default function ImportLaborData() {
       }
 
       const text = await response.text();
-      const lines = text.split("\n");
+      const lines = text.split("\n").filter((line) => line.trim() !== ""); // Filter out empty lines
 
       // Extract headers from the first line
       const headers = lines[0].split(",");

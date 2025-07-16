@@ -48,58 +48,6 @@ const DragDropContext = dynamic(
   { ssr: false }
 );
 
-const holidays = [
-  "2024-12-23",
-  "2024-12-24",
-  "2024-12-25",
-  "2024-11-11",
-  "2024-11-28",
-  "2024-11-29",
-  "2025-01-01",
-  "2025-01-20",
-  "2025-02-10",
-  "2025-02-17",
-  "2025-04-18",
-  "2025-05-23",
-  "2025-05-26",
-  "2025-07-04",
-  "2025-07-07",
-  "2025-08-29",
-  "2025-09-01",
-  "2025-11-11",
-  "2025-11-27",
-  "2025-11-28",
-  "2025-12-25",
-  "2025-12-26",
-  "2026-01-01",
-  "2026-01-02",
-  "2026-01-19",
-  "2026-02-09",
-  "2026-02-16",
-  "2026-04-03",
-  "2026-05-25",
-  "2026-06-19",
-  "2026-07-03",
-  "2026-07-06",
-  "2026-08-07",
-  "2026-09-04",
-  "2026-09-07",
-  "2026-11-11",
-  "2026-11-26",
-  "2026-11-27",
-  "2026-12-24",
-  "2026-12-25",
-  "2027-01-01",
-  "2027-01-18",
-  "2027-02-15",
-  "2027-03-26",
-  "2027-05-31",
-  "2027-05-28",
-  "2027-06-18",
-  "2027-07-05",
-  "2027-07-08",
-];
-
 export default function EngineeringSchedulePage() {
   const { userId } = useAuth();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
@@ -110,9 +58,34 @@ export default function EngineeringSchedulePage() {
   );
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [holidaysLoading, setHolidaysLoading] = useState(true);
   const [printType, setPrintType] = useState<
     "full" | "engineers-only" | "projects-only"
   >("full");
+  const [holidays, setHolidays] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        // For engineering schedules, use office holidays
+        const response = await fetch("/api/holidays/office");
+        const result = await response.json();
+
+        if (response.ok) {
+          setHolidays(result.holidays);
+        } else {
+          console.error("Failed to fetch holidays:", result.message);
+          // Fallback to empty array or handle error
+          setHolidays([]);
+        }
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+        setHolidays([]);
+      }
+    };
+
+    fetchHolidays();
+  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -121,23 +94,27 @@ export default function EngineeringSchedulePage() {
 
   const fetchData = async () => {
     try {
-      const [scheduleRes, projectsRes, archivedRes] = await Promise.all([
-        fetch("/api/engineering/schedule"),
-        fetch("/api/projects"),
-        fetch("/api/engineering/tasks/archived"),
-      ]);
+      const [scheduleRes, projectsRes, archivedRes, holidaysRes] =
+        await Promise.all([
+          fetch("/api/engineering/schedule"),
+          fetch("/api/projects"),
+          fetch("/api/engineering/tasks/archived"),
+          fetch("/api/holidays/office"),
+        ]);
 
-      if (!scheduleRes.ok || !projectsRes.ok) {
+      if (!scheduleRes.ok || !projectsRes.ok || !holidaysRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
       const scheduleJson = await scheduleRes.json();
       const projectsJson = await projectsRes.json();
       const archivedJson = await archivedRes.json();
+      const holidaysJson = await holidaysRes.json();
 
       setScheduleData(scheduleJson.scheduleData);
       setProjects(projectsJson.projects);
       setArchivedTasks(archivedJson.tasks || []);
+      setHolidays(holidaysJson.holidays || []); // Set the dynamic holidays
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -568,7 +545,7 @@ export default function EngineeringSchedulePage() {
 
   console.log("Tasks being sent to Gantt Chart:", ganttTasks.length);
 
-  if (isLoading) {
+  if (isLoading || holidaysLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading schedule...</div>

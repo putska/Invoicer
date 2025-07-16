@@ -4,14 +4,6 @@ import type {
   NewBIMModel,
   BIMElement,
   NewBIMElement,
-  MaterialTakeoff,
-  NewMaterialTakeoff,
-  TakeoffItem,
-  NewTakeoffItem,
-  ModelView,
-  NewModelView,
-  ModelComment,
-  NewModelComment,
 } from "./db/schema";
 
 interface Item {
@@ -919,7 +911,7 @@ export const STATUS_COLOR_OPTIONS = [
 ] as const;
 
 // =============================================================================
-// API RESPONSE TYPES - Wrap database types for API responses
+// API RESPONSE TYPES
 // =============================================================================
 
 export interface ApiResponse<T = any> {
@@ -929,210 +921,73 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-export interface PaginatedResponse<T> {
-  success: boolean;
-  data?: {
-    items: T[];
-    totalCount: number;
-    pageSize: number;
-    currentPage: number;
-    totalPages: number;
-  };
-  error?: string;
-}
-
-// Specific API response types using schema types
+// Specific API response types
 export type BIMModelResponse = ApiResponse<BIMModel>;
 export type BIMModelsResponse = ApiResponse<BIMModel[]>;
-export type BIMElementsResponse = PaginatedResponse<BIMElement>;
-export type TakeoffResponse = ApiResponse<{
-  takeoff: MaterialTakeoff;
-  items: TakeoffItem[];
-  summary: TakeoffSummary;
-}>;
+export type BIMElementsResponse = ApiResponse<BIMElement[]>;
 
 // =============================================================================
-// UI/COMPONENT SPECIFIC TYPES - Not in database
+// VIEWER COMPONENT TYPES
 // =============================================================================
+
+export interface ElementSelectionEvent {
+  element: BIMElement;
+  position: THREE.Vector3;
+  mesh: THREE.Object3D;
+}
 
 export interface BIMViewerProps {
-  modelId: number;
-  modelPath: string;
-  initialView?: ModelView;
-  showTakeoffTools?: boolean;
-  onElementSelect?: (element: BIMElement) => void;
-  onTakeoffUpdate?: (items: TakeoffItem[]) => void;
-  enableComments?: boolean;
-  enableMeasurement?: boolean;
+  model: BIMModel;
+  onElementSelect?: (event: ElementSelectionEvent) => void;
+  className?: string;
 }
 
-export interface ViewerState {
-  isLoading: boolean;
-  selectedElement?: BIMElement;
-  activeView?: ModelView;
-  showProperties: boolean;
-  showTakeoffs: boolean;
-  measurementMode: boolean;
-  commentMode: boolean;
-}
-
-export interface CameraPosition {
-  x: number;
-  y: number;
-  z: number;
-  targetX: number;
-  targetY: number;
-  targetZ: number;
-  upX?: number;
-  upY?: number;
-  upZ?: number;
-}
-
-export interface MeasurementResult {
-  type: "distance" | "area" | "volume";
-  value: number;
-  unit: string;
-  points: { x: number; y: number; z: number }[];
+export interface ViewerControls {
+  resetView: () => void;
+  focusElement: (elementId: string) => void;
+  toggleWireframe: () => void;
+  toggleGrid: () => void;
 }
 
 // =============================================================================
-// BUSINESS LOGIC TYPES - Extended from database types
+// FORM INPUT TYPES
 // =============================================================================
 
-// Extend database types with computed properties for UI
-export interface ExtendedBIMModel extends BIMModel {
-  // Computed fields not stored in database
-  displayName: string;
-  isProcessing: boolean;
-  elementCount: number;
-  processingProgress?: number;
-  canEdit: boolean;
-  formattedFileSize: string;
-  formattedUploadDate: string;
-}
-
-export interface ExtendedTakeoffItem extends TakeoffItem {
-  // Add computed fields for UI
-  isSelected?: boolean;
-  hasErrors?: boolean;
-  calculatedQuantity?: number;
-  pricePerUnit?: number;
-}
-
-// =============================================================================
-// FORM INPUT TYPES - For creating new records
-// =============================================================================
-
-// Use the NewBIMModel type from schema, but customize for file uploads
 export interface CreateBIMModelInput {
   name: string;
   description?: string;
   projectId?: number;
-  file: File; // File object not stored in DB
+  file: File;
 }
 
-// Extend schema type for takeoff creation
-export interface CreateTakeoffInput
-  extends Omit<NewMaterialTakeoff, "id" | "createdDate"> {
-  rules?: TakeoffRule[];
-  elementFilters?: ElementFilter[];
-}
-
-export interface CreateCommentInput
-  extends Omit<NewModelComment, "id" | "createdAt"> {
-  attachmentFiles?: File[]; // Files not stored directly in DB
-}
-
-// =============================================================================
-// PROCESSING & ANALYSIS TYPES
-// =============================================================================
-
-export interface IFCParseResult {
-  elements: NewBIMElement[]; // Use schema type for consistency
-  metadata: {
-    totalElements: number;
-    elementTypes: { [type: string]: number };
-    levels: string[];
-    materials: string[];
-    ifcSchema: string;
-    boundingBox?: {
-      min: { x: number; y: number; z: number };
-      max: { x: number; y: number; z: number };
-    };
-  };
-}
-
-export interface TakeoffRule {
-  elementType: string;
-  materialCategory: string;
-  quantityProperty: string; // Which IFC property to use for quantity
-  unit: string;
-  defaultUnitCost?: number;
-  calculationFormula?: string; // For complex calculations
-}
-
-export interface ElementFilter {
-  elementTypes?: string[];
-  levels?: string[];
-  materials?: string[];
-  properties?: { [key: string]: any };
-}
-
-export interface TakeoffSummary {
-  totalItems: number;
-  totalCost: number;
-  totalQuantity: number;
-  categoryTotals: { [category: string]: number };
-  materialTotals: { [material: string]: number };
-  unitTotals: { [unit: string]: number };
-}
-
-// =============================================================================
-// 3D VIEWER SPECIFIC TYPES
-// =============================================================================
-
-export interface ViewerControls {
-  orbit: boolean;
-  pan: boolean;
-  zoom: boolean;
-  select: boolean;
-}
-
-export interface RenderSettings {
-  showGrid: boolean;
-  showAxes: boolean;
-  wireframe: boolean;
-  transparency: number;
-  colorScheme: "default" | "by-type" | "by-material" | "by-level";
-  backgroundType: "gradient" | "solid" | "environment";
-}
-
-export interface SelectionInfo {
-  element?: BIMElement;
-  position: { x: number; y: number; z: number };
-  normal: { x: number; y: number; z: number };
-  distance: number;
-}
-
-// =============================================================================
-// FILE HANDLING TYPES
-// =============================================================================
-
-export interface FileUploadProgress {
+// Additional input type for the createBIMModel action
+export interface CreateBIMModelData {
+  name: string;
+  description?: string;
+  filePath: string;
   fileName: string;
-  progress: number; // 0-100
-  stage: "uploading" | "processing" | "completed" | "error";
-  message?: string;
+  fileSize?: number;
+  mimeType?: string;
+  projectId?: number;
+  uploadedBy?: number;
 }
 
-export interface ProcessingStatus {
-  modelId: number;
-  status: "pending" | "processing" | "completed" | "error";
-  progress: number; // 0-100
-  currentStep: string;
-  totalSteps: number;
-  estimatedTimeRemaining?: number; // seconds
-  errorMessage?: string;
+// =============================================================================
+// ACTION RESPONSE TYPES
+// =============================================================================
+
+export interface SaveElementsResult {
+  success: boolean;
+  count: number;
+}
+
+export interface DeleteResult {
+  success: boolean;
+}
+
+export interface ProcessModelResult {
+  success: boolean;
+  elementCount: number;
 }
 
 // =============================================================================
@@ -1142,54 +997,1041 @@ export interface ProcessingStatus {
 // Helper type for partial updates
 export type PartialUpdate<T> = Partial<T> & { id: number };
 
-// For search and filtering
+// For basic search and filtering
 export interface SearchParams {
   query?: string;
   elementType?: string;
-  material?: string;
-  level?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
   page?: number;
   pageSize?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
 }
 
-// For bulk operations
-export interface BulkOperation<T> {
-  action: "create" | "update" | "delete";
-  items: T[];
-  options?: {
-    validateFirst?: boolean;
-    continueOnError?: boolean;
-  };
-}
-
-export interface BulkOperationResult<T> {
-  success: boolean;
-  processed: number;
-  failed: number;
-  results: T[];
-  errors: { index: number; error: string }[];
+// Camera position for saving/loading views
+export interface CameraPosition {
+  x: number;
+  y: number;
+  z: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
 }
 
 // =============================================================================
-// RE-EXPORT DATABASE TYPES for convenience
+// DATABASE TYPES - Import from schema
 // =============================================================================
 
-// Re-export the main database types so components can import from one place
 export type {
   BIMModel,
   NewBIMModel,
   BIMElement,
   NewBIMElement,
-  MaterialTakeoff,
-  NewMaterialTakeoff,
-  TakeoffItem,
-  NewTakeoffItem,
-  ModelView,
-  NewModelView,
-  ModelComment,
-  NewModelComment,
-};
+} from "./db/schema";
+
+// ************************** Begin Holidays Management Types **************************
+
+export type HolidayType = "field" | "office" | "both";
+
+export interface Holiday {
+  id: number;
+  date: string; // ISO date string (YYYY-MM-DD)
+  name: string;
+  description?: string;
+  type: HolidayType;
+  isRecurring: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateHolidayRequest {
+  date: string;
+  name: string;
+  description?: string;
+  type: HolidayType;
+  isRecurring?: boolean;
+}
+
+export interface UpdateHolidayRequest {
+  id: number;
+  date?: string;
+  name?: string;
+  description?: string;
+  type?: HolidayType;
+  isRecurring?: boolean;
+}
+
+export interface DeleteHolidayRequest {
+  id: number;
+}
+
+export interface GetHolidaysRequest {
+  type?: HolidayType;
+  startDate?: string;
+  endDate?: string;
+  year?: number;
+}
+
+export interface HolidayFilters {
+  type?: HolidayType;
+  startDate?: string;
+  endDate?: string;
+  year?: number;
+}
+
+export interface HolidayResponse {
+  holidays: Holiday[];
+  total: number;
+}
+
+// Form validation types
+export interface HolidayFormData {
+  date: string;
+  name: string;
+  description: string;
+  type: HolidayType;
+  isRecurring: boolean;
+}
+
+export interface HolidayFormErrors {
+  date?: string;
+  name?: string;
+  description?: string;
+  type?: string;
+  general?: string;
+}
+
+// Utility type for holiday display
+export interface HolidayDisplayData extends Holiday {
+  formattedDate: string;
+  isUpcoming: boolean;
+  isPast: boolean;
+}
+
+// +++++++++++++++ Begin Estimate Management Types +++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// This file defines TypeScript interfaces for the Glazing Estimation System
+
+// types.ts - TypeScript interfaces for Glazing Estimation System
+
+// types.ts - TypeScript interfaces for Glazing Estimation System
+
+export interface Estimate {
+  id: number;
+  estimateNumber: string;
+  name: string;
+  description: string | null;
+  buildingType: string | null;
+  location: string | null;
+  architect: string | null;
+  contractor: string | null;
+  owner: string | null;
+  bidDate: Date | null;
+  projectStartDate: Date | null;
+  projectEndDate: Date | null;
+  totalSquareFootage: string | null; // Drizzle returns decimals as strings
+  storiesBelowGrade: number;
+  storiesAboveGrade: number;
+  status:
+    | "active"
+    | "on_hold"
+    | "bid_submitted"
+    | "awarded"
+    | "lost"
+    | "cancelled"
+    | "no_bid";
+  estimatedValue: string | null; // Drizzle returns decimals as strings
+  confidenceLevel: "high" | "medium" | "low" | null;
+  competitionLevel: "high" | "medium" | "low" | null;
+  relationshipStatus: string | null;
+  primaryContact: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  assignedEstimator: string | null;
+  salesPerson: string | null;
+  notes: string | null;
+  internalNotes: string | null;
+  sortOrder: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface Bid {
+  id: number;
+  estimateId: number;
+  bidNumber: string;
+  name: string;
+  description: string | null;
+  stage:
+    | "initial_budget"
+    | "hard_budget"
+    | "initial_pricing"
+    | "firm_estimate"
+    | "final_bid"
+    | "submitted";
+  version: number;
+  parentBidId: number | null;
+  preparedBy: string | null;
+  reviewedBy: string | null;
+  approvedBy: string | null;
+  submittedDate: Date | null;
+  totalMaterialCost: string; // Drizzle returns decimals as strings
+  totalLaborCost: string;
+  totalSubcontractorCost: string;
+  totalEquipmentCost: string;
+  totalOverheadCost: string;
+  totalProfitAmount: string;
+  totalBidAmount: string;
+  overheadPercentage: string;
+  profitPercentage: string;
+  contingencyPercentage: string;
+  proposedStartDate: Date | null;
+  proposedCompletionDate: Date | null;
+  deliveryWeeks: number | null;
+  alternateRequested: boolean;
+  alternateDescription: string | null;
+  valueEngineeringNotes: string | null;
+  exclusions: string | null;
+  assumptions: string | null;
+  isActive: boolean;
+  isSubmitted: boolean;
+  notes: string | null;
+  internalNotes: string | null;
+  sortOrder: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface Elevation {
+  id: number;
+  bidId: number;
+  name: string;
+  description: string | null;
+  elevationType:
+    | "storefront"
+    | "curtain_wall"
+    | "window_wall"
+    | "entrance"
+    | "canopy"
+    | "mixed";
+  totalWidth: string; // Drizzle returns decimals as strings
+  totalHeight: string;
+  floorHeight: string;
+  floorNumber: number;
+  drawingNumber: string | null;
+  drawingRevision: string | null;
+  gridLine: string | null;
+  detailReference: string | null;
+  materialCost: string;
+  laborCost: string;
+  totalCost: string;
+  notes: string | null;
+  sortOrder: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+// Base Opening type from database
+export interface Opening {
+  id: number;
+  elevationId: number;
+  name: string;
+  openingMark?: string | null;
+
+  // Geometry
+  startPosition: string; // Decimal stored as string
+  width: string;
+  height: string;
+  sillHeight: string;
+
+  // Opening type and features
+  openingType: string;
+  glazingSystem?: string | null;
+  hasTransom: boolean;
+  transomHeight?: string | null;
+
+  // Grid Definition
+  gridColumns: number;
+  gridRows: number;
+  mullionWidth: string; // Decimal stored as string
+  spacingVertical: string; // 'equal' | 'custom'
+  spacingHorizontal: string; // 'equal' | 'custom'
+
+  // Component Names
+  componentSill: string;
+  componentHead: string;
+  componentJambs: string;
+  componentVerticals: string;
+  componentHorizontals: string;
+
+  // Performance requirements
+  thermalPerformance?: string | null;
+  windLoadRequirement?: string | null;
+  seismicRequirement?: string | null;
+  acousticRequirement?: string | null;
+
+  // Quantity and costs
+  quantity: number;
+  unitMaterialCost: string;
+  unitLaborCost: string;
+  totalMaterialCost: string;
+  totalLaborCost: string;
+
+  // Additional fields
+  description?: string | null;
+  notes?: string | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Mullion {
+  id: number;
+  openingId: number;
+  type: "vertical" | "horizontal";
+  position: string; // Drizzle returns decimals as strings
+  mullionType: "intermediate" | "structural" | "expansion" | "thermal_break";
+  depth: string;
+  notes: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface GlassPanel {
+  id: number;
+  openingId: number;
+  panelNumber: number;
+  x: string; // Drizzle returns decimals as strings
+  y: string;
+  width: string;
+  height: string;
+  area: string;
+  isTransom: boolean;
+  isOperable: boolean;
+  notes: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface Door {
+  id: number;
+  openingId: number;
+  name: string;
+  doorMark: string | null;
+  position: string; // Drizzle returns decimals as strings
+  width: string;
+  height: string;
+  doorType: "single" | "double" | "slider" | "revolving" | "automatic";
+  handingType: "left" | "right" | "center" | null;
+  hasVision: boolean;
+  doorMaterial: string | null;
+  lockType: string | null;
+  closerType: string | null;
+  hasAutomaticOperator: boolean;
+  notes: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+export interface SpecialCondition {
+  id: number;
+  elevationId: number;
+  conditionType:
+    | "corner"
+    | "return"
+    | "angle"
+    | "step_down"
+    | "canopy"
+    | "soffit"
+    | "column_cover";
+  position: string; // Drizzle returns decimals as strings
+  width: string | null;
+  height: string | null;
+  angle: string | null;
+  description: string | null;
+  notes: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+// Composite interfaces for API responses
+export interface EstimateWithBids extends Estimate {
+  bids: Bid[];
+  activeBid?: Bid;
+}
+
+export interface BidWithElevations extends Bid {
+  elevations: ElevationWithOpenings[];
+  estimate: Estimate;
+}
+
+export interface ElevationWithOpenings extends Elevation {
+  openings: OpeningWithDetails[];
+  specialConditions: SpecialCondition[];
+}
+
+export interface OpeningWithDetails extends Opening {
+  mullions: Mullion[];
+  glassPanels: GlassPanel[];
+  doors: Door[];
+}
+
+// Input interfaces for creating/updating
+export interface CreateEstimateInput {
+  estimateNumber: string;
+  name: string;
+  description?: string;
+  buildingType?: string;
+  location?: string;
+  architect?: string;
+  contractor?: string;
+  owner?: string;
+  bidDate?: Date;
+  projectStartDate?: Date;
+  projectEndDate?: Date;
+  totalSquareFootage?: number;
+  storiesBelowGrade?: number;
+  storiesAboveGrade?: number;
+  estimatedValue?: number;
+  confidenceLevel?: "high" | "medium" | "low";
+  competitionLevel?: "high" | "medium" | "low";
+  relationshipStatus?: string;
+  primaryContact?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  assignedEstimator?: string;
+  salesPerson?: string;
+  notes?: string;
+  internalNotes?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateEstimateInput {
+  estimateNumber?: string;
+  name?: string;
+  description?: string;
+  buildingType?: string;
+  location?: string;
+  architect?: string;
+  contractor?: string;
+  owner?: string;
+  bidDate?: Date;
+  projectStartDate?: Date;
+  projectEndDate?: Date;
+  totalSquareFootage?: number;
+  storiesBelowGrade?: number;
+  storiesAboveGrade?: number;
+  status?:
+    | "active"
+    | "on_hold"
+    | "bid_submitted"
+    | "awarded"
+    | "lost"
+    | "cancelled"
+    | "no_bid";
+  estimatedValue?: number;
+  confidenceLevel?: "high" | "medium" | "low";
+  competitionLevel?: "high" | "medium" | "low";
+  relationshipStatus?: string;
+  primaryContact?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  assignedEstimator?: string;
+  salesPerson?: string;
+  notes?: string;
+  internalNotes?: string;
+  sortOrder?: number;
+}
+
+export interface CreateBidInput {
+  estimateId: number;
+  bidNumber: string;
+  name: string;
+  description?: string;
+  stage?:
+    | "initial_budget"
+    | "hard_budget"
+    | "initial_pricing"
+    | "firm_estimate"
+    | "final_bid"
+    | "submitted"
+    | undefined;
+  parentBidId?: number;
+  preparedBy?: string;
+  overheadPercentage?: number;
+  profitPercentage?: number;
+  contingencyPercentage?: number;
+  proposedStartDate?: Date;
+  proposedCompletionDate?: Date;
+  deliveryWeeks?: number;
+  alternateRequested?: boolean;
+  alternateDescription?: string;
+  valueEngineeringNotes?: string;
+  exclusions?: string;
+  assumptions?: string;
+  notes?: string;
+  internalNotes?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateBidInput {
+  bidNumber?: string;
+  name?: string;
+  description?: string;
+  stage?:
+    | "initial_budget"
+    | "hard_budget"
+    | "initial_pricing"
+    | "firm_estimate"
+    | "final_bid"
+    | "submitted";
+  preparedBy?: string;
+  reviewedBy?: string;
+  approvedBy?: string;
+  submittedDate?: Date;
+  totalMaterialCost?: number;
+  totalLaborCost?: number;
+  totalSubcontractorCost?: number;
+  totalEquipmentCost?: number;
+  totalOverheadCost?: number;
+  totalProfitAmount?: number;
+  totalBidAmount?: number;
+  overheadPercentage?: number;
+  profitPercentage?: number;
+  contingencyPercentage?: number;
+  proposedStartDate?: Date;
+  proposedCompletionDate?: Date;
+  deliveryWeeks?: number;
+  alternateRequested?: boolean;
+  alternateDescription?: string;
+  valueEngineeringNotes?: string;
+  exclusions?: string;
+  assumptions?: string;
+  isActive?: boolean;
+  isSubmitted?: boolean;
+  notes?: string;
+  internalNotes?: string;
+  sortOrder?: number;
+}
+
+export interface CreateElevationInput {
+  bidId: number;
+  name: string;
+  description?: string;
+  elevationType?:
+    | "storefront"
+    | "curtain_wall"
+    | "window_wall"
+    | "entrance"
+    | "canopy"
+    | "mixed";
+  totalWidth: number;
+  totalHeight: number;
+  floorHeight: number;
+  floorNumber?: number;
+  drawingNumber?: string;
+  drawingRevision?: string;
+  gridLine?: string;
+  detailReference?: string;
+  notes?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateElevationInput {
+  name?: string;
+  description?: string;
+  elevationType?:
+    | "storefront"
+    | "curtain_wall"
+    | "window_wall"
+    | "entrance"
+    | "canopy"
+    | "mixed";
+  totalWidth?: number;
+  totalHeight?: number;
+  floorHeight?: number;
+  floorNumber?: number;
+  drawingNumber?: string;
+  drawingRevision?: string;
+  gridLine?: string;
+  detailReference?: string;
+  materialCost?: number;
+  laborCost?: number;
+  totalCost?: number;
+  notes?: string;
+  sortOrder?: number;
+}
+
+// Input type for creating openings
+export interface CreateOpeningInput {
+  elevationId: number;
+  name: string;
+  openingMark?: string;
+
+  // Geometry
+  startPosition: number | string;
+  width: number | string;
+  height: number | string;
+  sillHeight: number | string;
+
+  // Opening type and features
+  openingType: string;
+  glazingSystem?: string;
+  hasTransom?: boolean;
+  transomHeight?: number | string;
+
+  // Grid Definition
+  gridColumns?: number;
+  gridRows?: number;
+  mullionWidth?: number | string;
+  spacingVertical?: "equal" | "custom";
+  spacingHorizontal?: "equal" | "custom";
+
+  // Component Names
+  componentSill?: string;
+  componentHead?: string;
+  componentJambs?: string;
+  componentVerticals?: string;
+  componentHorizontals?: string;
+
+  // Performance requirements
+  thermalPerformance?: string;
+  windLoadRequirement?: string;
+  seismicRequirement?: string;
+  acousticRequirement?: string;
+
+  // Quantity and costs
+  quantity?: number;
+  unitMaterialCost?: number | string;
+  unitLaborCost?: number | string;
+  totalMaterialCost?: number | string;
+  totalLaborCost?: number | string;
+
+  // Additional fields
+  description?: string;
+  notes?: string;
+  sortOrder?: number;
+}
+
+// Update input type for updating openings
+export interface UpdateOpeningInput extends Partial<CreateOpeningInput> {
+  id: number;
+}
+
+// Enhanced opening with details (for forms and display)
+export interface OpeningWithDetails extends Opening {
+  // Computed fields
+  area?: number; // width * height
+  glassPanelCount?: number; // gridColumns * gridRows
+  verticalMullionCount?: number; // gridColumns - 1
+  horizontalMullionCount?: number; // gridRows - 1
+  perimeter?: number; // 2 * (width + height)
+}
+
+// Grid definition type for form handling
+export interface GridDefinition {
+  columns: number;
+  rows: number;
+  mullionWidth: number;
+  spacing: {
+    vertical: "equal" | "custom";
+    horizontal: "equal" | "custom";
+  };
+  components: {
+    sill: string;
+    head: string;
+    jambs: string;
+    verticals: string;
+    horizontals: string;
+  };
+}
+
+// Opening type enum values
+export type OpeningType =
+  | "window"
+  | "door"
+  | "curtain_wall"
+  | "storefront"
+  | "ribbon_window"
+  | "clerestory"
+  | "entrance_door"
+  | "fixed_window"
+  | "operable_window"
+  | "vent"
+  | "louver";
+
+// Spacing type enum values
+export type SpacingType = "equal" | "custom";
+
+// API Response types
+export interface CreateOpeningResponse {
+  success: boolean;
+  data?: Opening;
+  error?: string;
+}
+
+export interface UpdateOpeningResponse {
+  success: boolean;
+  data?: Opening;
+  error?: string;
+}
+
+export interface GetOpeningResponse {
+  success: boolean;
+  data?: OpeningWithDetails;
+  error?: string;
+}
+
+export interface GetOpeningsResponse {
+  success: boolean;
+  data?: OpeningWithDetails[];
+  error?: string;
+}
+
+export interface DeleteOpeningResponse {
+  success: boolean;
+  error?: string;
+}
+
+// Your other interfaces are perfect as-is:
+export interface CreateMullionInput {
+  openingId: number;
+  type: "vertical" | "horizontal";
+  position: number;
+  mullionType: "intermediate" | "structural" | "expansion" | "thermal_break";
+  depth?: number;
+  notes?: string;
+}
+
+export interface CreateDoorInput {
+  openingId: number;
+  name: string;
+  doorMark?: string;
+  position: number;
+  width: number;
+  height: number;
+  doorType: "single" | "double" | "slider" | "revolving" | "automatic";
+  handingType?: "left" | "right" | "center";
+  hasVision?: boolean;
+  doorMaterial?: string;
+  lockType?: string;
+  closerType?: string;
+  hasAutomaticOperator?: boolean;
+  notes?: string;
+}
+
+export interface CreateSpecialConditionInput {
+  elevationId: number;
+  conditionType:
+    | "corner"
+    | "return"
+    | "angle"
+    | "step_down"
+    | "canopy"
+    | "soffit"
+    | "column_cover";
+  position: number;
+  width?: number;
+  height?: number;
+  angle?: number;
+  description?: string;
+  notes?: string;
+}
+
+// Calculation interfaces
+export interface BidSummary {
+  totalGlassArea: number; // total square footage of glass
+  totalFrameLinearFeet: number; // total linear feet of framing
+  elevationCount: number;
+  openingCount: number;
+  doorCount: number;
+  mullionCount: number;
+  panelCount: number;
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  totalCost: number;
+}
+
+export interface ElevationSummary {
+  totalGlassArea: number; // total square footage of glass in this elevation
+  totalFrameLinearFeet: number; // total linear feet of framing in this elevation
+  openingCount: number;
+  doorCount: number;
+  mullionCount: number;
+  panelCount: number;
+  materialCost: number;
+  laborCost: number;
+  totalCost: number;
+}
+
+// Additional TypeScript interfaces for the grid system
+
+// Grid Mullion interface
+export interface GridMullion {
+  id: number;
+  openingId: number;
+  gridType:
+    | "vertical"
+    | "horizontal"
+    | "sill"
+    | "head"
+    | "jamb_left"
+    | "jamb_right";
+  gridColumn?: number | null;
+  gridRow?: number | null;
+  gridSegment?: number | null; // NEW - for horizontal segments
+  length: string; // Decimal as string
+  componentName: string;
+  defaultPosition?: string | null;
+  customPosition?: number | null;
+  startX?: number | null; // NEW - segment start position
+  endX?: number | null; // NEW - segment end position
+  isActive: boolean;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Grid Glass Panel interface
+export interface GridGlassPanel {
+  id: number;
+  openingId: number;
+  gridColumn: number;
+  gridRow: number;
+  x: string; // Decimal as string
+  y: string;
+  width: string;
+  height: string;
+  isTransom: boolean;
+  glassType: string;
+  isActive: boolean;
+  area?: string | null;
+  unitCost: string;
+  totalCost: string;
+  notes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Grid Configuration interface
+export interface GridConfiguration {
+  id: number;
+  openingId: number;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  columns: number;
+  rows: number;
+  mullionWidth: string;
+  totalMullionLength: string;
+  totalGlassArea: string;
+  estimatedCost: string;
+  createdBy?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Enhanced Opening interface with grid data
+export interface OpeningWithGrid extends OpeningWithDetails {
+  gridMullions?: GridMullion[];
+  gridGlassPanels?: GridGlassPanel[];
+  gridConfigurations?: GridConfiguration[];
+  activeConfiguration?: GridConfiguration | null;
+}
+
+// Input interfaces for creating/updating grid elements
+export interface CreateGridMullionInput {
+  openingId: number;
+  gridType:
+    | "vertical"
+    | "horizontal"
+    | "sill"
+    | "head"
+    | "jamb_left"
+    | "jamb_right";
+  gridColumn?: number;
+  gridRow?: number;
+  gridSegment?: number; // NEW - for horizontal segments
+  length: number | string;
+  componentName: string;
+  defaultPosition?: number | string;
+  customPosition?: number;
+  startX?: number; // NEW - segment start position
+  endX?: number; // NEW - segment end position
+  isActive?: boolean;
+  notes?: string;
+}
+
+export interface UpdateGridMullionInput
+  extends Partial<CreateGridMullionInput> {
+  id: number;
+}
+
+export interface CreateGridGlassPanelInput {
+  openingId: number;
+  gridColumn: number;
+  gridRow: number;
+  x: number | string;
+  y: number | string;
+  width: number | string;
+  height: number | string;
+  isTransom?: boolean;
+  glassType?: string;
+  isActive?: boolean;
+  unitCost?: number | string;
+  notes?: string;
+}
+
+export interface UpdateGridGlassPanelInput
+  extends Partial<CreateGridGlassPanelInput> {
+  id: number;
+}
+
+export interface CreateGridConfigurationInput {
+  openingId: number;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  columns: number;
+  rows: number;
+  mullionWidth: number | string;
+  createdBy?: string;
+}
+
+export interface UpdateGridConfigurationInput
+  extends Partial<CreateGridConfigurationInput> {
+  id: number;
+}
+
+// Grid calculation utilities
+export interface GridDimensions {
+  openingWidth: number;
+  openingHeight: number;
+  columns: number;
+  rows: number;
+  mullionWidth: number; // in inches
+  hasTransom: boolean;
+  transomHeight?: number;
+}
+
+export interface CalculatedGridElement {
+  mullions: {
+    vertical: Array<{
+      column: number;
+      position: number;
+      length: number;
+    }>;
+    horizontal: Array<{
+      row: number;
+      position: number;
+      length: number;
+      startX?: number; // NEW - for segments
+      endX?: number; // NEW - for segments
+      segment?: number; // NEW - segment index
+    }>;
+    perimeter: Array<{
+      type: "sill" | "head" | "jamb_left" | "jamb_right";
+      length: number;
+      startX?: number; // NEW - for sill/head segments
+      endX?: number; // NEW - for sill/head segments
+      segment?: number; // NEW - segment index for sill/head
+    }>;
+  };
+  glassPanels: Array<{
+    column: number;
+    row: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    isTransom: boolean;
+  }>;
+}
+
+// 5. NEW: More specific interfaces for calculated mullions
+export interface CalculatedVerticalMullion {
+  column: number;
+  position: number;
+  length: number;
+}
+
+export interface CalculatedHorizontalMullion {
+  row: number;
+  position: number;
+  length: number;
+  startX: number;
+  endX: number;
+  segment: number;
+}
+
+export interface CalculatedPerimeterMullion {
+  type: "sill" | "head" | "jamb_left" | "jamb_right";
+  length: number;
+  startX?: number; // Only for sill/head segments
+  endX?: number; // Only for sill/head segments
+  segment?: number; // Only for sill/head segments
+}
+
+// 6. NEW: Better typed CalculatedGridElement
+export interface TypedCalculatedGridElement {
+  mullions: {
+    vertical: CalculatedVerticalMullion[];
+    horizontal: CalculatedHorizontalMullion[];
+    perimeter: CalculatedPerimeterMullion[];
+  };
+  glassPanels: Array<{
+    column: number;
+    row: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    isTransom: boolean;
+  }>;
+}
+
+// 7. OPTIONAL: Component-specific interfaces for the visualization
+export interface GridVisualizationMullion {
+  id: number;
+  gridType: string;
+  gridColumn?: number | null;
+  gridRow?: number | null;
+  gridSegment?: number | null; // NEW
+  componentName: string;
+  length: string;
+  customPosition: number | null;
+  startX?: number | null; // NEW
+  endX?: number | null; // NEW
+  isActive: boolean;
+}
+
+// API Response types for grid operations
+export interface GridMullionResponse {
+  success: boolean;
+  data?: GridMullion | GridMullion[];
+  error?: string;
+}
+
+export interface GridGlassPanelResponse {
+  success: boolean;
+  data?: GridGlassPanel | GridGlassPanel[];
+  error?: string;
+}
+
+export interface GridConfigurationResponse {
+  success: boolean;
+  data?: GridConfiguration | GridConfiguration[];
+  error?: string;
+}
+
+export interface GridRegenerateResponse {
+  success: boolean;
+  data?: {
+    mullions: GridMullion[];
+    glassPanels: GridGlassPanel[];
+    stats: {
+      totalMullions: number;
+      totalGlassPanels: number;
+      totalMullionLength: number;
+      totalGlassArea: number;
+    };
+  };
+  error?: string;
+}

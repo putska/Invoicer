@@ -109,6 +109,7 @@ const LaborGrid: React.FC = () => {
   const [rowData, setRowData] = useState<RowData[]>([]);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const socket = useSocket();
 
   // New state for UI improvements
@@ -117,59 +118,6 @@ const LaborGrid: React.FC = () => {
   const [gridHeight, setGridHeight] = useState(600);
 
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
-
-  // Your existing holidays array
-  const holidays = [
-    "2024-12-23",
-    "2024-12-24",
-    "2024-12-25",
-    "2024-11-11",
-    "2024-11-28",
-    "2024-11-29",
-    "2025-01-01",
-    "2025-01-20",
-    "2025-02-10",
-    "2025-02-17",
-    "2025-04-18",
-    "2025-05-23",
-    "2025-05-26",
-    "2025-07-04",
-    "2025-07-07",
-    "2025-08-29",
-    "2025-09-01",
-    "2025-11-11",
-    "2025-11-27",
-    "2025-11-28",
-    "2025-12-25",
-    "2025-12-26",
-    "2026-01-01",
-    "2026-01-02",
-    "2026-01-19",
-    "2026-02-09",
-    "2026-02-16",
-    "2026-04-03",
-    "2026-05-25",
-    "2026-06-19",
-    "2026-07-03",
-    "2026-07-06",
-    "2026-08-07",
-    "2026-09-04",
-    "2026-09-07",
-    "2026-11-11",
-    "2026-11-26",
-    "2026-11-27",
-    "2026-12-24",
-    "2026-12-25",
-    "2027-01-01",
-    "2027-01-18",
-    "2027-02-15",
-    "2027-03-26",
-    "2027-05-31",
-    "2027-05-28",
-    "2027-06-18",
-    "2027-07-05",
-    "2027-07-08",
-  ];
 
   const onGridReady = (params: { api: GridApi }) => {
     setGridApi(params.api);
@@ -232,6 +180,30 @@ const LaborGrid: React.FC = () => {
     };
   }, [isHeaderCollapsed]);
 
+  // useEffect for fetching holidays
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        // For engineering schedules, use office holidays
+        const response = await fetch("/api/holidays/field");
+        const result = await response.json();
+
+        if (response.ok) {
+          setHolidays(result.holidays);
+        } else {
+          console.error("Failed to fetch holidays:", result.message);
+          // Fallback to empty array or handle error
+          setHolidays([]);
+        }
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+        setHolidays([]);
+      }
+    };
+
+    fetchHolidays();
+  }, []);
+
   // Your existing useEffect for setting selectedProject
   useEffect(() => {
     if (Id) {
@@ -266,7 +238,7 @@ const LaborGrid: React.FC = () => {
 
   // Your existing useEffect for fetching categories, activities, and manpower data
   useEffect(() => {
-    if (project) {
+    if (project && holidays.length > 0) {
       const fetchCategoriesAndActivities = async () => {
         try {
           // Fetch categories and activities
@@ -317,7 +289,7 @@ const LaborGrid: React.FC = () => {
 
       fetchCategoriesAndActivities();
     }
-  }, [project]);
+  }, [project, holidays]);
 
   // Separate effect for zoom level changes
   useEffect(() => {

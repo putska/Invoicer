@@ -18,6 +18,7 @@ import {
   uniqueIndex,
   unique,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 
 import { sql, relations } from "drizzle-orm";
@@ -663,300 +664,583 @@ export const noteChecklistItems = pgTable("note_checklist_items", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-//**************** BIM Stuff */
+// Begin BIM Models and Elements Schemas
 
-// BIM Models table - uploaded IFC files
+// Define types for our JSON fields
+export type ElementProperties = Record<
+  string,
+  string | number | boolean | null
+>;
+export type GeometryData = {
+  vertices?: number;
+  faces?: number;
+  type?: string;
+  boundingBox?: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
+  [key: string]: any; // Allow additional properties
+};
+export type ModelMetadata = {
+  totalElements?: number;
+  elementTypes?: Record<string, number>;
+  levels?: string[];
+  materials?: string[];
+  ifcSchema?: string;
+  boundingBox?: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
+  [key: string]: any; // Allow additional properties
+};
+
+// BIM Models table
 export const bimModels = pgTable(
   "bim_models",
   {
     id: serial("id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
-
-    // File storage (local paths)
     filePath: varchar("file_path", { length: 500 }).notNull(),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     fileSize: bigint("file_size", { mode: "number" }),
     mimeType: varchar("mime_type", { length: 100 }),
-
-    // Upload tracking
     uploadDate: timestamp("upload_date").defaultNow(),
     uploadedBy: integer("uploaded_by"),
-
-    // Model metadata
     version: varchar("version", { length: 50 }),
     revitVersion: varchar("revit_version", { length: 50 }),
     ifcSchema: varchar("ifc_schema", { length: 50 }),
-
-    // Project organization
     projectId: integer("project_id"),
-
-    // System fields
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
     createdBy: integer("created_by"),
     isActive: boolean("is_active").default(true),
-
-    // IFC processing results (stored as JSON)
-    metadata: jsonb("metadata"), // {totalElements, elementTypes, levels, materials, etc}
+    metadata: jsonb("metadata").$type<ModelMetadata>(),
   },
-  (table) => ({
-    filePathIdx: index("bim_models_file_path_idx").on(table.filePath),
-    projectIdx: index("bim_models_project_idx").on(table.projectId),
-    createdAtIdx: index("bim_models_created_at_idx").on(table.createdAt),
-  })
+  (table) => [
+    index("idx_bim_models_project").on(table.projectId),
+    index("idx_bim_models_active").on(table.isActive),
+    index("idx_bim_models_upload_date").on(table.uploadDate),
+  ]
 );
 
-// BIM Elements - extracted from IFC files
+// BIM Elements table
 export const bimElements = pgTable(
   "bim_elements",
   {
     id: serial("id").primaryKey(),
     modelId: integer("model_id")
-      .references(() => bimModels.id, { onDelete: "cascade" })
-      .notNull(),
-
-    // IFC identifiers
-    ifcId: varchar("ifc_id", { length: 255 }).notNull(), // IFC Global ID
-    elementType: varchar("element_type", { length: 100 }), // Wall, Window, CurtainWall, etc.
+      .notNull()
+      .references(() => bimModels.id, { onDelete: "cascade" }),
+    ifcId: varchar("ifc_id", { length: 255 }).notNull(),
+    elementType: varchar("element_type", { length: 100 }),
     elementName: varchar("element_name", { length: 255 }),
-
-    // Spatial information
     level: varchar("level", { length: 100 }),
     material: varchar("material", { length: 255 }),
-
-    // All IFC properties stored as JSON
-    properties: jsonb("properties"),
-
-    // Simplified geometry data for quick access
-    geometryData: jsonb("geometry_data"), // {boundingBox, volume, area, length}
-
-    // System fields
+    properties: jsonb("properties").$type<ElementProperties>(),
+    geometryData: jsonb("geometry_data").$type<GeometryData>(),
     createdAt: timestamp("created_at").defaultNow(),
   },
-  (table) => ({
-    modelElementIdx: index("bim_elements_model_id_idx").on(table.modelId),
-    elementTypeIdx: index("bim_elements_type_idx").on(table.elementType),
-    ifcIdIdx: index("bim_elements_ifc_id_idx").on(table.ifcId),
-  })
+  (table) => [
+    index("idx_bim_elements_model_id").on(table.modelId),
+    index("idx_bim_elements_ifc_id").on(table.ifcId),
+    index("idx_bim_elements_type").on(table.elementType),
+    // Unique constraint on modelId + ifcId combination
+    uniqueIndex("unique_model_ifc").on(table.modelId, table.ifcId),
+  ]
 );
 
-// Material Takeoffs
-export const materialTakeoffs = pgTable(
-  "material_takeoffs",
-  {
-    id: serial("id").primaryKey(),
-    modelId: integer("model_id")
-      .references(() => bimModels.id, { onDelete: "cascade" })
-      .notNull(),
-
-    takeoffName: varchar("takeoff_name", { length: 255 }).notNull(),
-    description: text("description"),
-
-    // Status tracking
-    status: varchar("status", { length: 50 }).default("draft"), // draft, approved, exported
-
-    // Cost summary
-    totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
-
-    // System fields
-    createdDate: timestamp("created_date").defaultNow(),
-    createdBy: integer("created_by"),
-
-    notes: text("notes"),
-  },
-  (table) => ({
-    modelTakeoffIdx: index("material_takeoffs_model_id_idx").on(table.modelId),
-    statusIdx: index("material_takeoffs_status_idx").on(table.status),
-  })
-);
-
-// Takeoff Items - line items in material takeoffs
-export const takeoffItems = pgTable(
-  "takeoff_items",
-  {
-    id: serial("id").primaryKey(),
-    takeoffId: integer("takeoff_id")
-      .references(() => materialTakeoffs.id, { onDelete: "cascade" })
-      .notNull(),
-    elementId: integer("element_id").references(() => bimElements.id),
-
-    // Material information
-    materialType: varchar("material_type", { length: 255 }),
-    materialName: varchar("material_name", { length: 255 }),
-
-    // Quantities
-    unit: varchar("unit", { length: 50 }), // SF, LF, EA, etc.
-    quantity: decimal("quantity", { precision: 12, scale: 4 }),
-
-    // Pricing
-    unitCost: decimal("unit_cost", { precision: 10, scale: 4 }),
-    totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
-
-    // Supplier information
-    supplier: varchar("supplier", { length: 255 }),
-
-    // Organization
-    category: varchar("category", { length: 100 }), // Glazing, Framing, Seals, Hardware, etc.
-
-    notes: text("notes"),
-  },
-  (table) => ({
-    takeoffItemIdx: index("takeoff_items_takeoff_id_idx").on(table.takeoffId),
-    elementItemIdx: index("takeoff_items_element_id_idx").on(table.elementId),
-    categoryIdx: index("takeoff_items_category_idx").on(table.category),
-  })
-);
-
-// Model Views - saved camera positions and filters
-export const modelViews = pgTable(
-  "model_views",
-  {
-    id: serial("id").primaryKey(),
-    modelId: integer("model_id")
-      .references(() => bimModels.id, { onDelete: "cascade" })
-      .notNull(),
-
-    viewName: varchar("view_name", { length: 255 }).notNull(),
-
-    // Camera position
-    cameraPosition: jsonb("camera_position"), // {x, y, z, targetX, targetY, targetZ, upX, upY, upZ}
-
-    // Visibility settings
-    visibleElements: jsonb("visible_elements"), // Array of element IDs to show
-    filters: jsonb("filters"), // {elementTypes: [], levels: [], materials: []}
-
-    // Sharing
-    isPublic: boolean("is_public").default(false),
-
-    // System fields
-    createdAt: timestamp("created_at").defaultNow(),
-    createdBy: integer("created_by"),
-  },
-  (table) => ({
-    modelViewIdx: index("model_views_model_id_idx").on(table.modelId),
-    publicViewIdx: index("model_views_public_idx").on(table.isPublic),
-  })
-);
-
-// Model Comments - issues and collaboration
-export const modelComments = pgTable(
-  "model_comments",
-  {
-    id: serial("id").primaryKey(),
-    modelId: integer("model_id")
-      .references(() => bimModels.id, { onDelete: "cascade" })
-      .notNull(),
-    elementId: integer("element_id").references(() => bimElements.id),
-
-    commentText: text("comment_text").notNull(),
-
-    // 3D positioning
-    position: jsonb("position"), // {x, y, z} coordinates where comment was placed
-
-    // Issue tracking
-    status: varchar("status", { length: 50 }).default("open"), // open, resolved, closed
-    priority: varchar("priority", { length: 20 }).default("medium"), // low, medium, high, critical
-
-    // Assignment
-    assignedTo: integer("assigned_to"),
-
-    // System fields
-    createdAt: timestamp("created_at").defaultNow(),
-    createdBy: integer("created_by"),
-    resolvedAt: timestamp("resolved_at"),
-
-    // Attachments (file paths)
-    attachments: jsonb("attachments"), // Array of file paths
-  },
-  (table) => ({
-    modelCommentIdx: index("model_comments_model_id_idx").on(table.modelId),
-    statusIdx: index("model_comments_status_idx").on(table.status),
-    assignedIdx: index("model_comments_assigned_idx").on(table.assignedTo),
-  })
-);
-
-// =====================================
-// DRIZZLE RELATIONS
-// =====================================
-
+// Relations
 export const bimModelsRelations = relations(bimModels, ({ many }) => ({
   elements: many(bimElements),
-  takeoffs: many(materialTakeoffs),
-  views: many(modelViews),
-  comments: many(modelComments),
 }));
 
-export const bimElementsRelations = relations(bimElements, ({ one, many }) => ({
+export const bimElementsRelations = relations(bimElements, ({ one }) => ({
   model: one(bimModels, {
     fields: [bimElements.modelId],
     references: [bimModels.id],
   }),
-  takeoffItems: many(takeoffItems),
-  comments: many(modelComments),
 }));
 
-export const materialTakeoffsRelations = relations(
-  materialTakeoffs,
-  ({ one, many }) => ({
-    model: one(bimModels, {
-      fields: [materialTakeoffs.modelId],
-      references: [bimModels.id],
-    }),
-    items: many(takeoffItems),
-  })
-);
-
-export const takeoffItemsRelations = relations(takeoffItems, ({ one }) => ({
-  takeoff: one(materialTakeoffs, {
-    fields: [takeoffItems.takeoffId],
-    references: [materialTakeoffs.id],
-  }),
-  element: one(bimElements, {
-    fields: [takeoffItems.elementId],
-    references: [bimElements.id],
-  }),
-}));
-
-export const modelViewsRelations = relations(modelViews, ({ one }) => ({
-  model: one(bimModels, {
-    fields: [modelViews.modelId],
-    references: [bimModels.id],
-  }),
-}));
-
-export const modelCommentsRelations = relations(
-  modelComments,
-  ({ one, many }) => ({
-    model: one(bimModels, {
-      fields: [modelComments.modelId],
-      references: [bimModels.id],
-    }),
-    element: one(bimElements, {
-      fields: [modelComments.elementId],
-      references: [bimElements.id],
-    }),
-  })
-);
-
-// =====================================
-// TYPESCRIPT TYPES (derived from schema)
-// =====================================
-
+// Types inferred from schema
 export type BIMModel = typeof bimModels.$inferSelect;
 export type NewBIMModel = typeof bimModels.$inferInsert;
-
 export type BIMElement = typeof bimElements.$inferSelect;
 export type NewBIMElement = typeof bimElements.$inferInsert;
 
-export type MaterialTakeoff = typeof materialTakeoffs.$inferSelect;
-export type NewMaterialTakeoff = typeof materialTakeoffs.$inferInsert;
+// ***************** Holiday Management Schema *****************
+// Define the holiday type enum
+export const holidayTypeEnum = pgEnum("holiday_type", [
+  "field",
+  "office",
+  "both",
+]);
 
-export type TakeoffItem = typeof takeoffItems.$inferSelect;
-export type NewTakeoffItem = typeof takeoffItems.$inferInsert;
+// Define the holidays table
+export const holidays = pgTable(
+  "holidays",
+  {
+    id: serial("id").primaryKey(),
+    date: date("date").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    type: holidayTypeEnum("type").notNull(),
+    isRecurring: boolean("is_recurring").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Unique index to prevent duplicate holidays on the same date with same type
+    uniqueIndex("idx_holidays_date_type").on(table.date, table.type),
+    // Index for efficient date range queries
+    index("idx_holidays_date").on(table.date),
+    // Index for type filtering
+    index("idx_holidays_type").on(table.type),
+  ]
+);
 
-export type ModelView = typeof modelViews.$inferSelect;
-export type NewModelView = typeof modelViews.$inferInsert;
+// Type inference for TypeScript
+export type HolidaySchema = typeof holidays.$inferSelect;
+export type NewHolidaySchema = typeof holidays.$inferInsert;
 
-export type ModelComment = typeof modelComments.$inferSelect;
-export type NewModelComment = typeof modelComments.$inferInsert;
+// +++++++++++++++++++++++ Begin Estimating Schema +++++++++++++++++++++++
+
+// Estimates - TOP LEVEL table for jobs we're bidding on (separate from awarded projects)
+export const estimates = pgTable("estimates", {
+  id: serial("id").primaryKey(),
+  estimateNumber: varchar("estimate_number", { length: 50 }).notNull().unique(), // "EST-2024-001", "PROJ-ABC", etc.
+  name: varchar("name", { length: 255 }).notNull(), // "Downtown Office Building", "Medical Center Phase 2", etc.
+  description: text("description"),
+
+  // Project details
+  buildingType: varchar("building_type", { length: 100 }), // "Office", "Retail", "Healthcare", etc.
+  location: varchar("location", { length: 255 }), // Project location
+  architect: varchar("architect", { length: 255 }), // Architect firm
+  contractor: varchar("contractor", { length: 255 }), // General contractor
+  owner: varchar("owner", { length: 255 }), // Building owner/developer
+
+  // Important dates
+  bidDate: timestamp("bid_date"), // When bid is due
+  projectStartDate: timestamp("project_start_date"), // Anticipated project start
+  projectEndDate: timestamp("project_end_date"), // Anticipated project completion
+
+  // Project scope
+  totalSquareFootage: decimal("total_square_footage", {
+    precision: 12,
+    scale: 2,
+  }), // Building sq ft
+  storiesBelowGrade: integer("stories_below_grade").default(0),
+  storiesAboveGrade: integer("stories_above_grade").default(1),
+
+  // Estimate status tracking
+  status: varchar("status", { length: 50 }).notNull().default("active"),
+  // 'active', 'on_hold', 'bid_submitted', 'awarded', 'lost', 'cancelled', 'no_bid'
+
+  // Opportunity tracking
+  estimatedValue: decimal("estimated_value", { precision: 12, scale: 2 }), // Client's estimated project value
+  confidenceLevel: varchar("confidence_level", { length: 20 }), // 'high', 'medium', 'low'
+  competitionLevel: varchar("competition_level", { length: 20 }), // 'high', 'medium', 'low'
+  relationshipStatus: varchar("relationship_status", { length: 50 }), // 'existing_client', 'new_client', 'referral'
+
+  // Contact information
+  primaryContact: varchar("primary_contact", { length: 255 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+
+  // Internal tracking
+  assignedEstimator: varchar("assigned_estimator", { length: 255 }),
+  salesPerson: varchar("sales_person", { length: 255 }),
+
+  notes: text("notes"),
+  internalNotes: text("internal_notes"), // Internal notes not for client
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Bids - our actual bid submissions for an estimate (one-to-many relationship)
+export const bids = pgTable("bids", {
+  id: serial("id").primaryKey(),
+  estimateId: integer("estimate_id")
+    .notNull()
+    .references(() => estimates.id, { onDelete: "cascade" }),
+  bidNumber: varchar("bid_number", { length: 50 }).notNull(), // "BID-001", "REV-A", etc.
+  name: varchar("name", { length: 255 }).notNull(), // "Initial Budget", "Hard Budget", "Firm Estimate", etc.
+  description: text("description"),
+
+  // Bid progression stages
+  stage: varchar("stage", { length: 50 }).notNull().default("initial_budget"),
+  // 'initial_budget' -> 'hard_budget' -> 'initial_pricing' -> 'firm_estimate' -> 'final_bid' -> 'submitted'
+  version: integer("version").notNull().default(1), // Version tracking within same stage
+  parentBidId: integer("parent_bid_id"), // Links to previous version/stage - FK will be added in migration
+
+  // Bid metadata
+  preparedBy: varchar("prepared_by", { length: 255 }), // User who prepared bid
+  reviewedBy: varchar("reviewed_by", { length: 255 }), // User who reviewed bid
+  approvedBy: varchar("approved_by", { length: 255 }), // User who approved bid
+  submittedDate: timestamp("submitted_date"), // When bid was submitted
+
+  // Pricing breakdown
+  totalMaterialCost: decimal("total_material_cost", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalLaborCost: decimal("total_labor_cost", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalSubcontractorCost: decimal("total_subcontractor_cost", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalEquipmentCost: decimal("total_equipment_cost", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalOverheadCost: decimal("total_overhead_cost", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalProfitAmount: decimal("total_profit_amount", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+  totalBidAmount: decimal("total_bid_amount", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"),
+
+  // Bid parameters
+  overheadPercentage: decimal("overhead_percentage", {
+    precision: 5,
+    scale: 2,
+  }).default("10.00"), // % of costs
+  profitPercentage: decimal("profit_percentage", {
+    precision: 5,
+    scale: 2,
+  }).default("8.00"), // % of costs + overhead
+  contingencyPercentage: decimal("contingency_percentage", {
+    precision: 5,
+    scale: 2,
+  }).default("5.00"), // % contingency
+
+  // Schedule and delivery
+  proposedStartDate: timestamp("proposed_start_date"),
+  proposedCompletionDate: timestamp("proposed_completion_date"),
+  deliveryWeeks: integer("delivery_weeks"), // Lead time in weeks
+
+  // Competitive info
+  alternateRequested: boolean("alternate_requested").default(false),
+  alternateDescription: text("alternate_description"),
+  valueEngineeringNotes: text("value_engineering_notes"),
+  exclusions: text("exclusions"), // What's excluded from bid
+  assumptions: text("assumptions"), // Bid assumptions
+
+  // Bid status
+  isActive: boolean("is_active").default(true), // Current working bid vs archived
+  isSubmitted: boolean("is_submitted").default(false),
+
+  notes: text("notes"),
+  internalNotes: text("internal_notes"), // Notes not visible to client
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Elevations - represents a single elevation view within a bid
+export const elevations = pgTable("elevations", {
+  id: serial("id").primaryKey(),
+  bidId: integer("bid_id")
+    .notNull()
+    .references(() => bids.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(), // "North Elevation", "Storefront A", etc.
+  description: text("description"),
+  elevationType: varchar("elevation_type", { length: 50 })
+    .notNull()
+    .default("storefront"),
+  // 'storefront', 'curtain_wall', 'window_wall', 'entrance', 'canopy', 'mixed'
+
+  // Physical dimensions
+  totalWidth: decimal("total_width", { precision: 10, scale: 2 }).notNull(), // in feet
+  totalHeight: decimal("total_height", { precision: 10, scale: 2 }).notNull(), // in feet
+  floorHeight: decimal("floor_height", { precision: 10, scale: 2 }).notNull(), // height from floor to bottom of glazing
+  floorNumber: integer("floor_number").default(1), // Which floor this elevation is on
+
+  // Drawing references
+  drawingNumber: varchar("drawing_number", { length: 50 }), // Reference to architectural drawing
+  drawingRevision: varchar("drawing_revision", { length: 10 }), // Drawing revision
+  gridLine: varchar("grid_line", { length: 50 }), // Building grid line reference
+  detailReference: varchar("detail_reference", { length: 50 }), // Detail drawing reference
+
+  // Elevation-specific costs (rolled up from openings)
+  materialCost: decimal("material_cost", { precision: 10, scale: 2 }).default(
+    "0.00"
+  ),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }).default("0.00"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).default("0.00"),
+
+  notes: text("notes"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Openings - individual glazing openings within an elevation
+export const openings = pgTable("openings", {
+  id: serial("id").primaryKey(),
+  elevationId: integer("elevation_id")
+    .notNull()
+    .references(() => elevations.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(), // "Opening 1", "Main Entry", etc.
+  openingMark: varchar("opening_mark", { length: 50 }), // "A1", "B2", etc. from drawings
+
+  // Geometry
+  startPosition: decimal("start_position", {
+    precision: 10,
+    scale: 2,
+  }).notNull(), // distance from left edge of elevation
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(), // width of opening
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(), // height of opening
+  sillHeight: decimal("sill_height", { precision: 10, scale: 2 }).notNull(), // height from floor to bottom of opening
+
+  // Opening type and features
+  openingType: varchar("opening_type", { length: 50 }).notNull(),
+  // 'storefront', 'curtain_wall', 'window', 'entrance_door', 'fixed_window', 'operable_window'
+  glazingSystem: varchar("glazing_system", { length: 100 }), // "Kawneer 1600", "YKK AP", etc.
+  hasTransom: boolean("has_transom").default(false),
+  transomHeight: decimal("transom_height", { precision: 10, scale: 2 }), // height of transom if present
+
+  // Grid Definition Fields
+  gridColumns: integer("grid_columns").default(1), // Number of columns in the grid
+  gridRows: integer("grid_rows").default(1), // Number of rows in the grid
+  mullionWidth: decimal("mullion_width", { precision: 10, scale: 2 }).default(
+    "2.50"
+  ), // Mullion width in inches
+  spacingVertical: varchar("spacing_vertical", { length: 20 }).default("equal"), // 'equal' or 'custom'
+  spacingHorizontal: varchar("spacing_horizontal", { length: 20 }).default(
+    "equal"
+  ), // 'equal' or 'custom'
+
+  // Component naming for mapping to manufacturer catalogs
+  componentSill: varchar("component_sill", { length: 100 }).default("Sill"), // Sill component name
+  componentHead: varchar("component_head", { length: 100 }).default("Head"), // Head component name
+  componentJambs: varchar("component_jambs", { length: 100 }).default("Jamb"), // Jamb component name
+  componentVerticals: varchar("component_verticals", { length: 100 }).default(
+    "Vertical"
+  ), // Vertical mullion component name
+  componentHorizontals: varchar("component_horizontals", {
+    length: 100,
+  }).default("Horizontal"), // Horizontal mullion component name
+
+  // Performance requirements
+  thermalPerformance: varchar("thermal_performance", { length: 50 }), // U-factor requirements
+  windLoadRequirement: varchar("wind_load_requirement", { length: 50 }), // Wind load psf
+  seismicRequirement: varchar("seismic_requirement", { length: 50 }), // Seismic zone requirements
+  acousticRequirement: varchar("acoustic_requirement", { length: 50 }), // STC rating requirements
+
+  // Quantity and cost tracking
+  quantity: integer("quantity").default(1), // Number of identical openings
+  unitMaterialCost: decimal("unit_material_cost", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+  unitLaborCost: decimal("unit_labor_cost", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+  totalMaterialCost: decimal("total_material_cost", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+  totalLaborCost: decimal("total_labor_cost", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+
+  // Additional fields
+  description: text("description"), // Renamed from notes for clarity
+  notes: text("notes"), // Keep for backward compatibility
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Grid Mullions - individual mullion elements within an opening
+export const gridMullions = pgTable("grid_mullions", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+
+  // Mullion identification
+  gridType: varchar("grid_type", { length: 20 }).notNull(),
+  // 'vertical', 'horizontal', 'sill', 'head', 'jamb_left', 'jamb_right'
+  gridColumn: integer("grid_column"), // Column index for vertical mullions
+  gridRow: integer("grid_row"), // Row index for horizontal mullions
+
+  // Physical properties
+  length: decimal("length", { precision: 10, scale: 2 }).notNull(), // Length in feet
+  componentName: varchar("component_name", { length: 100 }).notNull(), // "Vertical Mullion", "Sill", etc.
+
+  // Position and customization
+  defaultPosition: decimal("default_position", { precision: 10, scale: 2 }), // Grid-calculated position
+  customPosition: decimal("custom_position", { precision: 10, scale: 2 }), // User-modified position
+  isActive: boolean("is_active").default(true), // Can be toggled on/off
+
+  // Added when we ran horizontals in between the verticals
+  gridSegment: integer("grid_segment"),
+  startX: decimal("start_x", { precision: 10, scale: 2 }),
+  endX: decimal("end_x", { precision: 10, scale: 2 }),
+
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Grid Glass Panels - individual glass panel elements within an opening
+export const gridGlassPanels = pgTable("grid_glass_panels", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+
+  // Grid position
+  gridColumn: integer("grid_column").notNull(), // 0-based column index
+  gridRow: integer("grid_row").notNull(), // 0-based row index
+
+  // Physical dimensions and position
+  x: decimal("x", { precision: 10, scale: 2 }).notNull(), // X position from left edge
+  y: decimal("y", { precision: 10, scale: 2 }).notNull(), // Y position from bottom edge
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(), // Panel width
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(), // Panel height
+
+  // Panel properties
+  isTransom: boolean("is_transom").default(false), // Is this a transom panel
+  glassType: varchar("glass_type", { length: 100 }).default("Standard"), // Glass specification
+  isActive: boolean("is_active").default(true), // Can be disabled
+
+  // Cost tracking
+  area: decimal("area", { precision: 10, scale: 2 }), // Calculated area
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }).default("0.00"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).default("0.00"),
+
+  // Metadata
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Grid Configurations - store different grid layouts for the same opening
+export const gridConfigurations = pgTable("grid_configurations", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+
+  // Configuration metadata
+  name: varchar("name", { length: 255 }).notNull(), // "Option A", "Client Preference", etc.
+  description: text("description"),
+  isActive: boolean("is_active").default(false), // Only one can be active per opening
+
+  // Grid parameters (snapshot when configuration was created)
+  columns: integer("columns").notNull(),
+  rows: integer("rows").notNull(),
+  mullionWidth: decimal("mullion_width", { precision: 10, scale: 2 }).notNull(),
+
+  // Cost summary
+  totalMullionLength: decimal("total_mullion_length", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+  totalGlassArea: decimal("total_glass_area", {
+    precision: 10,
+    scale: 2,
+  }).default("0.00"),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }).default(
+    "0.00"
+  ),
+
+  // Metadata
+  createdBy: varchar("created_by", { length: 100 }), // User who created this configuration
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Mullions - vertical and horizontal divisions within openings
+export const mullions = pgTable("mullions", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 20 }).notNull(), // 'vertical', 'horizontal'
+  position: decimal("position", { precision: 10, scale: 2 }).notNull(), // distance from left edge (vertical) or bottom (horizontal)
+  mullionType: varchar("mullion_type", { length: 50 }).notNull(), // 'intermediate', 'structural', 'expansion', 'thermal_break'
+  depth: decimal("depth", { precision: 10, scale: 2 }).default("2.00"), // depth of mullion in inches
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Glass Panels - individual glass panels created by the mullion divisions
+export const glassPanels = pgTable("glass_panels", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+  panelNumber: integer("panel_number").notNull(), // sequential numbering within the opening
+  x: decimal("x", { precision: 10, scale: 2 }).notNull(), // x position from left edge of opening
+  y: decimal("y", { precision: 10, scale: 2 }).notNull(), // y position from bottom of opening
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(),
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(),
+  area: decimal("area", { precision: 10, scale: 2 }).notNull(), // calculated area in sq ft
+  isTransom: boolean("is_transom").default(false),
+  isOperable: boolean("is_operable").default(false), // Can the panel open?
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Doors - specific door locations within openings
+export const doors = pgTable("doors", {
+  id: serial("id").primaryKey(),
+  openingId: integer("opening_id")
+    .notNull()
+    .references(() => openings.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(), // "Main Entry", "Exit Door", etc.
+  doorMark: varchar("door_mark", { length: 50 }), // Door mark from drawings
+  position: decimal("position", { precision: 10, scale: 2 }).notNull(), // distance from left edge of opening
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(),
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(),
+  doorType: varchar("door_type", { length: 50 }).notNull(), // 'single', 'double', 'slider', 'revolving', 'automatic'
+  handingType: varchar("handing_type", { length: 20 }), // 'left', 'right', 'center'
+  hasVision: boolean("has_vision").default(true), // whether door has glass vision panel
+  doorMaterial: varchar("door_material", { length: 50 }), // 'aluminum', 'steel', 'glass'
+
+  // Hardware and accessories
+  lockType: varchar("lock_type", { length: 50 }), // 'keyed', 'panic', 'card_reader', 'keypad'
+  closerType: varchar("closer_type", { length: 50 }), // 'surface', 'concealed', 'floor_spring'
+  hasAutomaticOperator: boolean("has_automatic_operator").default(false),
+
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Special Conditions - corners, returns, angles, etc.
+export const specialConditions = pgTable("special_conditions", {
+  id: serial("id").primaryKey(),
+  elevationId: integer("elevation_id")
+    .notNull()
+    .references(() => elevations.id, { onDelete: "cascade" }),
+  conditionType: varchar("condition_type", { length: 50 }).notNull(),
+  // 'corner', 'return', 'angle', 'step_down', 'canopy', 'soffit', 'column_cover'
+  position: decimal("position", { precision: 10, scale: 2 }).notNull(), // position along elevation
+  width: decimal("width", { precision: 10, scale: 2 }), // width if applicable
+  height: decimal("height", { precision: 10, scale: 2 }), // height if applicable
+  angle: decimal("angle", { precision: 5, scale: 2 }), // angle in degrees if applicable
+  description: text("description"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

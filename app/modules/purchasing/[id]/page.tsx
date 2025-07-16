@@ -281,6 +281,8 @@ export default function PurchaseOrderFormPage() {
 
   // ---------------- Form Submission ----------------
 
+  // In your PurchaseOrderFormPage component, modify the onSubmit function:
+
   const onSubmit = async (formData: PurchaseOrder) => {
     try {
       // Clear any previous errors
@@ -388,7 +390,32 @@ export default function PurchaseOrderFormPage() {
         });
       }
 
-      router.push("/modules/purchasing");
+      // NEW: Check if we came from the main page with grid state
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnUrl = searchParams.get("returnUrl");
+      const gridPage = searchParams.get("gridPage");
+      const gridFilters = searchParams.get("gridFilters");
+      const gridSort = searchParams.get("gridSort");
+
+      if (returnUrl && returnUrl.includes("/modules/purchasing")) {
+        // Construct the return URL with grid state parameters
+        let finalReturnUrl = returnUrl;
+        const urlParams = new URLSearchParams();
+
+        if (gridPage) urlParams.set("page", gridPage);
+        if (gridFilters) urlParams.set("filters", gridFilters);
+        if (gridSort) urlParams.set("sort", gridSort);
+
+        if (urlParams.toString()) {
+          finalReturnUrl +=
+            (returnUrl.includes("?") ? "&" : "?") + urlParams.toString();
+        }
+
+        router.push(finalReturnUrl);
+      } else {
+        // Default behavior for new records or when no return URL
+        router.push("/modules/purchasing");
+      }
     } catch (err) {
       console.error("Error submitting form:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");

@@ -1,10 +1,19 @@
+//modules/purchasing/page.tsx
+
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useContext } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useContext,
+  useRef,
+} from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { ColDef, ICellRendererParams, GridApi } from "ag-grid-community";
 import AttachmentModal from "../../components/AttachmentModal";
 import {
   PaperClipIcon,
@@ -14,7 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { generatePDF } from "../../components/pdfUtils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PermissionContext } from "../../context/PermissionContext";
 
 type PurchaseOrder = {
@@ -37,6 +46,7 @@ type PurchaseOrder = {
 
 export default function PurchaseOrderListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { hasWritePermission, isLoaded } = useContext(PermissionContext);
   const [rowData, setRowData] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +55,172 @@ export default function PurchaseOrderListPage() {
   const [selectedPO, setSelectedPO] = useState<number | null>(null);
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
 
+  // Grid API reference
+  const gridApiRef = useRef<GridApi | null>(null);
+
   // Show a loading message until permissions are loaded
   if (!isLoaded) {
     return <div className="p-6">Loading permissions...</div>;
   }
+
+  // Store grid state in sessionStorage
+  const saveGridState = useCallback(() => {
+    if (gridApiRef.current) {
+      const gridState = {
+        page: gridApiRef.current.paginationGetCurrentPage(),
+        filterModel: gridApiRef.current.getFilterModel(),
+        sortModel: gridApiRef.current
+          .getColumnState()
+          .filter((col) => col.sort !== null),
+      };
+      sessionStorage.setItem("po-grid-state", JSON.stringify(gridState));
+    }
+  }, []);
+
+  // Restore grid state from sessionStorage or URL params
+  const restoreGridState = useCallback(() => {
+    if (!gridApiRef.current) return;
+
+    // Check URL parameters first (for return from edit)
+    const urlPage = searchParams.get("page");
+    const urlFilters = searchParams.get("filters");
+    const urlSort = searchParams.get("sort");
+
+    if (urlPage || urlFilters || urlSort) {
+      // Restore from URL parameters
+      if (urlPage) {
+        gridApiRef.current.paginationGoToPage(parseInt(urlPage));
+      }
+      if (urlFilters) {
+        try {
+          const filterModel = JSON.parse(decodeURIComponent(urlFilters));
+          gridApiRef.current.setFilterModel(filterModel);
+        } catch (e) {
+          console.warn("Failed to parse filters from URL:", e);
+        }
+      }
+      if (urlSort) {
+        try {
+          const sortModel = JSON.parse(decodeURIComponent(urlSort));
+          // Apply sort using column state
+          const currentColumnState = gridApiRef.current.getColumnState();
+          const updatedColumnState = currentColumnState.map((col) => {
+            const sortInfo = sortModel.find((s: any) => s.colId === col.colId);
+            return sortInfo
+              ? { ...col, sort: sortInfo.sort, sortIndex: sortInfo.sortIndex }
+              : { ...col, sort: null };
+          });
+          gridApiRef.current.applyColumnState({ state: updatedColumnState });
+        } catch (e) {
+          console.warn("Failed to parse sort from URL:", e);
+        }
+      }
+
+      // Clean up URL parameters after restoring state
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    } else {
+      // Restore from sessionStorage
+      const savedState = sessionStorage.getItem("po-grid-state");
+      if (savedState) {
+        try {
+          const gridState = JSON.parse(savedState);
+
+          if (gridState.page !== undefined) {
+            gridApiRef.current.paginationGoToPage(gridState.page);
+          }
+          if (gridState.filterModel) {
+            gridApiRef.current.setFilterModel(gridState.filterModel);
+          }
+          if (gridState.sortModel) {
+            // Apply sort using column state
+            const currentColumnState = gridApiRef.current.getColumnState();
+            const updatedColumnState = currentColumnState.map((col) => {
+              const sortInfo = gridState.sortModel.find(
+                (s: any) => s.colId === col.colId
+              );
+              return sortInfo
+                ? { ...col, sort: sortInfo.sort, sortIndex: sortInfo.sortIndex }
+                : { ...col, sort: null };
+            });
+            gridApiRef.current.applyColumnState({ state: updatedColumnState });
+          }
+        } catch (e) {
+          console.warn("Failed to restore grid state:", e);
+        }
+      }
+    }
+  }, [searchParams]);
+
+  // Enhanced edit handler that captures grid state
+  const handleEdit = useCallback(
+    (poId: number) => {
+      // Save current grid state
+      saveGridState();
+
+      // Get current grid state for URL parameters
+      if (gridApiRef.current) {
+        const currentPage = gridApiRef.current.paginationGetCurrentPage();
+        const filterModel = gridApiRef.current.getFilterModel();
+        const sortModel = gridApiRef.current
+          .getColumnState()
+          .filter((col) => col.sort !== null);
+
+        // Build the edit URL with grid state parameters
+        const editUrl = new URL(
+          `/modules/purchasing/${poId}`,
+          window.location.origin
+        );
+        editUrl.searchParams.set("returnUrl", window.location.pathname);
+        editUrl.searchParams.set("gridPage", currentPage.toString());
+
+        if (Object.keys(filterModel).length > 0) {
+          editUrl.searchParams.set(
+            "gridFilters",
+            encodeURIComponent(JSON.stringify(filterModel))
+          );
+        }
+
+        if (sortModel.length > 0) {
+          editUrl.searchParams.set(
+            "gridSort",
+            encodeURIComponent(JSON.stringify(sortModel))
+          );
+        }
+
+        router.push(editUrl.toString());
+      } else {
+        // Fallback if grid API not available
+        router.push(`/modules/purchasing/${poId}`);
+      }
+    },
+    [router, saveGridState]
+  );
+
+  // Grid event handlers
+  const onGridReady = useCallback(
+    (params: any) => {
+      gridApiRef.current = params.api;
+
+      // Restore state after grid is ready and data is loaded
+      setTimeout(() => {
+        restoreGridState();
+      }, 100);
+    },
+    [restoreGridState]
+  );
+
+  const onPaginationChanged = useCallback(() => {
+    saveGridState();
+  }, [saveGridState]);
+
+  const onFilterChanged = useCallback(() => {
+    saveGridState();
+  }, [saveGridState]);
+
+  const onSortChanged = useCallback(() => {
+    saveGridState();
+  }, [saveGridState]);
 
   // Memoized handlers
   const handlePrint = useCallback((po: PurchaseOrder) => {
@@ -72,7 +244,6 @@ export default function PurchaseOrderListPage() {
 
   const handleCloseAttachments = useCallback(() => {
     setIsAttachmentModalOpen(false);
-    // Optionally refresh the page when the dialog closes
     setSelectedPO(null);
   }, []);
 
@@ -89,7 +260,7 @@ export default function PurchaseOrderListPage() {
     []
   );
 
-  // Memoized column definitions with permission checks for Edit and Delete
+  // Updated column definitions with new edit handler
   const columnDefs = useMemo<ColDef<PurchaseOrder>[]>(
     () => [
       {
@@ -115,7 +286,6 @@ export default function PurchaseOrderListPage() {
         flex: 1,
         minWidth: 150,
       },
-
       {
         headerName: "Description",
         field: "shortDescription",
@@ -139,7 +309,6 @@ export default function PurchaseOrderListPage() {
         comparator: (dateA, dateB) =>
           new Date(dateA).getTime() - new Date(dateB).getTime(),
       },
-
       {
         headerName: "Ship To",
         field: "shipTo",
@@ -154,7 +323,6 @@ export default function PurchaseOrderListPage() {
         flex: 1,
         minWidth: 150,
       },
-
       {
         headerName: "Amount",
         field: "amount",
@@ -172,7 +340,7 @@ export default function PurchaseOrderListPage() {
         cellRenderer: (params: ICellRendererParams<PurchaseOrder>) => (
           <div className="flex items-center gap-2 py-1">
             <button
-              onClick={() => router.push(`/modules/purchasing/${params.value}`)}
+              onClick={() => handleEdit(params.value!)}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-md transition-colors ${
                 !hasWritePermission
                   ? "cursor-not-allowed opacity-50"
@@ -250,7 +418,7 @@ export default function PurchaseOrderListPage() {
         ),
       },
     ],
-    [router, handleOpenAttachments, handlePrint, hasWritePermission]
+    [handleEdit, handleOpenAttachments, handlePrint, hasWritePermission]
   );
 
   // Delete handler
@@ -290,7 +458,6 @@ export default function PurchaseOrderListPage() {
   }, [loadPurchaseOrders]);
 
   // Row style for backorder and received highlighting
-  // Backorder (pink) takes precedence over received (yellow)
   const getRowStyle = useCallback((params: any) => {
     const data = params.data;
 
@@ -343,6 +510,10 @@ export default function PurchaseOrderListPage() {
           pagination={true}
           paginationPageSize={pageSize}
           getRowStyle={getRowStyle}
+          onGridReady={onGridReady}
+          onPaginationChanged={onPaginationChanged}
+          onFilterChanged={onFilterChanged}
+          onSortChanged={onSortChanged}
         />
       </div>
 

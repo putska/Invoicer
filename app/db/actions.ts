@@ -47,10 +47,10 @@ import {
   noteStatusAssignments,
   bimModels,
   bimElements,
-  materialTakeoffs,
-  takeoffItems,
-  modelViews,
-  modelComments,
+  holidays,
+  gridMullions,
+  gridGlassPanels,
+  gridConfigurations,
 } from "./schema";
 import {
   Customer,
@@ -102,18 +102,62 @@ import {
   EngineeringNoteWithStatuses,
   AssignStatusToNoteForm,
   RemoveStatusFromNoteForm,
+  DeleteImpactSummary,
   BIMModel,
   BIMElement,
-  MaterialTakeoff,
-  TakeoffItem,
-  ModelView, // ← Add this
-  NewModelView, // ← And this for the insert
-  CreateBIMModelInput,
-  CreateTakeoffInput,
-  CreateCommentInput,
-  IFCParseResult,
-  DeleteImpactSummary,
+  NewBIMElement,
+  Holiday,
+  HolidayType,
+  CreateHolidayRequest,
+  UpdateHolidayRequest,
+  DeleteHolidayRequest,
+  GetHolidaysRequest,
+  Estimate,
+  Bid,
+  Elevation,
+  Opening,
+  Mullion,
+  GlassPanel,
+  Door,
+  SpecialCondition,
+  EstimateWithBids,
+  BidWithElevations,
+  ElevationWithOpenings,
+  CreateEstimateInput,
+  UpdateEstimateInput,
+  CreateBidInput,
+  UpdateBidInput,
+  CreateElevationInput,
+  UpdateElevationInput,
+  CreateOpeningInput,
+  UpdateOpeningInput,
+  OpeningWithDetails,
+  CreateMullionInput,
+  CreateDoorInput,
+  CreateSpecialConditionInput,
+  BidSummary,
+  ElevationSummary,
+  GridMullion,
+  GridGlassPanel,
+  GridConfiguration,
+  CreateGridMullionInput,
+  CreateGridGlassPanelInput,
+  CreateGridConfigurationInput,
+  UpdateGridMullionInput,
+  UpdateGridGlassPanelInput,
+  OpeningWithGrid,
+  GridDimensions,
 } from "../types";
+import {
+  estimates,
+  bids,
+  elevations,
+  openings,
+  mullions,
+  glassPanels,
+  doors,
+  specialConditions,
+} from "./schema";
 import {
   desc,
   eq,
@@ -123,13 +167,15 @@ import {
   max,
   not,
   or,
+  gte,
+  lte,
   ilike,
   asc,
   count,
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDropboxClient } from "../modules/dropbox/dropboxClient";
-import { redirect } from "next/navigation";
+import { GridCalculator } from "../utils/gridCalculator";
 
 //👇🏻 add a new row to the invoices table
 export const createInvoice = async (invoice: any) => {
@@ -2829,7 +2875,7 @@ function calculateDimensions(coordinates: number[]) {
   };
 }
 
-// Engineering Schedule Actions
+// **************************Engineering Schedule Actions**************************************
 
 // Engineers
 export const getEngineers = async () => {
@@ -2919,6 +2965,25 @@ export const getProjectTasks = async (projectId: number) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Get office holidays from your holiday management system
+  const currentYear = today.getFullYear();
+  const nextYear = currentYear + 1;
+  const prevYear = currentYear - 1;
+
+  // Get holidays for current year and adjacent years to handle cross-year projects
+  const [currentYearHolidays, nextYearHolidays, prevYearHolidays] =
+    await Promise.all([
+      getOfficeHolidays(currentYear),
+      getOfficeHolidays(nextYear),
+      getOfficeHolidays(prevYear),
+    ]);
+
+  const holidays = [
+    ...prevYearHolidays,
+    ...currentYearHolidays,
+    ...nextYearHolidays,
+  ];
+
   return tasks.map((row) => {
     const task = {
       ...row.task,
@@ -2928,57 +2993,6 @@ export const getProjectTasks = async (projectId: number) => {
 
     // Calculate risk status
     const dueDate = new Date(task.dueDate);
-    const holidays = [
-      "2024-12-23",
-      "2024-12-24",
-      "2024-12-25",
-      "2024-11-11",
-      "2024-11-28",
-      "2024-11-29",
-      "2025-01-01",
-      "2025-01-20",
-      "2025-02-10",
-      "2025-02-17",
-      "2025-04-18",
-      "2025-05-23",
-      "2025-05-26",
-      "2025-07-04",
-      "2025-07-07",
-      "2025-08-29",
-      "2025-09-01",
-      "2025-11-11",
-      "2025-11-27",
-      "2025-11-28",
-      "2025-12-25",
-      "2025-12-26",
-      "2026-01-01",
-      "2026-01-02",
-      "2026-01-19",
-      "2026-02-09",
-      "2026-02-16",
-      "2026-04-03",
-      "2026-05-25",
-      "2026-06-19",
-      "2026-07-03",
-      "2026-07-06",
-      "2026-08-07",
-      "2026-09-04",
-      "2026-09-07",
-      "2026-11-11",
-      "2026-11-26",
-      "2026-11-27",
-      "2026-12-24",
-      "2026-12-25",
-      "2027-01-01",
-      "2027-01-18",
-      "2027-02-15",
-      "2027-03-26",
-      "2027-05-31",
-      "2027-05-28",
-      "2027-06-18",
-      "2027-07-05",
-      "2027-07-08",
-    ];
 
     let isAtRisk = false;
     let isOverdue = dueDate < today;
@@ -3254,56 +3268,23 @@ function addWorkingDays(
 
 // Recalculate schedule for an engineer
 async function recalculateSchedule(engineerId: number) {
+  // Get office holidays from your holiday management system
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  const prevYear = currentYear - 1;
+
+  // Get holidays for current year and adjacent years to handle long-running schedules
+  const [currentYearHolidays, nextYearHolidays, prevYearHolidays] =
+    await Promise.all([
+      getOfficeHolidays(currentYear),
+      getOfficeHolidays(nextYear),
+      getOfficeHolidays(prevYear),
+    ]);
+
   const holidays = [
-    "2024-12-23",
-    "2024-12-24",
-    "2024-12-25",
-    "2024-11-11",
-    "2024-11-28",
-    "2024-11-29",
-    "2025-01-01",
-    "2025-01-20",
-    "2025-02-10",
-    "2025-02-17",
-    "2025-04-18",
-    "2025-05-23",
-    "2025-05-26",
-    "2025-07-04",
-    "2025-07-07",
-    "2025-08-29",
-    "2025-09-01",
-    "2025-11-11",
-    "2025-11-27",
-    "2025-11-28",
-    "2025-12-25",
-    "2025-12-26",
-    "2026-01-01",
-    "2026-01-02",
-    "2026-01-19",
-    "2026-02-09",
-    "2026-02-16",
-    "2026-04-03",
-    "2026-05-25",
-    "2026-06-19",
-    "2026-07-03",
-    "2026-07-06",
-    "2026-08-07",
-    "2026-09-04",
-    "2026-09-07",
-    "2026-11-11",
-    "2026-11-26",
-    "2026-11-27",
-    "2026-12-24",
-    "2026-12-25",
-    "2027-01-01",
-    "2027-01-18",
-    "2027-02-15",
-    "2027-03-26",
-    "2027-05-31",
-    "2027-05-28",
-    "2027-06-18",
-    "2027-07-05",
-    "2027-07-08",
+    ...prevYearHolidays,
+    ...currentYearHolidays,
+    ...nextYearHolidays,
   ];
 
   // Get all tasks for this engineer in order
@@ -3372,10 +3353,26 @@ async function createTaskHistory(
 
 // Get schedule data for the board
 export const getScheduleData = async (): Promise<ScheduleData> => {
-  const [engineersList, tasks] = await Promise.all([
+  const currentYear = new Date().getFullYear();
+  const [
+    engineersList,
+    tasks,
+    prevYearHolidays,
+    currentYearHolidays,
+    nextYearHolidays,
+  ] = await Promise.all([
     getEngineers(),
     getTasks(),
+    getOfficeHolidays(currentYear - 1),
+    getOfficeHolidays(currentYear),
+    getOfficeHolidays(currentYear + 1),
   ]);
+
+  const holidays = [
+    ...prevYearHolidays,
+    ...currentYearHolidays,
+    ...nextYearHolidays,
+  ];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -3417,60 +3414,7 @@ export const getScheduleData = async (): Promise<ScheduleData> => {
       const dueDate = new Date(task.dueDate);
 
       // Calculate if at risk (not enough time if started today)
-      const holidays = [
-        "2024-12-23",
-        "2024-12-24",
-        "2024-12-25",
-        "2024-11-11",
-        "2024-11-28",
-        "2024-11-29",
-        "2025-01-01",
-        "2025-01-20",
-        "2025-02-10",
-        "2025-02-17",
-        "2025-04-18",
-        "2025-05-23",
-        "2025-05-26",
-        "2025-07-04",
-        "2025-07-07",
-        "2025-08-29",
-        "2025-09-01",
-        "2025-11-11",
-        "2025-11-27",
-        "2025-11-28",
-        "2025-12-25",
-        "2025-12-26",
-        "2026-01-01",
-        "2026-01-02",
-        "2026-01-19",
-        "2026-02-09",
-        "2026-02-16",
-        "2026-04-03",
-        "2026-05-25",
-        "2026-06-19",
-        "2026-07-03",
-        "2026-07-06",
-        "2026-08-07",
-        "2026-09-04",
-        "2026-09-07",
-        "2026-11-11",
-        "2026-11-26",
-        "2026-11-27",
-        "2026-12-24",
-        "2026-12-25",
-        "2027-01-01",
-        "2027-01-18",
-        "2027-02-15",
-        "2027-03-26",
-        "2027-05-31",
-        "2027-05-28",
-        "2027-06-18",
-        "2027-07-05",
-        "2027-07-08",
-      ];
-
       const wouldFinishBy = addWorkingDays(today, task.durationDays, holidays);
-
       return {
         ...task,
         project: {
@@ -4531,35 +4475,128 @@ export async function getChecklistSummaryForNote(
   };
 }
 
-// ****************** BIM Stuff ******************/
+// ================== Begin BIM Actions ========================================
 
-// BIM Model Actions
-export async function createBIMModel(input: CreateBIMModelInput) {
+export async function getBIMModel(id: number): Promise<BIMModel | null> {
   try {
-    // TODO: Implement file upload to storage (S3, local, etc.)
-    const fileName = input.file.name;
-    const filePath = `/uploads/models/${Date.now()}-${input.file.name}`;
-
     const [model] = await db
-      .insert(bimModels)
-      .values({
-        name: input.name,
-        description: input.description,
-        filePath: filePath,
-        fileName: fileName,
-        fileSize: input.file.size,
-        projectId: input.projectId,
-        // TODO: Extract these from actual IFC file
-        ifcSchema: "IFC4",
-        createdBy: 1, // TODO: Get from session
+      .select()
+      .from(bimModels)
+      .where(and(eq(bimModels.id, id), eq(bimModels.isActive, true)));
+
+    return model || null;
+  } catch (error) {
+    console.error("Error fetching BIM model:", error);
+    return null;
+  }
+}
+
+export async function getBIMElements(modelId: number): Promise<BIMElement[]> {
+  try {
+    const elements = await db
+      .select()
+      .from(bimElements)
+      .where(eq(bimElements.modelId, modelId))
+      .orderBy(asc(bimElements.elementType), asc(bimElements.elementName));
+
+    return elements;
+  } catch (error) {
+    console.error("Error fetching BIM elements:", error);
+    return [];
+  }
+}
+
+export async function getBIMElementByIfcId(
+  ifcId: string
+): Promise<BIMElement | null> {
+  try {
+    const [element] = await db
+      .select()
+      .from(bimElements)
+      .where(eq(bimElements.ifcId, ifcId));
+
+    return element || null;
+  } catch (error) {
+    console.error("Error fetching BIM element by IFC ID:", error);
+    return null;
+  }
+}
+
+export async function saveBIMElement(
+  element: NewBIMElement
+): Promise<BIMElement | null> {
+  try {
+    const [savedElement] = await db
+      .insert(bimElements)
+      .values(element)
+      .onConflictDoUpdate({
+        target: [bimElements.modelId, bimElements.ifcId],
+        set: {
+          elementType: element.elementType,
+          elementName: element.elementName,
+          level: element.level,
+          material: element.material,
+          properties: element.properties,
+          geometryData: element.geometryData,
+        },
       })
       .returning();
 
-    revalidatePath("/bim");
-    return { success: true, data: model };
+    revalidatePath(`/models/${element.modelId}`);
+    return savedElement;
   } catch (error) {
-    console.error("Error creating BIM model:", error);
-    return { success: false, error: "Failed to create BIM model" };
+    console.error("Error saving BIM element:", error);
+    return null;
+  }
+}
+
+export async function saveBIMElements(
+  modelId: number,
+  elements: NewBIMElement[]
+): Promise<{ success: boolean; count: number }> {
+  try {
+    // Clear existing elements for this model
+    await db.delete(bimElements).where(eq(bimElements.modelId, modelId));
+
+    // Insert new elements in batches
+    const batchSize = 1000;
+    let totalInserted = 0;
+
+    for (let i = 0; i < elements.length; i += batchSize) {
+      const batch = elements.slice(i, i + batchSize);
+      const result = await db
+        .insert(bimElements)
+        .values(batch.map((element) => ({ ...element, modelId })))
+        .returning({ id: bimElements.id });
+
+      totalInserted += result.length;
+    }
+
+    revalidatePath(`/models/${modelId}`);
+    return { success: true, count: totalInserted };
+  } catch (error) {
+    console.error("Error saving BIM elements:", error);
+    return { success: false, count: 0 };
+  }
+}
+
+export async function deleteBIMElement(
+  id: number
+): Promise<{ success: boolean }> {
+  try {
+    const [deletedElement] = await db
+      .delete(bimElements)
+      .where(eq(bimElements.id, id))
+      .returning({ modelId: bimElements.modelId });
+
+    if (deletedElement) {
+      revalidatePath(`/models/${deletedElement.modelId}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting BIM element:", error);
+    return { success: false };
   }
 }
 
@@ -4578,309 +4615,2207 @@ export async function getBIMModels(): Promise<BIMModel[]> {
   }
 }
 
-export async function getBIMModel(id: number): Promise<BIMModel | null> {
+export async function createBIMModel(data: {
+  name: string;
+  description?: string;
+  filePath: string;
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+  projectId?: number;
+  uploadedBy?: number;
+}): Promise<BIMModel | null> {
   try {
     const [model] = await db
-      .select()
-      .from(bimModels)
-      .where(and(eq(bimModels.id, id), eq(bimModels.isActive, true)));
+      .insert(bimModels)
+      .values({
+        ...data,
+        createdBy: data.uploadedBy,
+        updatedAt: new Date(),
+      })
+      .returning();
 
-    return model || null;
+    revalidatePath("/models");
+    return model;
   } catch (error) {
-    console.error("Error fetching BIM model:", error);
+    console.error("Error creating BIM model:", error);
     return null;
   }
 }
 
-export async function deleteBIMModel(id: number) {
+export async function updateBIMModel(
+  id: number,
+  data: Partial<BIMModel>
+): Promise<BIMModel | null> {
+  try {
+    const [updatedModel] = await db
+      .update(bimModels)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(bimModels.id, id))
+      .returning();
+
+    revalidatePath("/models");
+    revalidatePath(`/models/${id}`);
+    return updatedModel;
+  } catch (error) {
+    console.error("Error updating BIM model:", error);
+    return null;
+  }
+}
+
+export async function deleteBIMModel(
+  id: number
+): Promise<{ success: boolean }> {
   try {
     await db
       .update(bimModels)
-      .set({ isActive: false })
+      .set({ isActive: false, updatedAt: new Date() })
       .where(eq(bimModels.id, id));
 
-    revalidatePath("/bim");
+    revalidatePath("/models");
     return { success: true };
   } catch (error) {
     console.error("Error deleting BIM model:", error);
-    return { success: false, error: "Failed to delete BIM model" };
+    return { success: false };
   }
 }
 
-// BIM Elements Actions
-export async function saveBIMElements(
-  modelId: number,
-  parseResult: IFCParseResult
-) {
+export async function processBIMModel(
+  modelId: number
+): Promise<{ success: boolean; elementCount: number }> {
   try {
-    // Clear existing elements for this model
-    await db.delete(bimElements).where(eq(bimElements.modelId, modelId));
-
-    // Insert new elements in batches
-    const batchSize = 1000;
-    for (let i = 0; i < parseResult.elements.length; i += batchSize) {
-      const batch = parseResult.elements.slice(i, i + batchSize);
-      await db.insert(bimElements).values(
-        batch.map((element) => ({
-          modelId,
-          ifcId: element.ifcId,
-          elementType: element.elementType,
-          elementName: element.elementName,
-          level: element.level,
-          material: element.material,
-          properties: element.properties,
-          geometryData: element.geometryData,
-        }))
-      );
-    }
-
-    // Update model metadata
-    await db
-      .update(bimModels)
-      .set({ metadata: parseResult.metadata })
-      .where(eq(bimModels.id, modelId));
-
-    return { success: true };
+    // This would typically parse the IFC file and extract element data
+    // For now, returning a placeholder response
+    return { success: true, elementCount: 0 };
   } catch (error) {
-    console.error("Error saving BIM elements:", error);
-    return { success: false, error: "Failed to save BIM elements" };
+    console.error("Error processing BIM model:", error);
+    return { success: false, elementCount: 0 };
   }
 }
 
-export async function getBIMElements(
-  modelId: number,
-  filters?: {
-    elementTypes?: string[];
-    levels?: string[];
-    page?: number;
-    pageSize?: number;
-  }
-) {
+// ==================== Begin Holiday Actions ========================================
+
+export async function createHoliday(
+  data: CreateHolidayRequest
+): Promise<{ success: boolean; holiday?: Holiday; error?: string }> {
   try {
-    const page = filters?.page || 1;
-    const pageSize = filters?.pageSize || 100;
-    const offset = (page - 1) * pageSize;
-
-    let query = db
-      .select()
-      .from(bimElements)
-      .where(eq(bimElements.modelId, modelId));
-
-    // Apply filters
-    if (filters?.elementTypes?.length) {
-      // TODO: Add proper filtering
+    // Validate the data
+    if (!data.date || !data.name || !data.type) {
+      return {
+        success: false,
+        error: "Date, name, and type are required fields",
+      };
     }
 
-    const elements = await query
-      .limit(pageSize)
-      .offset(offset)
-      .orderBy(asc(bimElements.elementType), asc(bimElements.elementName));
+    // Check for date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(data.date)) {
+      return {
+        success: false,
+        error: "Date must be in YYYY-MM-DD format",
+      };
+    }
+
+    // Check if holiday already exists for this date and type
+    const existingHoliday = await db
+      .select()
+      .from(holidays)
+      .where(and(eq(holidays.date, data.date), eq(holidays.type, data.type)))
+      .limit(1);
+
+    if (existingHoliday.length > 0) {
+      return {
+        success: false,
+        error: "A holiday of this type already exists for this date",
+      };
+    }
+
+    // Insert the new holiday
+    const [newHoliday] = await db
+      .insert(holidays)
+      .values({
+        date: data.date,
+        name: data.name,
+        description: data.description || null,
+        type: data.type,
+        isRecurring: data.isRecurring || false,
+      })
+      .returning();
+
+    // Convert database result to Holiday interface
+    const holiday: Holiday = {
+      id: newHoliday.id,
+      date: newHoliday.date,
+      name: newHoliday.name,
+      description: newHoliday.description || undefined,
+      type: newHoliday.type as HolidayType,
+      isRecurring: newHoliday.isRecurring,
+      createdAt: newHoliday.createdAt,
+      updatedAt: newHoliday.updatedAt,
+    };
+
+    revalidatePath("/holidays");
 
     return {
       success: true,
-      data: {
-        elements,
-        totalCount: elements.length,
-        pageSize,
-        currentPage: page,
-      },
+      holiday,
     };
   } catch (error) {
-    console.error("Error fetching BIM elements:", error);
-    return { success: false, error: "Failed to fetch BIM elements" };
-  }
-}
-
-// Material Takeoff Actions
-export async function createMaterialTakeoff(input: CreateTakeoffInput) {
-  try {
-    const [takeoff] = await db
-      .insert(materialTakeoffs)
-      .values({
-        modelId: input.modelId,
-        takeoffName: input.takeoffName,
-        description: input.description,
-        createdBy: 1, // TODO: Get from session
-        status: "draft",
-      })
-      .returning();
-
-    // Generate takeoff items based on rules
-    const items = await generateTakeoffItems(takeoff.id, input.rules ?? []);
-
-    revalidatePath("/bim/takeoffs");
-    return { success: true, data: { takeoff, items } };
-  } catch (error) {
-    console.error("Error creating material takeoff:", error);
-    return { success: false, error: "Failed to create material takeoff" };
-  }
-}
-
-async function generateTakeoffItems(takeoffId: number, rules: any[]) {
-  // This would contain the logic to process BIM elements
-  // and generate takeoff items based on the rules
-  // For now, returning empty array as placeholder
-  return [];
-}
-
-export async function getTakeoffs(modelId: number) {
-  try {
-    const takeoffs = await db
-      .select()
-      .from(materialTakeoffs)
-      .where(eq(materialTakeoffs.modelId, modelId))
-      .orderBy(desc(materialTakeoffs.createdDate));
-
-    return takeoffs;
-  } catch (error) {
-    console.error("Error fetching takeoffs:", error);
-    return [];
-  }
-}
-
-export async function getTakeoffWithItems(takeoffId: number) {
-  try {
-    const [takeoff] = await db
-      .select()
-      .from(materialTakeoffs)
-      .where(eq(materialTakeoffs.id, takeoffId));
-
-    if (!takeoff) {
-      return { success: false, error: "Takeoff not found" };
-    }
-
-    const items = await db
-      .select()
-      .from(takeoffItems)
-      .where(eq(takeoffItems.takeoffId, takeoffId))
-      .orderBy(asc(takeoffItems.category), asc(takeoffItems.materialName));
-
-    const summary = {
-      totalItems: items.length,
-      totalCost: items.reduce(
-        (sum, item) => sum + Number(item.totalCost || 0),
-        0
-      ),
-      categoryTotals: items.reduce((acc, item) => {
-        const category = item.category || "Uncategorized";
-        acc[category] = (acc[category] || 0) + Number(item.totalCost || 0);
-        return acc;
-      }, {} as Record<string, number>),
+    console.error("Error creating holiday:", error);
+    return {
+      success: false,
+      error: "Failed to create holiday. Please try again.",
     };
-
-    return { success: true, data: { takeoff, items, summary } };
-  } catch (error) {
-    console.error("Error fetching takeoff with items:", error);
-    return { success: false, error: "Failed to fetch takeoff details" };
   }
 }
 
-export async function updateTakeoffStatus(
-  takeoffId: number,
-  status: "draft" | "approved" | "exported"
-) {
+export async function updateHoliday(
+  data: UpdateHolidayRequest
+): Promise<{ success: boolean; holiday?: Holiday; error?: string }> {
   try {
-    await db
-      .update(materialTakeoffs)
-      .set({ status })
-      .where(eq(materialTakeoffs.id, takeoffId));
-
-    revalidatePath("/bim/takeoffs");
-    return { success: true };
-  } catch (error) {
-    console.error("Error updating takeoff status:", error);
-    return { success: false, error: "Failed to update takeoff status" };
-  }
-}
-
-// Model Views Actions
-export async function saveModelView(
-  viewData: Omit<ModelView, "id" | "createdAt" | "createdBy">
-) {
-  try {
-    const [view] = await db
-      .insert(modelViews)
-      .values({
-        ...viewData,
-        createdBy: 1, // TODO: Get from session
-      })
-      .returning();
-
-    return { success: true, data: view };
-  } catch (error) {
-    console.error("Error saving model view:", error);
-    return { success: false, error: "Failed to save model view" };
-  }
-}
-
-export async function getModelViews(modelId: number) {
-  try {
-    const views = await db
-      .select()
-      .from(modelViews)
-      .where(eq(modelViews.modelId, modelId))
-      .orderBy(asc(modelViews.viewName));
-
-    return views;
-  } catch (error) {
-    console.error("Error fetching model views:", error);
-    return [];
-  }
-}
-
-// Comments Actions
-export async function createModelComment(input: CreateCommentInput) {
-  try {
-    const [comment] = await db
-      .insert(modelComments)
-      .values({
-        ...input,
-        createdBy: 1, // TODO: Get from session
-      })
-      .returning();
-
-    revalidatePath(`/bim/${input.modelId}`);
-    return { success: true, data: comment };
-  } catch (error) {
-    console.error("Error creating model comment:", error);
-    return { success: false, error: "Failed to create comment" };
-  }
-}
-
-export async function getModelComments(modelId: number) {
-  try {
-    const comments = await db
-      .select()
-      .from(modelComments)
-      .where(eq(modelComments.modelId, modelId))
-      .orderBy(desc(modelComments.createdAt));
-
-    return comments;
-  } catch (error) {
-    console.error("Error fetching model comments:", error);
-    return [];
-  }
-}
-
-export async function updateCommentStatus(
-  commentId: number,
-  status: "open" | "resolved" | "closed"
-) {
-  try {
-    const updateData: any = { status };
-    if (status === "resolved") {
-      updateData.resolvedAt = new Date();
+    if (!data.id) {
+      return {
+        success: false,
+        error: "Holiday ID is required",
+      };
     }
 
-    await db
-      .update(modelComments)
+    // Validate date format if provided
+    if (data.date) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(data.date)) {
+        return {
+          success: false,
+          error: "Date must be in YYYY-MM-DD format",
+        };
+      }
+    }
+
+    // Build update object dynamically
+    const updateData: Partial<typeof holidays.$inferInsert> = {};
+
+    if (data.date !== undefined) updateData.date = data.date;
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.isRecurring !== undefined)
+      updateData.isRecurring = data.isRecurring;
+
+    // Always update the updatedAt timestamp
+    updateData.updatedAt = new Date();
+
+    if (Object.keys(updateData).length === 1) {
+      // Only updatedAt was set
+      return {
+        success: false,
+        error: "No fields to update",
+      };
+    }
+
+    const [updatedHoliday] = await db
+      .update(holidays)
       .set(updateData)
-      .where(eq(modelComments.id, commentId));
+      .where(eq(holidays.id, data.id))
+      .returning();
 
-    revalidatePath("/bim");
-    return { success: true };
+    if (!updatedHoliday) {
+      return {
+        success: false,
+        error: "Holiday not found",
+      };
+    }
+
+    const holiday: Holiday = {
+      id: updatedHoliday.id,
+      date: updatedHoliday.date,
+      name: updatedHoliday.name,
+      description: updatedHoliday.description || undefined,
+      type: updatedHoliday.type as HolidayType,
+      isRecurring: updatedHoliday.isRecurring,
+      createdAt: updatedHoliday.createdAt,
+      updatedAt: updatedHoliday.updatedAt,
+    };
+
+    revalidatePath("/holidays");
+
+    return {
+      success: true,
+      holiday,
+    };
   } catch (error) {
-    console.error("Error updating comment status:", error);
-    return { success: false, error: "Failed to update comment status" };
+    console.error("Error updating holiday:", error);
+    return {
+      success: false,
+      error: "Failed to update holiday. Please try again.",
+    };
   }
+}
+
+export async function deleteHoliday(
+  data: DeleteHolidayRequest
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!data.id) {
+      return {
+        success: false,
+        error: "Holiday ID is required",
+      };
+    }
+
+    const [deletedHoliday] = await db
+      .delete(holidays)
+      .where(eq(holidays.id, data.id))
+      .returning({ id: holidays.id });
+
+    if (!deletedHoliday) {
+      return {
+        success: false,
+        error: "Holiday not found",
+      };
+    }
+
+    revalidatePath("/holidays");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error deleting holiday:", error);
+    return {
+      success: false,
+      error: "Failed to delete holiday. Please try again.",
+    };
+  }
+}
+
+export async function getHolidays(
+  filters: GetHolidaysRequest = {}
+): Promise<{ success: boolean; holidays?: Holiday[]; error?: string }> {
+  try {
+    // Build WHERE conditions
+    const conditions = [];
+
+    if (filters.type) {
+      conditions.push(eq(holidays.type, filters.type));
+    }
+
+    if (filters.startDate) {
+      conditions.push(gte(holidays.date, filters.startDate));
+    }
+
+    if (filters.endDate) {
+      conditions.push(lte(holidays.date, filters.endDate));
+    }
+
+    if (filters.year) {
+      // Extract year from date using SQL
+      conditions.push(
+        sql`EXTRACT(YEAR FROM ${holidays.date}) = ${filters.year}`
+      );
+    }
+
+    // Build and execute the query
+    const baseQuery = db.select().from(holidays);
+
+    const result =
+      conditions.length > 0
+        ? await baseQuery.where(and(...conditions)).orderBy(asc(holidays.date))
+        : await baseQuery.orderBy(asc(holidays.date));
+
+    const holidayList: Holiday[] = result.map((row) => ({
+      id: row.id,
+      date: row.date,
+      name: row.name,
+      description: row.description || undefined,
+      type: row.type as HolidayType,
+      isRecurring: row.isRecurring,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    return {
+      success: true,
+      holidays: holidayList,
+    };
+  } catch (error) {
+    console.error("Error fetching holidays:", error);
+    return {
+      success: false,
+      error: "Failed to fetch holidays. Please try again.",
+    };
+  }
+}
+
+// Utility function to get holidays by type and date range
+export async function getHolidaysByType(
+  type: HolidayType,
+  startDate?: string,
+  endDate?: string
+): Promise<string[]> {
+  try {
+    const result = await getHolidays({
+      type,
+      startDate,
+      endDate,
+    });
+
+    if (result.success && result.holidays) {
+      return result.holidays.map((holiday) => holiday.date);
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Error fetching holidays by type:", error);
+    return [];
+  }
+}
+
+// Function to replace your hardcoded holidays
+export async function getOfficeHolidays(year?: number): Promise<string[]> {
+  try {
+    // Build WHERE conditions
+    const conditions = [sql`${holidays.type} IN ('office', 'both')`];
+
+    if (year) {
+      conditions.push(sql`EXTRACT(YEAR FROM ${holidays.date}) = ${year}`);
+    }
+
+    const result = await db
+      .select({ date: holidays.date })
+      .from(holidays)
+      .where(and(...conditions))
+      .orderBy(asc(holidays.date));
+
+    return result.map((row) => row.date);
+  } catch (error) {
+    console.error("Error fetching office holidays:", error);
+    return [];
+  }
+}
+
+export async function getFieldHolidays(year?: number): Promise<string[]> {
+  try {
+    // Build WHERE conditions
+    const conditions = [sql`${holidays.type} IN ('field', 'both')`];
+
+    if (year) {
+      conditions.push(sql`EXTRACT(YEAR FROM ${holidays.date}) = ${year}`);
+    }
+
+    const result = await db
+      .select({ date: holidays.date })
+      .from(holidays)
+      .where(and(...conditions))
+      .orderBy(asc(holidays.date));
+
+    return result.map((row) => row.date);
+  } catch (error) {
+    console.error("Error fetching field holidays:", error);
+    return [];
+  }
+}
+
+export async function getAllHolidays(year?: number): Promise<string[]> {
+  try {
+    // Build WHERE conditions
+    const conditions = [eq(holidays.type, "both")];
+
+    if (year) {
+      conditions.push(sql`EXTRACT(YEAR FROM ${holidays.date}) = ${year}`);
+    }
+
+    const result = await db
+      .select({ date: holidays.date })
+      .from(holidays)
+      .where(and(...conditions))
+      .orderBy(asc(holidays.date));
+
+    return result.map((row) => row.date);
+  } catch (error) {
+    console.error("Error fetching all holidays:", error);
+    return [];
+  }
+}
+
+// +++++++++++++++ Start of Estimating Actions ++++++++++++++++
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// ============================================================================
+// ESTIMATE ACTIONS
+// ============================================================================
+
+export async function getAllEstimates(): Promise<Estimate[]> {
+  const estimatesList = await db
+    .select()
+    .from(estimates)
+    .orderBy(desc(estimates.createdAt));
+
+  return estimatesList as Estimate[];
+}
+
+export async function getEstimateById(
+  estimateId: number
+): Promise<Estimate | null> {
+  const estimate = await db
+    .select()
+    .from(estimates)
+    .where(eq(estimates.id, estimateId))
+    .limit(1);
+
+  return (estimate[0] as Estimate) || null;
+}
+
+export async function getEstimateWithBids(
+  estimateId: number
+): Promise<EstimateWithBids | null> {
+  const estimate = await getEstimateById(estimateId);
+  if (!estimate) return null;
+
+  const bidsList = await getBidsByEstimateId(estimateId);
+  const activeBid = bidsList.find((bid) => bid.isActive);
+
+  return {
+    ...estimate,
+    bids: bidsList,
+    activeBid,
+  };
+}
+
+export async function createEstimate(
+  data: CreateEstimateInput
+): Promise<Estimate> {
+  const newEstimate = await db
+    .insert(estimates)
+    .values({
+      estimateNumber: data.estimateNumber,
+      name: data.name,
+      description: data.description,
+      buildingType: data.buildingType,
+      location: data.location,
+      architect: data.architect,
+      contractor: data.contractor,
+      owner: data.owner,
+      bidDate: data.bidDate,
+      projectStartDate: data.projectStartDate,
+      projectEndDate: data.projectEndDate,
+      totalSquareFootage: data.totalSquareFootage?.toString(),
+      storiesBelowGrade: data.storiesBelowGrade || 0,
+      storiesAboveGrade: data.storiesAboveGrade || 1,
+      estimatedValue: data.estimatedValue?.toString(),
+      confidenceLevel: data.confidenceLevel,
+      competitionLevel: data.competitionLevel,
+      relationshipStatus: data.relationshipStatus,
+      primaryContact: data.primaryContact,
+      contactEmail: data.contactEmail,
+      contactPhone: data.contactPhone,
+      assignedEstimator: data.assignedEstimator,
+      salesPerson: data.salesPerson,
+      notes: data.notes,
+      internalNotes: data.internalNotes,
+      sortOrder: data.sortOrder || 0,
+    })
+    .returning();
+
+  return newEstimate[0] as Estimate;
+}
+
+export async function updateEstimate(
+  estimateId: number,
+  data: UpdateEstimateInput
+): Promise<Estimate> {
+  const updateData: any = {};
+
+  if (data.estimateNumber !== undefined)
+    updateData.estimateNumber = data.estimateNumber;
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.buildingType !== undefined)
+    updateData.buildingType = data.buildingType;
+  if (data.location !== undefined) updateData.location = data.location;
+  if (data.architect !== undefined) updateData.architect = data.architect;
+  if (data.contractor !== undefined) updateData.contractor = data.contractor;
+  if (data.owner !== undefined) updateData.owner = data.owner;
+  if (data.bidDate !== undefined) updateData.bidDate = data.bidDate;
+  if (data.projectStartDate !== undefined)
+    updateData.projectStartDate = data.projectStartDate;
+  if (data.projectEndDate !== undefined)
+    updateData.projectEndDate = data.projectEndDate;
+  if (data.totalSquareFootage !== undefined)
+    updateData.totalSquareFootage = data.totalSquareFootage?.toString();
+  if (data.storiesBelowGrade !== undefined)
+    updateData.storiesBelowGrade = data.storiesBelowGrade;
+  if (data.storiesAboveGrade !== undefined)
+    updateData.storiesAboveGrade = data.storiesAboveGrade;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.estimatedValue !== undefined)
+    updateData.estimatedValue = data.estimatedValue?.toString();
+  if (data.confidenceLevel !== undefined)
+    updateData.confidenceLevel = data.confidenceLevel;
+  if (data.competitionLevel !== undefined)
+    updateData.competitionLevel = data.competitionLevel;
+  if (data.relationshipStatus !== undefined)
+    updateData.relationshipStatus = data.relationshipStatus;
+  if (data.primaryContact !== undefined)
+    updateData.primaryContact = data.primaryContact;
+  if (data.contactEmail !== undefined)
+    updateData.contactEmail = data.contactEmail;
+  if (data.contactPhone !== undefined)
+    updateData.contactPhone = data.contactPhone;
+  if (data.assignedEstimator !== undefined)
+    updateData.assignedEstimator = data.assignedEstimator;
+  if (data.salesPerson !== undefined) updateData.salesPerson = data.salesPerson;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.internalNotes !== undefined)
+    updateData.internalNotes = data.internalNotes;
+  if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+
+  updateData.updatedAt = new Date();
+
+  const updatedEstimate = await db
+    .update(estimates)
+    .set(updateData)
+    .where(eq(estimates.id, estimateId))
+    .returning();
+
+  return updatedEstimate[0] as Estimate;
+}
+
+export async function deleteEstimate(estimateId: number): Promise<void> {
+  await db.delete(estimates).where(eq(estimates.id, estimateId));
+}
+
+// ============================================================================
+// BID ACTIONS
+// ============================================================================
+
+export async function getBidsByEstimateId(estimateId: number): Promise<Bid[]> {
+  const bidsList = await db
+    .select()
+    .from(bids)
+    .where(eq(bids.estimateId, estimateId))
+    .orderBy(desc(bids.createdAt));
+
+  return bidsList as Bid[];
+}
+
+export async function getBidById(bidId: number): Promise<Bid | null> {
+  const bid = await db.select().from(bids).where(eq(bids.id, bidId)).limit(1);
+
+  return (bid[0] as Bid) || null;
+}
+
+export async function getBidWithElevations(
+  bidId: number
+): Promise<BidWithElevations | null> {
+  const bid = await getBidById(bidId);
+  if (!bid) return null;
+
+  const estimate = await getEstimateById(bid.estimateId);
+  if (!estimate) throw new Error("Estimate not found for bid");
+
+  const elevationsList = await getElevationsByBidId(bidId);
+  const elevationsWithDetails = await Promise.all(
+    elevationsList.map(async (elevation) => {
+      const openingsList = await getOpeningsByElevationId(elevation.id);
+      const openingsWithDetails = await Promise.all(
+        openingsList.map(async (opening) => {
+          const mullionsList = await getMullionsByOpeningId(opening.id);
+          const panelsList = await getGlassPanelsByOpeningId(opening.id);
+          const doorsList = await getDoorsByOpeningId(opening.id);
+
+          return {
+            ...opening,
+            mullions: mullionsList,
+            glassPanels: panelsList,
+            doors: doorsList,
+          };
+        })
+      );
+
+      const specialConditionsList = await getSpecialConditionsByElevationId(
+        elevation.id
+      );
+
+      return {
+        ...elevation,
+        openings: openingsWithDetails,
+        specialConditions: specialConditionsList,
+      };
+    })
+  );
+
+  return {
+    ...bid,
+    estimate,
+    elevations: elevationsWithDetails,
+  };
+}
+
+export async function createBid(data: CreateBidInput): Promise<Bid> {
+  const newBid = await db
+    .insert(bids)
+    .values({
+      estimateId: data.estimateId,
+      bidNumber: data.bidNumber,
+      name: data.name,
+      description: data.description,
+      stage: data.stage || "initial_budget",
+      version: 1,
+      parentBidId: data.parentBidId,
+      preparedBy: data.preparedBy,
+      overheadPercentage: data.overheadPercentage?.toString() || "10.00",
+      profitPercentage: data.profitPercentage?.toString() || "8.00",
+      contingencyPercentage: data.contingencyPercentage?.toString() || "5.00",
+      proposedStartDate: data.proposedStartDate,
+      proposedCompletionDate: data.proposedCompletionDate,
+      deliveryWeeks: data.deliveryWeeks,
+      alternateRequested: data.alternateRequested || false,
+      alternateDescription: data.alternateDescription,
+      valueEngineeringNotes: data.valueEngineeringNotes,
+      exclusions: data.exclusions,
+      assumptions: data.assumptions,
+      isActive: true, // New bids are active by default
+      isSubmitted: false,
+      notes: data.notes,
+      internalNotes: data.internalNotes,
+      sortOrder: data.sortOrder || 0,
+    })
+    .returning();
+
+  // Set all other bids for this estimate to inactive
+  await db
+    .update(bids)
+    .set({ isActive: false })
+    .where(and(eq(bids.estimateId, data.estimateId), eq(bids.isActive, true)));
+
+  // Set this bid as active
+  await db
+    .update(bids)
+    .set({ isActive: true })
+    .where(eq(bids.id, newBid[0].id));
+
+  return newBid[0] as Bid;
+}
+
+export async function updateBid(
+  bidId: number,
+  data: UpdateBidInput
+): Promise<Bid> {
+  const updateData: any = {};
+
+  if (data.bidNumber !== undefined) updateData.bidNumber = data.bidNumber;
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.stage !== undefined) updateData.stage = data.stage;
+  if (data.preparedBy !== undefined) updateData.preparedBy = data.preparedBy;
+  if (data.reviewedBy !== undefined) updateData.reviewedBy = data.reviewedBy;
+  if (data.approvedBy !== undefined) updateData.approvedBy = data.approvedBy;
+  if (data.submittedDate !== undefined)
+    updateData.submittedDate = data.submittedDate;
+  if (data.totalMaterialCost !== undefined)
+    updateData.totalMaterialCost = data.totalMaterialCost.toString();
+  if (data.totalLaborCost !== undefined)
+    updateData.totalLaborCost = data.totalLaborCost.toString();
+  if (data.totalSubcontractorCost !== undefined)
+    updateData.totalSubcontractorCost = data.totalSubcontractorCost.toString();
+  if (data.totalEquipmentCost !== undefined)
+    updateData.totalEquipmentCost = data.totalEquipmentCost.toString();
+  if (data.totalOverheadCost !== undefined)
+    updateData.totalOverheadCost = data.totalOverheadCost.toString();
+  if (data.totalProfitAmount !== undefined)
+    updateData.totalProfitAmount = data.totalProfitAmount.toString();
+  if (data.totalBidAmount !== undefined)
+    updateData.totalBidAmount = data.totalBidAmount.toString();
+  if (data.overheadPercentage !== undefined)
+    updateData.overheadPercentage = data.overheadPercentage.toString();
+  if (data.profitPercentage !== undefined)
+    updateData.profitPercentage = data.profitPercentage.toString();
+  if (data.contingencyPercentage !== undefined)
+    updateData.contingencyPercentage = data.contingencyPercentage.toString();
+  if (data.proposedStartDate !== undefined)
+    updateData.proposedStartDate = data.proposedStartDate;
+  if (data.proposedCompletionDate !== undefined)
+    updateData.proposedCompletionDate = data.proposedCompletionDate;
+  if (data.deliveryWeeks !== undefined)
+    updateData.deliveryWeeks = data.deliveryWeeks;
+  if (data.alternateRequested !== undefined)
+    updateData.alternateRequested = data.alternateRequested;
+  if (data.alternateDescription !== undefined)
+    updateData.alternateDescription = data.alternateDescription;
+  if (data.valueEngineeringNotes !== undefined)
+    updateData.valueEngineeringNotes = data.valueEngineeringNotes;
+  if (data.exclusions !== undefined) updateData.exclusions = data.exclusions;
+  if (data.assumptions !== undefined) updateData.assumptions = data.assumptions;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (data.isSubmitted !== undefined) updateData.isSubmitted = data.isSubmitted;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.internalNotes !== undefined)
+    updateData.internalNotes = data.internalNotes;
+  if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+
+  updateData.updatedAt = new Date();
+
+  const updatedBid = await db
+    .update(bids)
+    .set(updateData)
+    .where(eq(bids.id, bidId))
+    .returning();
+
+  return updatedBid[0] as Bid;
+}
+
+export async function deleteBid(bidId: number): Promise<void> {
+  await db.delete(bids).where(eq(bids.id, bidId));
+}
+
+export async function setActiveBid(bidId: number): Promise<void> {
+  const bid = await getBidById(bidId);
+  if (!bid) throw new Error("Bid not found");
+
+  // Set all other bids for this estimate to inactive
+  await db
+    .update(bids)
+    .set({ isActive: false })
+    .where(eq(bids.estimateId, bid.estimateId));
+
+  // Set this bid as active
+  await db.update(bids).set({ isActive: true }).where(eq(bids.id, bidId));
+}
+
+// ============================================================================
+// ELEVATION ACTIONS
+// ============================================================================
+
+export async function getElevationsByBidId(
+  bidId: number
+): Promise<Elevation[]> {
+  const elevationsList = await db
+    .select()
+    .from(elevations)
+    .where(eq(elevations.bidId, bidId))
+    .orderBy(asc(elevations.sortOrder), asc(elevations.createdAt));
+
+  return elevationsList as Elevation[];
+}
+
+export async function getElevationById(
+  elevationId: number
+): Promise<Elevation | null> {
+  const elevation = await db
+    .select()
+    .from(elevations)
+    .where(eq(elevations.id, elevationId))
+    .limit(1);
+
+  return (elevation[0] as Elevation) || null;
+}
+
+export async function getElevationWithOpenings(
+  elevationId: number
+): Promise<ElevationWithOpenings | null> {
+  const elevation = await getElevationById(elevationId);
+  if (!elevation) return null;
+
+  const openingsList = await getOpeningsByElevationId(elevationId);
+  const openingsWithDetails = await Promise.all(
+    openingsList.map(async (opening) => {
+      const mullionsList = await getMullionsByOpeningId(opening.id);
+      const panelsList = await getGlassPanelsByOpeningId(opening.id);
+      const doorsList = await getDoorsByOpeningId(opening.id);
+
+      return {
+        ...opening,
+        mullions: mullionsList,
+        glassPanels: panelsList,
+        doors: doorsList,
+      };
+    })
+  );
+
+  const specialConditionsList = await getSpecialConditionsByElevationId(
+    elevationId
+  );
+
+  return {
+    ...elevation,
+    openings: openingsWithDetails,
+    specialConditions: specialConditionsList,
+  };
+}
+
+export async function getElevationsByBidIdWithOpenings(
+  bidId: number
+): Promise<ElevationWithOpenings[]> {
+  // First get all elevations for the bid
+  const elevationsList = await db
+    .select()
+    .from(elevations)
+    .where(eq(elevations.bidId, bidId))
+    .orderBy(asc(elevations.sortOrder));
+
+  // Then get openings for each elevation
+  const elevationsWithOpenings = await Promise.all(
+    elevationsList.map(async (elevation) => {
+      const openingsList = await getOpeningsByElevationId(elevation.id);
+      const openingsWithDetails = await Promise.all(
+        openingsList.map(async (opening) => {
+          const mullionsList = await getMullionsByOpeningId(opening.id);
+          const panelsList = await getGlassPanelsByOpeningId(opening.id);
+          const doorsList = await getDoorsByOpeningId(opening.id);
+
+          return {
+            ...opening,
+            mullions: mullionsList,
+            glassPanels: panelsList,
+            doors: doorsList,
+          };
+        })
+      );
+
+      const specialConditionsList = await getSpecialConditionsByElevationId(
+        elevation.id
+      );
+
+      return {
+        ...elevation,
+        openings: openingsWithDetails,
+        specialConditions: specialConditionsList,
+      } as ElevationWithOpenings; // Add type assertion here
+    })
+  );
+
+  return elevationsWithOpenings;
+}
+
+export async function createElevation(
+  data: CreateElevationInput
+): Promise<Elevation> {
+  const newElevation = await db
+    .insert(elevations)
+    .values({
+      bidId: data.bidId,
+      name: data.name,
+      description: data.description,
+      elevationType: data.elevationType || "storefront",
+      totalWidth: data.totalWidth.toString(),
+      totalHeight: data.totalHeight.toString(),
+      floorHeight: data.floorHeight.toString(),
+      floorNumber: data.floorNumber || 1,
+      drawingNumber: data.drawingNumber,
+      drawingRevision: data.drawingRevision,
+      gridLine: data.gridLine,
+      detailReference: data.detailReference,
+      notes: data.notes,
+      sortOrder: data.sortOrder || 0,
+    })
+    .returning();
+
+  return newElevation[0] as Elevation;
+}
+
+export async function updateElevation(
+  elevationId: number,
+  data: UpdateElevationInput
+): Promise<Elevation> {
+  const updateData: any = {};
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.elevationType !== undefined)
+    updateData.elevationType = data.elevationType;
+  if (data.totalWidth !== undefined)
+    updateData.totalWidth = data.totalWidth.toString();
+  if (data.totalHeight !== undefined)
+    updateData.totalHeight = data.totalHeight.toString();
+  if (data.floorHeight !== undefined)
+    updateData.floorHeight = data.floorHeight.toString();
+  if (data.floorNumber !== undefined) updateData.floorNumber = data.floorNumber;
+  if (data.drawingNumber !== undefined)
+    updateData.drawingNumber = data.drawingNumber;
+  if (data.drawingRevision !== undefined)
+    updateData.drawingRevision = data.drawingRevision;
+  if (data.gridLine !== undefined) updateData.gridLine = data.gridLine;
+  if (data.detailReference !== undefined)
+    updateData.detailReference = data.detailReference;
+  if (data.materialCost !== undefined)
+    updateData.materialCost = data.materialCost.toString();
+  if (data.laborCost !== undefined)
+    updateData.laborCost = data.laborCost.toString();
+  if (data.totalCost !== undefined)
+    updateData.totalCost = data.totalCost.toString();
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+
+  updateData.updatedAt = new Date();
+
+  const updatedElevation = await db
+    .update(elevations)
+    .set(updateData)
+    .where(eq(elevations.id, elevationId))
+    .returning();
+
+  return updatedElevation[0] as Elevation;
+}
+
+export async function deleteElevation(elevationId: number): Promise<void> {
+  await db.delete(elevations).where(eq(elevations.id, elevationId));
+}
+
+// ============================================================================
+// OPENING ACTIONS
+// ============================================================================
+
+export async function getOpeningsByElevationId(
+  elevationId: number
+): Promise<Opening[]> {
+  const openingsList = await db
+    .select()
+    .from(openings)
+    .where(eq(openings.elevationId, elevationId))
+    .orderBy(asc(openings.sortOrder), asc(openings.startPosition));
+
+  return openingsList as Opening[];
+}
+
+export async function createOpening(
+  data: CreateOpeningInput
+): Promise<Opening> {
+  const newOpening = await db
+    .insert(openings)
+    .values({
+      elevationId: data.elevationId,
+      name: data.name,
+      openingMark: data.openingMark,
+      startPosition: data.startPosition.toString(),
+      width: data.width.toString(),
+      height: data.height.toString(),
+      sillHeight: data.sillHeight.toString(),
+      openingType: data.openingType,
+      glazingSystem: data.glazingSystem,
+      hasTransom: data.hasTransom || false,
+      transomHeight: data.transomHeight?.toString(),
+
+      // Grid Definition fields
+      gridColumns: data.gridColumns || 1,
+      gridRows: data.gridRows || 1,
+      mullionWidth: data.mullionWidth?.toString() || "2.50",
+      spacingVertical: data.spacingVertical || "equal",
+      spacingHorizontal: data.spacingHorizontal || "equal",
+
+      // Component Names
+      componentSill: data.componentSill || "Sill",
+      componentHead: data.componentHead || "Head",
+      componentJambs: data.componentJambs || "Jamb",
+      componentVerticals: data.componentVerticals || "Vertical",
+      componentHorizontals: data.componentHorizontals || "Horizontal",
+
+      // Performance requirements
+      thermalPerformance: data.thermalPerformance,
+      windLoadRequirement: data.windLoadRequirement,
+      seismicRequirement: data.seismicRequirement,
+      acousticRequirement: data.acousticRequirement,
+
+      // Quantity and costs
+      quantity: data.quantity || 1,
+      unitMaterialCost: data.unitMaterialCost?.toString() || "0.00",
+      unitLaborCost: data.unitLaborCost?.toString() || "0.00",
+      totalMaterialCost: data.totalMaterialCost?.toString() || "0.00",
+      totalLaborCost: data.totalLaborCost?.toString() || "0.00",
+
+      // Additional fields
+      description: data.description,
+      notes: data.notes,
+      sortOrder: data.sortOrder || 0,
+    })
+    .returning();
+
+  return newOpening[0] as Opening;
+}
+
+// Update an existing opening
+export async function updateOpening(
+  data: UpdateOpeningInput
+): Promise<Opening> {
+  const updateData: any = {};
+
+  // Only include fields that are provided
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.openingMark !== undefined) updateData.openingMark = data.openingMark;
+  if (data.startPosition !== undefined)
+    updateData.startPosition = data.startPosition.toString();
+  if (data.width !== undefined) updateData.width = data.width.toString();
+  if (data.height !== undefined) updateData.height = data.height.toString();
+  if (data.sillHeight !== undefined)
+    updateData.sillHeight = data.sillHeight.toString();
+  if (data.openingType !== undefined) updateData.openingType = data.openingType;
+  if (data.glazingSystem !== undefined)
+    updateData.glazingSystem = data.glazingSystem;
+  if (data.hasTransom !== undefined) updateData.hasTransom = data.hasTransom;
+  if (data.transomHeight !== undefined)
+    updateData.transomHeight = data.transomHeight?.toString();
+
+  // Grid Definition fields
+  if (data.gridColumns !== undefined) updateData.gridColumns = data.gridColumns;
+  if (data.gridRows !== undefined) updateData.gridRows = data.gridRows;
+  if (data.mullionWidth !== undefined)
+    updateData.mullionWidth = data.mullionWidth.toString();
+  if (data.spacingVertical !== undefined)
+    updateData.spacingVertical = data.spacingVertical;
+  if (data.spacingHorizontal !== undefined)
+    updateData.spacingHorizontal = data.spacingHorizontal;
+
+  // Component Names
+  if (data.componentSill !== undefined)
+    updateData.componentSill = data.componentSill;
+  if (data.componentHead !== undefined)
+    updateData.componentHead = data.componentHead;
+  if (data.componentJambs !== undefined)
+    updateData.componentJambs = data.componentJambs;
+  if (data.componentVerticals !== undefined)
+    updateData.componentVerticals = data.componentVerticals;
+  if (data.componentHorizontals !== undefined)
+    updateData.componentHorizontals = data.componentHorizontals;
+
+  // Performance requirements
+  if (data.thermalPerformance !== undefined)
+    updateData.thermalPerformance = data.thermalPerformance;
+  if (data.windLoadRequirement !== undefined)
+    updateData.windLoadRequirement = data.windLoadRequirement;
+  if (data.seismicRequirement !== undefined)
+    updateData.seismicRequirement = data.seismicRequirement;
+  if (data.acousticRequirement !== undefined)
+    updateData.acousticRequirement = data.acousticRequirement;
+
+  // Quantity and costs
+  if (data.quantity !== undefined) updateData.quantity = data.quantity;
+  if (data.unitMaterialCost !== undefined)
+    updateData.unitMaterialCost = data.unitMaterialCost.toString();
+  if (data.unitLaborCost !== undefined)
+    updateData.unitLaborCost = data.unitLaborCost.toString();
+  if (data.totalMaterialCost !== undefined)
+    updateData.totalMaterialCost = data.totalMaterialCost.toString();
+  if (data.totalLaborCost !== undefined)
+    updateData.totalLaborCost = data.totalLaborCost.toString();
+
+  // Additional fields
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+
+  // Always update the updatedAt timestamp
+  updateData.updatedAt = new Date();
+
+  const updatedOpening = await db
+    .update(openings)
+    .set(updateData)
+    .where(eq(openings.id, data.id))
+    .returning();
+
+  return updatedOpening[0] as Opening;
+}
+
+// Get opening by ID with enhanced details
+export async function getOpeningById(
+  id: number
+): Promise<OpeningWithDetails | null> {
+  const opening = await db
+    .select()
+    .from(openings)
+    .where(eq(openings.id, id))
+    .limit(1);
+
+  if (!opening.length) {
+    return null;
+  }
+
+  return enhanceOpeningWithDetails(opening[0] as Opening);
+}
+
+// Get all openings for an elevation
+export async function getOpeningsByElevation(
+  elevationId: number
+): Promise<OpeningWithDetails[]> {
+  const openingList = await db
+    .select()
+    .from(openings)
+    .where(eq(openings.elevationId, elevationId))
+    .orderBy(desc(openings.sortOrder), desc(openings.createdAt));
+
+  return openingList.map((opening) =>
+    enhanceOpeningWithDetails(opening as Opening)
+  );
+}
+
+// Delete an opening
+export async function deleteOpening(id: number): Promise<boolean> {
+  try {
+    await db.delete(openings).where(eq(openings.id, id));
+    return true;
+  } catch (error) {
+    console.error("Error deleting opening:", error);
+    return false;
+  }
+}
+
+// Duplicate an opening
+export async function duplicateOpening(
+  id: number,
+  namePrefix?: string
+): Promise<Opening> {
+  const originalOpening = await getOpeningById(id);
+
+  if (!originalOpening) {
+    throw new Error("Opening not found");
+  }
+
+  // Create a copy with a new name
+  const duplicateData: CreateOpeningInput = {
+    elevationId: originalOpening.elevationId,
+    name: namePrefix
+      ? `${namePrefix} ${originalOpening.name}`
+      : `Copy of ${originalOpening.name}`,
+    openingMark: originalOpening.openingMark
+      ? `${originalOpening.openingMark} (Copy)`
+      : undefined,
+    startPosition: originalOpening.startPosition,
+    width: originalOpening.width,
+    height: originalOpening.height,
+    sillHeight: originalOpening.sillHeight,
+    openingType: originalOpening.openingType,
+    glazingSystem: originalOpening.glazingSystem || "standard",
+    hasTransom: originalOpening.hasTransom,
+    transomHeight: originalOpening.transomHeight
+      ? originalOpening.transomHeight.toString()
+      : undefined,
+
+    // Grid Definition
+    gridColumns: originalOpening.gridColumns,
+    gridRows: originalOpening.gridRows,
+    mullionWidth: originalOpening.mullionWidth,
+    spacingVertical: originalOpening.spacingVertical as "equal" | "custom",
+    spacingHorizontal: originalOpening.spacingHorizontal as "equal" | "custom",
+
+    // Component Names
+    componentSill: originalOpening.componentSill,
+    componentHead: originalOpening.componentHead,
+    componentJambs: originalOpening.componentJambs,
+    componentVerticals: originalOpening.componentVerticals,
+    componentHorizontals: originalOpening.componentHorizontals,
+
+    // Performance requirements
+    thermalPerformance: originalOpening.thermalPerformance || undefined,
+    windLoadRequirement: originalOpening.windLoadRequirement || undefined,
+    seismicRequirement: originalOpening.seismicRequirement || undefined,
+    acousticRequirement: originalOpening.acousticRequirement || undefined,
+
+    // Quantity and costs
+    quantity: originalOpening.quantity,
+    unitMaterialCost: originalOpening.unitMaterialCost,
+    unitLaborCost: originalOpening.unitLaborCost,
+    totalMaterialCost: originalOpening.totalMaterialCost,
+    totalLaborCost: originalOpening.totalLaborCost,
+
+    // Additional fields
+    description: originalOpening.description || undefined,
+    notes: originalOpening.notes || undefined,
+    sortOrder: originalOpening.sortOrder,
+  };
+
+  return createOpening(duplicateData);
+}
+
+// Helper function to enhance opening with computed details
+function enhanceOpeningWithDetails(opening: Opening): OpeningWithDetails {
+  const width = parseFloat(opening.width) || 0;
+  const height = parseFloat(opening.height) || 0;
+
+  return {
+    ...opening,
+    // Computed fields for convenience
+    area: width * height,
+    glassPanelCount: opening.gridColumns * opening.gridRows,
+    verticalMullionCount: Math.max(0, opening.gridColumns - 1),
+    horizontalMullionCount: Math.max(0, opening.gridRows - 1),
+    perimeter: 2 * (width + height),
+    // Related entities - initialize as empty arrays
+    // These would be populated by separate queries if needed
+    mullions: [],
+    glassPanels: [],
+    doors: [],
+  } as OpeningWithDetails;
+}
+
+// Bulk operations
+export async function bulkUpdateOpenings(
+  updates: Array<{ id: number; data: Partial<UpdateOpeningInput> }>
+): Promise<Opening[]> {
+  const results: Opening[] = [];
+
+  for (const update of updates) {
+    const result = await updateOpening({ id: update.id, ...update.data });
+    results.push(result);
+  }
+
+  return results;
+}
+
+// Get opening statistics for an elevation
+export async function getOpeningStats(elevationId: number) {
+  const openingList = await getOpeningsByElevation(elevationId);
+
+  const stats = {
+    totalOpenings: openingList.length,
+    totalArea: openingList.reduce(
+      (sum, opening) => sum + (opening.area || 0),
+      0
+    ),
+    totalGlassPanels: openingList.reduce(
+      (sum, opening) => sum + (opening.glassPanelCount || 0),
+      0
+    ),
+    totalMaterialCost: openingList.reduce(
+      (sum, opening) => sum + parseFloat(opening.totalMaterialCost || "0"),
+      0
+    ),
+    totalLaborCost: openingList.reduce(
+      (sum, opening) => sum + parseFloat(opening.totalLaborCost || "0"),
+      0
+    ),
+    openingTypes: openingList.reduce((acc, opening) => {
+      acc[opening.openingType] = (acc[opening.openingType] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+  };
+
+  return {
+    ...stats,
+    totalCost: stats.totalMaterialCost + stats.totalLaborCost,
+  };
+}
+
+// ============================================================================
+// MULLION ACTIONS
+// ============================================================================
+
+export async function getMullionsByOpeningId(
+  openingId: number
+): Promise<Mullion[]> {
+  const mullionsList = await db
+    .select()
+    .from(mullions)
+    .where(eq(mullions.openingId, openingId))
+    .orderBy(asc(mullions.type), asc(mullions.position));
+
+  return mullionsList as Mullion[];
+}
+
+export async function createMullion(
+  data: CreateMullionInput
+): Promise<Mullion> {
+  const newMullion = await db
+    .insert(mullions)
+    .values({
+      openingId: data.openingId,
+      type: data.type,
+      position: data.position.toString(),
+      mullionType: data.mullionType,
+      depth: data.depth?.toString() || "2.00",
+      notes: data.notes,
+    })
+    .returning();
+
+  return newMullion[0] as Mullion;
+}
+
+export async function deleteMullion(mullionId: number): Promise<void> {
+  await db.delete(mullions).where(eq(mullions.id, mullionId));
+}
+
+// ============================================================================
+// GLASS PANEL ACTIONS
+// ============================================================================
+
+export async function getGlassPanelsByOpeningId(
+  openingId: number
+): Promise<GlassPanel[]> {
+  const panelsList = await db
+    .select()
+    .from(glassPanels)
+    .where(eq(glassPanels.openingId, openingId))
+    .orderBy(asc(glassPanels.panelNumber));
+
+  return panelsList as GlassPanel[];
+}
+
+export async function generateGlassPanels(
+  openingId: number
+): Promise<GlassPanel[]> {
+  // This function calculates glass panels based on opening dimensions and mullions
+  const opening = await getOpeningById(openingId);
+  if (!opening) throw new Error("Opening not found");
+
+  const mullionsList = await getMullionsByOpeningId(openingId);
+
+  // Clear existing panels
+  await db.delete(glassPanels).where(eq(glassPanels.openingId, openingId));
+
+  // Calculate panels based on mullion positions
+  const verticalMullions = mullionsList
+    .filter((m) => m.type === "vertical")
+    .sort((a, b) => parseFloat(a.position) - parseFloat(b.position));
+  const horizontalMullions = mullionsList
+    .filter((m) => m.type === "horizontal")
+    .sort((a, b) => parseFloat(a.position) - parseFloat(b.position));
+
+  // Create grid of panels
+  const xPositions = [
+    0,
+    ...verticalMullions.map((m) => parseFloat(m.position)),
+    parseFloat(opening.width),
+  ];
+  const yPositions = [
+    0,
+    ...horizontalMullions.map((m) => parseFloat(m.position)),
+    parseFloat(opening.height),
+  ];
+
+  const panels: GlassPanel[] = [];
+  let panelNumber = 1;
+
+  for (let i = 0; i < xPositions.length - 1; i++) {
+    for (let j = 0; j < yPositions.length - 1; j++) {
+      const x = xPositions[i];
+      const y = yPositions[j];
+      const width = xPositions[i + 1] - x;
+      const height = yPositions[j + 1] - y;
+      const area = width * height;
+
+      // Check if this panel is in the transom area
+      const isTransom =
+        opening.hasTransom &&
+        opening.transomHeight &&
+        y >= parseFloat(opening.height) - parseFloat(opening.transomHeight);
+
+      const panel = await db
+        .insert(glassPanels)
+        .values({
+          openingId: openingId,
+          panelNumber: panelNumber,
+          x: x.toString(),
+          y: y.toString(),
+          width: width.toString(),
+          height: height.toString(),
+          area: area.toString(),
+          isTransom: isTransom || false,
+          isOperable: false, // Default to fixed
+        })
+        .returning();
+
+      panels.push(panel[0] as GlassPanel);
+      panelNumber++;
+    }
+  }
+
+  return panels;
+}
+
+// ============================================================================
+// DOOR ACTIONS
+// ============================================================================
+
+export async function getDoorsByOpeningId(openingId: number): Promise<Door[]> {
+  const doorsList = await db
+    .select()
+    .from(doors)
+    .where(eq(doors.openingId, openingId))
+    .orderBy(asc(doors.position));
+
+  return doorsList as Door[];
+}
+
+export async function createDoor(data: CreateDoorInput): Promise<Door> {
+  const newDoor = await db
+    .insert(doors)
+    .values({
+      openingId: data.openingId,
+      name: data.name,
+      doorMark: data.doorMark,
+      position: data.position.toString(),
+      width: data.width.toString(),
+      height: data.height.toString(),
+      doorType: data.doorType,
+      handingType: data.handingType,
+      hasVision: data.hasVision ?? true,
+      doorMaterial: data.doorMaterial,
+      lockType: data.lockType,
+      closerType: data.closerType,
+      hasAutomaticOperator: data.hasAutomaticOperator ?? false,
+      notes: data.notes,
+    })
+    .returning();
+
+  return newDoor[0] as Door;
+}
+
+export async function deleteDoor(doorId: number): Promise<void> {
+  await db.delete(doors).where(eq(doors.id, doorId));
+}
+
+// ============================================================================
+// SPECIAL CONDITION ACTIONS
+// ============================================================================
+
+export async function getSpecialConditionsByElevationId(
+  elevationId: number
+): Promise<SpecialCondition[]> {
+  const conditionsList = await db
+    .select()
+    .from(specialConditions)
+    .where(eq(specialConditions.elevationId, elevationId))
+    .orderBy(asc(specialConditions.position));
+
+  return conditionsList as SpecialCondition[];
+}
+
+export async function createSpecialCondition(
+  data: CreateSpecialConditionInput
+): Promise<SpecialCondition> {
+  const newCondition = await db
+    .insert(specialConditions)
+    .values({
+      elevationId: data.elevationId,
+      conditionType: data.conditionType,
+      position: data.position.toString(),
+      width: data.width?.toString(),
+      height: data.height?.toString(),
+      angle: data.angle?.toString(),
+      description: data.description,
+      notes: data.notes,
+    })
+    .returning();
+
+  return newCondition[0] as SpecialCondition;
+}
+
+export async function deleteSpecialCondition(
+  conditionId: number
+): Promise<void> {
+  await db
+    .delete(specialConditions)
+    .where(eq(specialConditions.id, conditionId));
+}
+
+// ============================================================================
+// CALCULATION ACTIONS
+// ============================================================================
+
+export async function calculateBidSummary(bidId: number): Promise<BidSummary> {
+  const bidData = await getBidWithElevations(bidId);
+  if (!bidData) throw new Error("Bid not found");
+
+  let totalGlassArea = 0;
+  let totalFrameLinearFeet = 0;
+  let doorCount = 0;
+  let mullionCount = 0;
+  let panelCount = 0;
+  let totalMaterialCost = 0;
+  let totalLaborCost = 0;
+
+  for (const elevation of bidData.elevations) {
+    for (const opening of elevation.openings) {
+      // Calculate glass area
+      for (const panel of opening.glassPanels) {
+        totalGlassArea += parseFloat(panel.area);
+        panelCount++;
+      }
+
+      // Calculate frame linear feet (perimeter of opening + mullions)
+      const perimeterFeet =
+        (parseFloat(opening.width) + parseFloat(opening.height)) * 2;
+      totalFrameLinearFeet += perimeterFeet;
+
+      // Add mullion lengths
+      for (const mullion of opening.mullions) {
+        if (mullion.type === "vertical") {
+          totalFrameLinearFeet += parseFloat(opening.height);
+        } else {
+          totalFrameLinearFeet += parseFloat(opening.width);
+        }
+        mullionCount++;
+      }
+
+      doorCount += opening.doors.length;
+      totalMaterialCost += parseFloat(opening.totalMaterialCost);
+      totalLaborCost += parseFloat(opening.totalLaborCost);
+    }
+  }
+
+  return {
+    totalGlassArea: Math.round(totalGlassArea * 100) / 100,
+    totalFrameLinearFeet: Math.round(totalFrameLinearFeet * 100) / 100,
+    elevationCount: bidData.elevations.length,
+    openingCount: bidData.elevations.reduce(
+      (total, elev) => total + elev.openings.length,
+      0
+    ),
+    doorCount,
+    mullionCount,
+    panelCount,
+    totalMaterialCost: Math.round(totalMaterialCost * 100) / 100,
+    totalLaborCost: Math.round(totalLaborCost * 100) / 100,
+    totalCost: Math.round((totalMaterialCost + totalLaborCost) * 100) / 100,
+  };
+}
+
+export async function calculateElevationSummary(
+  elevationId: number
+): Promise<ElevationSummary> {
+  const elevationData = await getElevationWithOpenings(elevationId);
+  if (!elevationData) throw new Error("Elevation not found");
+
+  let totalGlassArea = 0;
+  let totalFrameLinearFeet = 0;
+  let doorCount = 0;
+  let mullionCount = 0;
+  let panelCount = 0;
+  let materialCost = 0;
+  let laborCost = 0;
+
+  for (const opening of elevationData.openings) {
+    // Calculate glass area
+    for (const panel of opening.glassPanels) {
+      totalGlassArea += parseFloat(panel.area);
+      panelCount++;
+    }
+
+    // Calculate frame linear feet (perimeter of opening + mullions)
+    const perimeterFeet =
+      (parseFloat(opening.width) + parseFloat(opening.height)) * 2;
+    totalFrameLinearFeet += perimeterFeet;
+
+    // Add mullion lengths
+    for (const mullion of opening.mullions) {
+      if (mullion.type === "vertical") {
+        totalFrameLinearFeet += parseFloat(opening.height);
+      } else {
+        totalFrameLinearFeet += parseFloat(opening.width);
+      }
+      mullionCount++;
+    }
+
+    doorCount += opening.doors.length;
+    materialCost += parseFloat(opening.totalMaterialCost);
+    laborCost += parseFloat(opening.totalLaborCost);
+  }
+
+  return {
+    totalGlassArea: Math.round(totalGlassArea * 100) / 100,
+    totalFrameLinearFeet: Math.round(totalFrameLinearFeet * 100) / 100,
+    openingCount: elevationData.openings.length,
+    doorCount,
+    mullionCount,
+    panelCount,
+    materialCost: Math.round(materialCost * 100) / 100,
+    laborCost: Math.round(laborCost * 100) / 100,
+    totalCost: Math.round((materialCost + laborCost) * 100) / 100,
+  };
+}
+
+// Grid Mullion Operations
+export async function createGridMullion(
+  data: CreateGridMullionInput
+): Promise<GridMullion> {
+  const newMullion = await db
+    .insert(gridMullions)
+    .values({
+      openingId: data.openingId,
+      gridType: data.gridType,
+      gridColumn: data.gridColumn,
+      gridRow: data.gridRow,
+      gridSegment: data.gridSegment, // NEW
+      length: data.length.toString(),
+      componentName: data.componentName,
+      defaultPosition: data.defaultPosition?.toString(),
+      customPosition: data.customPosition?.toString(), // Convert to string
+      startX: data.startX?.toString() || null, // NEW
+      endX: data.endX?.toString() || null, // NEW
+      isActive: data.isActive ?? true,
+      notes: data.notes,
+    })
+    .returning();
+
+  return newMullion[0] as GridMullion;
+}
+
+export async function updateGridMullion(
+  data: UpdateGridMullionInput
+): Promise<GridMullion> {
+  const updateData: any = {};
+
+  if (data.gridType !== undefined) updateData.gridType = data.gridType;
+  if (data.gridColumn !== undefined) updateData.gridColumn = data.gridColumn;
+  if (data.gridRow !== undefined) updateData.gridRow = data.gridRow;
+  if (data.gridSegment !== undefined) updateData.gridSegment = data.gridSegment; // NEW
+  if (data.length !== undefined) updateData.length = data.length.toString();
+  if (data.componentName !== undefined)
+    updateData.componentName = data.componentName;
+  if (data.defaultPosition !== undefined)
+    updateData.defaultPosition = data.defaultPosition.toString();
+  if (data.customPosition !== undefined)
+    updateData.customPosition = data.customPosition?.toString(); // Handle null values
+  if (data.startX !== undefined) updateData.startX = data.startX?.toString(); // NEW - handle null values
+  if (data.endX !== undefined) updateData.endX = data.endX?.toString(); // NEW - handle null values
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+
+  updateData.updatedAt = new Date();
+
+  const updatedMullion = await db
+    .update(gridMullions)
+    .set(updateData)
+    .where(eq(gridMullions.id, data.id))
+    .returning();
+
+  return updatedMullion[0] as GridMullion;
+}
+
+export async function getGridMullionsByOpening(
+  openingId: number
+): Promise<GridMullion[]> {
+  const mullions = await db
+    .select()
+    .from(gridMullions)
+    .where(eq(gridMullions.openingId, openingId));
+
+  return mullions as GridMullion[];
+}
+
+export async function deleteGridMullion(id: number): Promise<boolean> {
+  try {
+    await db.delete(gridMullions).where(eq(gridMullions.id, id));
+    return true;
+  } catch (error) {
+    console.error("Error deleting grid mullion:", error);
+    return false;
+  }
+}
+
+// Grid Glass Panel Operations
+export async function createGridGlassPanel(
+  data: CreateGridGlassPanelInput
+): Promise<GridGlassPanel> {
+  const area = (
+    parseFloat(data.width.toString()) * parseFloat(data.height.toString())
+  ).toString();
+  const unitCost = parseFloat(data.unitCost?.toString() || "0");
+  const totalCost = (parseFloat(area) * unitCost).toString();
+
+  const newPanel = await db
+    .insert(gridGlassPanels)
+    .values({
+      openingId: data.openingId,
+      gridColumn: data.gridColumn,
+      gridRow: data.gridRow,
+      x: data.x.toString(),
+      y: data.y.toString(),
+      width: data.width.toString(),
+      height: data.height.toString(),
+      isTransom: data.isTransom ?? false,
+      glassType: data.glassType || "Standard",
+      isActive: data.isActive ?? true,
+      area,
+      unitCost: data.unitCost?.toString() || "0.00",
+      totalCost,
+      notes: data.notes,
+    })
+    .returning();
+
+  return newPanel[0] as GridGlassPanel;
+}
+
+export async function getGridGlassPanelsByOpening(
+  openingId: number
+): Promise<GridGlassPanel[]> {
+  const panels = await db
+    .select()
+    .from(gridGlassPanels)
+    .where(eq(gridGlassPanels.openingId, openingId));
+
+  return panels as GridGlassPanel[];
+}
+
+// Grid Configuration Operations
+export async function createGridConfiguration(
+  data: CreateGridConfigurationInput
+): Promise<GridConfiguration> {
+  const newConfig = await db
+    .insert(gridConfigurations)
+    .values({
+      openingId: data.openingId,
+      name: data.name,
+      description: data.description,
+      isActive: data.isActive ?? false,
+      columns: data.columns,
+      rows: data.rows,
+      mullionWidth: data.mullionWidth.toString(),
+      createdBy: data.createdBy,
+    })
+    .returning();
+
+  return newConfig[0] as GridConfiguration;
+}
+
+// Bulk create grid mullions (this is what generateGridForOpening needs)
+export async function createGridMullions(
+  mullions: CreateGridMullionInput[]
+): Promise<GridMullion[]> {
+  if (mullions.length === 0) return [];
+
+  const newMullions = await db
+    .insert(gridMullions)
+    .values(
+      mullions.map((data) => ({
+        openingId: data.openingId,
+        gridType: data.gridType,
+        gridColumn: data.gridColumn,
+        gridRow: data.gridRow,
+        gridSegment: data.gridSegment, // NEW
+        length: data.length.toString(),
+        componentName: data.componentName,
+        defaultPosition: data.defaultPosition?.toString() || "0",
+        customPosition: data.customPosition?.toString() || null,
+        startX: data.startX?.toString() || null, // NEW
+        endX: data.endX?.toString() || null, // NEW
+        isActive: data.isActive ?? true,
+        notes: data.notes || null,
+      }))
+    )
+    .returning();
+
+  return newMullions as GridMullion[];
+}
+
+// Bulk create grid glass panels
+export async function createGridGlassPanels(
+  panels: CreateGridGlassPanelInput[]
+): Promise<GridGlassPanel[]> {
+  if (panels.length === 0) return [];
+
+  const newPanels = await db
+    .insert(gridGlassPanels)
+    .values(
+      panels.map((data) => {
+        const area = (
+          parseFloat(data.width.toString()) * parseFloat(data.height.toString())
+        ).toString();
+        const unitCost = parseFloat(data.unitCost?.toString() || "0");
+        const totalCost = (parseFloat(area) * unitCost).toString();
+
+        return {
+          openingId: data.openingId,
+          gridColumn: data.gridColumn,
+          gridRow: data.gridRow,
+          x: data.x.toString(),
+          y: data.y.toString(),
+          width: data.width.toString(),
+          height: data.height.toString(),
+          isTransom: data.isTransom ?? false,
+          glassType: data.glassType || "Standard",
+          isActive: data.isActive ?? true,
+          area,
+          unitCost: data.unitCost?.toString() || "0.00",
+          totalCost,
+          notes: data.notes || null,
+        };
+      })
+    )
+    .returning();
+
+  return newPanels as GridGlassPanel[];
+}
+
+// Also update your generateGridForOpening function to use the bulk functions
+export async function generateGridForOpening(openingId: number): Promise<{
+  mullions: GridMullion[];
+  glassPanels: GridGlassPanel[];
+}> {
+  // Get opening details
+  const opening = await getOpeningById(openingId);
+  if (!opening) {
+    throw new Error("Opening not found");
+  }
+
+  // Clear existing grid elements
+  await db.delete(gridMullions).where(eq(gridMullions.openingId, openingId));
+  await db
+    .delete(gridGlassPanels)
+    .where(eq(gridGlassPanels.openingId, openingId));
+
+  // Calculate grid dimensions
+  const dimensions: GridDimensions = {
+    openingWidth: parseFloat(opening.width),
+    openingHeight: parseFloat(opening.height),
+    columns: opening.gridColumns,
+    rows: opening.gridRows,
+    mullionWidth: parseFloat(opening.mullionWidth),
+    hasTransom: opening.hasTransom,
+    transomHeight: opening.transomHeight
+      ? parseFloat(opening.transomHeight)
+      : undefined,
+  };
+
+  // Validate dimensions
+  const errors = GridCalculator.validateGridDimensions(dimensions);
+  if (errors.length > 0) {
+    throw new Error(`Grid validation failed: ${errors.join(", ")}`);
+  }
+
+  // Calculate grid layout
+  const calculatedGrid = GridCalculator.calculateGrid(dimensions);
+
+  // Component names from opening
+  const componentNames = {
+    sill: opening.componentSill || "Sill",
+    head: opening.componentHead || "Head",
+    jambs: opening.componentJambs || "Jamb",
+    verticals: opening.componentVerticals || "Vertical",
+    horizontals: opening.componentHorizontals || "Horizontal",
+  };
+
+  // Create mullion inputs with the new segmentation data
+  const mullionInputs = GridCalculator.gridToMullionInputs(
+    openingId,
+    calculatedGrid,
+    componentNames
+  );
+
+  // Create glass panel inputs
+  const panelInputs = GridCalculator.gridToGlassPanelInputs(
+    openingId,
+    calculatedGrid
+  );
+
+  // Use bulk create functions
+  const mullions = await createGridMullions(mullionInputs);
+  const glassPanels = await createGridGlassPanels(panelInputs);
+
+  return { mullions, glassPanels };
+}
+
+// Get opening with complete grid data
+export async function getOpeningWithGrid(
+  openingId: number
+): Promise<OpeningWithGrid | null> {
+  const opening = await getOpeningById(openingId);
+  if (!opening) {
+    return null;
+  }
+
+  const [mullions, glassPanels, configurations] = await Promise.all([
+    getGridMullionsByOpening(openingId),
+    getGridGlassPanelsByOpening(openingId),
+    getGridConfigurationsByOpening(openingId),
+  ]);
+
+  const activeConfiguration = configurations.find((c) => c.isActive) || null;
+
+  return {
+    ...opening,
+    gridMullions: mullions,
+    gridGlassPanels: glassPanels,
+    gridConfigurations: configurations,
+    activeConfiguration,
+  } as OpeningWithGrid;
+}
+
+export async function getGridConfigurationsByOpening(
+  openingId: number
+): Promise<GridConfiguration[]> {
+  const configs = await db
+    .select()
+    .from(gridConfigurations)
+    .where(eq(gridConfigurations.openingId, openingId));
+
+  return configs as GridConfiguration[];
+}
+
+// Toggle mullion active state
+export async function toggleGridMullion(
+  mullionId: number,
+  isActive: boolean
+): Promise<GridMullion> {
+  const updatedMullion = await db
+    .update(gridMullions)
+    .set({
+      isActive,
+      updatedAt: new Date(),
+    })
+    .where(eq(gridMullions.id, mullionId))
+    .returning();
+
+  return updatedMullion[0] as GridMullion;
+}
+
+// Move mullion to new position
+export async function moveGridMullion(
+  mullionId: number,
+  newPosition: number
+): Promise<GridMullion> {
+  const updatedMullion = await db
+    .update(gridMullions)
+    .set({
+      customPosition: newPosition.toString(), // Convert to string
+      updatedAt: new Date(),
+    })
+    .where(eq(gridMullions.id, mullionId))
+    .returning();
+
+  return updatedMullion[0] as GridMullion;
+}
+
+// Bulk update mullions
+export async function bulkUpdateGridMullions(
+  updates: Array<{ id: number; data: Partial<UpdateGridMullionInput> }>
+): Promise<GridMullion[]> {
+  const results: GridMullion[] = [];
+
+  for (const update of updates) {
+    const result = await updateGridMullion({ id: update.id, ...update.data });
+    results.push(result);
+  }
+
+  return results;
+}
+
+// Update grid configuration and regenerate
+export async function updateGridAndRegenerate(
+  openingId: number,
+  newGridParams: {
+    columns: number;
+    rows: number;
+    mullionWidth: number;
+  }
+): Promise<{
+  opening: Opening;
+  mullions: GridMullion[];
+  glassPanels: GridGlassPanel[];
+}> {
+  // Update the opening with new grid parameters
+  const updatedOpening = await updateOpening({
+    id: openingId,
+    gridColumns: newGridParams.columns,
+    gridRows: newGridParams.rows,
+    mullionWidth: newGridParams.mullionWidth.toString(),
+  });
+
+  // Regenerate the grid
+  const { mullions, glassPanels } = await generateGridForOpening(openingId);
+
+  return {
+    opening: updatedOpening,
+    mullions,
+    glassPanels,
+  };
+}
+
+// Save current grid as a configuration
+export async function saveGridConfiguration(
+  openingId: number,
+  name: string,
+  description?: string,
+  createdBy?: string
+): Promise<GridConfiguration> {
+  const opening = await getOpeningById(openingId);
+  if (!opening) {
+    throw new Error("Opening not found");
+  }
+
+  const mullions = await getGridMullionsByOpening(openingId);
+  const glassPanels = await getGridGlassPanelsByOpening(openingId);
+
+  const totalMullionLength =
+    GridCalculator.calculateTotalMullionLength(mullions);
+  const totalGlassArea = GridCalculator.calculateTotalGlassArea(glassPanels);
+
+  const newConfig = await db
+    .insert(gridConfigurations)
+    .values({
+      openingId,
+      name,
+      description,
+      isActive: false,
+      columns: opening.gridColumns,
+      rows: opening.gridRows,
+      mullionWidth: opening.mullionWidth,
+      totalMullionLength: totalMullionLength.toString(),
+      totalGlassArea: totalGlassArea.toString(),
+      estimatedCost: "0.00", // You can calculate this based on your pricing logic
+      createdBy,
+    })
+    .returning();
+
+  return newConfig[0] as GridConfiguration;
+}
+
+// Load a grid configuration
+export async function loadGridConfiguration(configurationId: number): Promise<{
+  opening: Opening;
+  mullions: GridMullion[];
+  glassPanels: GridGlassPanel[];
+}> {
+  const config = await db
+    .select()
+    .from(gridConfigurations)
+    .where(eq(gridConfigurations.id, configurationId))
+    .limit(1);
+
+  if (!config.length) {
+    throw new Error("Configuration not found");
+  }
+
+  const configuration = config[0] as GridConfiguration;
+
+  // Update opening to match configuration
+  const updatedOpening = await updateOpening({
+    id: configuration.openingId,
+    gridColumns: configuration.columns,
+    gridRows: configuration.rows,
+    mullionWidth: configuration.mullionWidth,
+  });
+
+  // Set this configuration as active
+  await db
+    .update(gridConfigurations)
+    .set({ isActive: false })
+    .where(eq(gridConfigurations.openingId, configuration.openingId));
+
+  await db
+    .update(gridConfigurations)
+    .set({ isActive: true })
+    .where(eq(gridConfigurations.id, configurationId));
+
+  // Regenerate grid based on configuration
+  const { mullions, glassPanels } = await generateGridForOpening(
+    configuration.openingId
+  );
+
+  return {
+    opening: updatedOpening,
+    mullions,
+    glassPanels,
+  };
+}
+
+// Get grid statistics for an opening
+export async function getGridStatistics(openingId: number) {
+  const [mullions, glassPanels] = await Promise.all([
+    getGridMullionsByOpening(openingId),
+    getGridGlassPanelsByOpening(openingId),
+  ]);
+
+  const stats = GridCalculator.getGridStats(mullions, glassPanels);
+
+  const estimatedMullionCost = stats.totalMullionLength * 50; // Example: $50 per linear foot
+  const estimatedGlassCost = stats.totalGlassArea * 25; // Example: $25 per square foot
+  const totalEstimatedCost = estimatedMullionCost + estimatedGlassCost;
+
+  return {
+    ...stats,
+    estimatedMullionCost,
+    estimatedGlassCost,
+    totalEstimatedCost,
+  };
+}
+
+// Delete all grid elements for an opening
+export async function clearGrid(openingId: number): Promise<boolean> {
+  try {
+    await Promise.all([
+      db.delete(gridMullions).where(eq(gridMullions.openingId, openingId)),
+      db
+        .delete(gridGlassPanels)
+        .where(eq(gridGlassPanels.openingId, openingId)),
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Error clearing grid:", error);
+    return false;
+  }
+}
+
+// Validate and fix grid consistency
+export async function validateGridConsistency(openingId: number): Promise<{
+  isValid: boolean;
+  issues: string[];
+  autoFixed?: boolean;
+}> {
+  const opening = await getOpeningById(openingId);
+  if (!opening) {
+    return { isValid: false, issues: ["Opening not found"] };
+  }
+
+  const [mullions, glassPanels] = await Promise.all([
+    getGridMullionsByOpening(openingId),
+    getGridGlassPanelsByOpening(openingId),
+  ]);
+
+  const issues: string[] = [];
+
+  // Check if we have the expected number of elements
+  const expectedVerticalMullions = opening.gridColumns - 1;
+  const expectedHorizontalMullions =
+    opening.gridRows - 1 + (opening.hasTransom ? 1 : 0);
+  const expectedGlassPanels =
+    opening.gridColumns * opening.gridRows +
+    (opening.hasTransom ? opening.gridColumns : 0);
+
+  const actualVerticalMullions = mullions.filter(
+    (m) => m.gridType === "vertical"
+  ).length;
+  const actualHorizontalMullions = mullions.filter(
+    (m) => m.gridType === "horizontal"
+  ).length;
+  const actualGlassPanels = glassPanels.length;
+
+  if (actualVerticalMullions !== expectedVerticalMullions) {
+    issues.push(
+      `Expected ${expectedVerticalMullions} vertical mullions, found ${actualVerticalMullions}`
+    );
+  }
+
+  if (actualHorizontalMullions !== expectedHorizontalMullions) {
+    issues.push(
+      `Expected ${expectedHorizontalMullions} horizontal mullions, found ${actualHorizontalMullions}`
+    );
+  }
+
+  if (actualGlassPanels !== expectedGlassPanels) {
+    issues.push(
+      `Expected ${expectedGlassPanels} glass panels, found ${actualGlassPanels}`
+    );
+  }
+
+  // Check for overlapping glass panels
+  const activePanels = glassPanels.filter((p) => p.isActive);
+  for (let i = 0; i < activePanels.length; i++) {
+    for (let j = i + 1; j < activePanels.length; j++) {
+      const panel1 = activePanels[i];
+      const panel2 = activePanels[j];
+
+      if (
+        panel1.gridColumn === panel2.gridColumn &&
+        panel1.gridRow === panel2.gridRow
+      ) {
+        issues.push(
+          `Overlapping panels at grid position ${panel1.gridColumn},${panel1.gridRow}`
+        );
+      }
+    }
+  }
+
+  return {
+    isValid: issues.length === 0,
+    issues,
+  };
 }
