@@ -58,31 +58,10 @@ export default function EngineeringSchedulePage() {
   );
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [holidaysLoading, setHolidaysLoading] = useState(true);
   const [printType, setPrintType] = useState<
     "full" | "engineers-only" | "projects-only"
   >("full");
   const [holidays, setHolidays] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchHolidays = async () => {
-      try {
-        const response = await fetch("/api/holidays/office");
-        const result = await response.json();
-        if (response.ok) {
-          setHolidays(result.holidays);
-        } else {
-          setHolidays([]);
-        }
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-        setHolidays([]);
-      } finally {
-        setHolidaysLoading(false); // ADD THIS LINE
-      }
-    };
-    fetchHolidays();
-  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -542,7 +521,7 @@ export default function EngineeringSchedulePage() {
 
   console.log("Tasks being sent to Gantt Chart:", ganttTasks.length);
 
-  if (isLoading || holidaysLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading schedule...</div>
