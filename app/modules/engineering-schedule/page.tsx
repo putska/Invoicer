@@ -67,23 +67,20 @@ export default function EngineeringSchedulePage() {
   useEffect(() => {
     const fetchHolidays = async () => {
       try {
-        // For engineering schedules, use office holidays
         const response = await fetch("/api/holidays/office");
         const result = await response.json();
-
         if (response.ok) {
           setHolidays(result.holidays);
         } else {
-          console.error("Failed to fetch holidays:", result.message);
-          // Fallback to empty array or handle error
           setHolidays([]);
         }
       } catch (error) {
         console.error("Error fetching holidays:", error);
         setHolidays([]);
+      } finally {
+        setHolidaysLoading(false); // ADD THIS LINE
       }
     };
-
     fetchHolidays();
   }, []);
 
