@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   try {
     // Get raw request body
     const rawBody = await request.text();
-
+    console.log("Raw body received:", rawBody);
     // 2. Check if it's a Mailgun request (look for Mailgun-specific parameters)
     if (request.headers.get("X-Mailgun-Signature")) {
       console.log("Mailgun request detected");
