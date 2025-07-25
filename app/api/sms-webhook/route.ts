@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // Validate Twilio signature
     const signature = request.headers.get("x-twilio-signature") || "";
     const authToken = process.env.TWILIO_AUTH_TOKEN!;
-    const url = `${process.env.NGROK_URL}/api/sms-webhook`;
+    const url = `https://cse-portal.com/api/sms-webhook`;
 
     const parsedBody = Object.fromEntries(
       new URLSearchParams(rawBody).entries()
