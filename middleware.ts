@@ -22,6 +22,7 @@ const publicRoutes = createRouteMatcher([
   "/api/tokens/refresh",
   "/api/glass-takeoff",
   "/modules/privacy/page.tsx",
+  "/api/sms-webhook", // Allow public access to SMS webhook
   "/",
 ]);
 
