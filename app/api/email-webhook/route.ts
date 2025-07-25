@@ -18,7 +18,7 @@ function verifyMailgunSignature(
   timestamp: string,
   signature: string
 ): boolean {
-  const apiKey = process.env.MAILGUN_SIGNING_KEY!;
+  const apiKey = process.env.MAILGUN_SIGNINGKEY!;
   console.log("Using API Key:", apiKey); // Log the API key being used
   const hmac = crypto.createHmac("sha256", apiKey);
   hmac.update(timestamp + token);
@@ -27,12 +27,6 @@ function verifyMailgunSignature(
 }
 
 export async function POST(request: NextRequest) {
-  //Authenticate and authorize the user
-  const user = await authenticate(request);
-  if (!user) return; // Response already sent in authenticate()
-
-  const isAuthorized = authorize(user, ["admin", "write"]);
-  if (isAuthorized !== true) return isAuthorized; // Response already sent in authorize()
   try {
     const formData = await request.formData();
 
