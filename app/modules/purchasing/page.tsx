@@ -33,6 +33,7 @@ type PurchaseOrder = {
   jobId: number;
   projectName: string;
   shortDescription: string;
+  longDescription?: string;
   projectManager: string;
   shipTo: string;
   amount: string;
@@ -229,6 +230,7 @@ export default function PurchaseOrderListPage() {
       poDate: po.poDate,
       projectName: po.projectName,
       shortDescription: po.shortDescription,
+      longDescription: po.longDescription,
       amount: po.amount,
       projectManager: po.projectManager,
       vendorName: po.vendorName,
@@ -335,8 +337,12 @@ export default function PurchaseOrderListPage() {
       {
         headerName: "Actions",
         field: "id",
-        flex: 1,
-        minWidth: 200,
+        pinned: "right",
+        minWidth: 260,
+        resizable: false,
+        sortable: false,
+        filter: false,
+        cellClass: "text-center",
         cellRenderer: (params: ICellRendererParams<PurchaseOrder>) => (
           <div className="flex items-center gap-2 py-1">
             <button
