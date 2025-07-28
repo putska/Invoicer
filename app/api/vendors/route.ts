@@ -3,20 +3,27 @@ import { getAllVendors, addVendor } from "../../db/actions";
 import { authenticate, authorize } from "../../../app/api/admin/helpers"; // Adjust the import path accordingly
 import { z } from "zod";
 
-// Zod schema for validating vendor data
 const vendorSchema = z.object({
   vendorName: z.string().min(1, "Vendor name is required"),
   vendorAddress: z.string().optional(),
   vendorCity: z.string().optional(),
-  //vendorState: z.string().length(2, "Vendor state must be a 2-letter code"),
   vendorState: z.string().optional(),
-  //vendorZip: z.string().min(5).max(10, "Vendor ZIP code is invalid"),
   vendorZip: z.string().optional(),
   vendorPhone: z.string().optional(),
-  vendorEmail: z.string().email().optional(),
+  // Handle email more robustly
+  vendorEmail: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val || val.trim() === "") return undefined;
+      return val;
+    })
+    .refine((val) => !val || z.string().email().safeParse(val).success, {
+      message: "Invalid email format",
+    }),
   vendorContact: z.string().optional(),
   internalVendorId: z.string().optional(),
-  taxable: z.boolean(),
+  taxable: z.boolean().optional().default(false),
 });
 
 // GET all vendors
