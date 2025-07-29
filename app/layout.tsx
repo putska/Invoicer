@@ -252,7 +252,12 @@ export default async function RootLayout({
                             </ul>
                           </div>
                         </div>
-
+                        <Link
+                          href="/modules/admin"
+                          className="px-4 py-2 rounded-md hover:bg-gray-100 font-medium"
+                        >
+                          Admin
+                        </Link>
                         <Link
                           href="https://wiki.cse-portal.com"
                           target="_blank"
