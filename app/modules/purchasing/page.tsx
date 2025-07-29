@@ -269,6 +269,7 @@ export default function PurchaseOrderListPage() {
         headerName: "PO Number",
         field: "poNumber",
         filter: "agTextColumnFilter",
+        pinned: "left",
         flex: 1,
         minWidth: 50,
       },
