@@ -994,7 +994,7 @@ export default function ExportPdfBars({
       // Group patterns by partNo and finish for better organization
       const patternsByPartNoAndFinish: Record<string, PatternGroupType[]> = {};
       for (const pattern of sortedAllPatterns) {
-        const key = `${pattern.partNo}-${pattern.finish}`;
+        const key = `${pattern.partNo}|||${pattern.finish}`;
         if (!patternsByPartNoAndFinish[key]) {
           patternsByPartNoAndFinish[key] = [];
         }
@@ -1006,7 +1006,7 @@ export default function ExportPdfBars({
         patternsByPartNoAndFinish
       )) {
         // Extract partNo and finish from the group key
-        const [partNo, finish] = groupKey.split("-");
+        const [partNo, finish] = groupKey.split("|||");
 
         // Find the longest bar in this part number + finish group
         // This ensures consistent scaling within each group

@@ -1,36 +1,32 @@
 Last Name,First Name,EID,Day,Date,Project Name,Job #,Cost Code Division,Cost Code #,Cost Code Description,Classification,Shift,Pay Type,Hours,Start Time,End Time,Breaks,Meal Breaks,Total Break Time,WorkLog Name,Payroll Notes,Payroll Attachments
-Altringer,Garth,783,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-26 - Caulking (A / B),11-26-Caulking (A/B),,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Becerra,Alvaro,1007,Monday,07/28/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,2,12:30 PM,02:30 PM,0,0,0:00,Milvia,At CCSF in the morning
-Bracamonte,Julian,1133,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Julian Bracamonte,
-Bumgarner,Thomas,1048,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,Had an appointment
-Bumgarner,Thomas,1048,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,Had an appointment
-Calderon,Lucio,1177,Monday,07/28/25,Milvia,22-624,11-11 - Welding (A / B),11-11,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
-Carswell,Kevin,1222,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Carswell,Kevin,1222,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Centeno,Paul,1158,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Centeno,Paul,1158,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Cisneros,Antonio,730,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Cisneros,Antonio,730,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Duran,Jose,1144,Monday,07/28/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
-England,Chris,787,Monday,07/28/25,South San Fransico Wellness Center,24-649,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Crew,
-Esparza,Vincent,1057,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Esparza,Vincent,1057,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Ray,712,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Ray,712,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Tom,559,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Galindo,Tom,559,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Foreman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Hart,David,839,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,High pay 6 hrs
-Hendricks,Jon,689,Monday,07/28/25,Milvia,22-624,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
-Hendricks,Kevin,1010,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,
-Johnson,Paul,983,Monday,07/28/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
-Medina,Gilbert,812,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,
-Nakagawa,Elijah,1171,Monday,07/28/25,SFO ITB Phase 2,24-647,11-33 - Install Interior Glass (H / I),11-33,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
-Noguera,Jovany,813,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
-Ramos,John,1190,Monday,07/28/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,John Ramos,
-Rodriguez,Luis,874,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Rodriguez,Luis,874,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sanchez,Jaime,710,Monday,07/28/25,SFO ITB Phase 2,24-647,11-33 - Install Interior Glass (H / I),11-33,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
-Sousa,Mike,257,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Sousa,Mike,257,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
-Velarde,David,1229,Monday,07/28/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,High pay 6 hrs
-Vierra,Rye,735,Monday,07/28/25,South San Fransico Wellness Center,24-649,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Leadman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Crew,
+Altringer,Garth,783,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-26 - Caulking (A / B),11-26-Caulking (A/B),,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,High pay 4 hrs
+Bumgarner,Thomas,1048,Tuesday,07/29/25,Congregation Emanu-El-Construction,23-646,11-25 - Install Doors (A / B),11-25,,,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,Had an appointment
+Bumgarner,Thomas,1048,Tuesday,07/29/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,,,RT,4,06:30 AM,03:00 PM,0,1,0:30,Thomas Bumgarner,Had an appointment
+Calderon,Lucio,1177,Tuesday,07/29/25,Milvia,22-624,11-11 - Welding (A / B),11-11,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
+Carswell,Kevin,1222,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Carswell,Kevin,1222,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Centeno,Paul,1158,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Centeno,Paul,1158,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Cisneros,Antonio,730,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Cisneros,Antonio,730,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Apprentice,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Duran,Jose,1144,Tuesday,07/29/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
+England,Chris,787,Tuesday,07/29/25,South San Fransico Wellness Center,24-649,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Apprentice,,RT,5,06:30 AM,12:00 PM,0,1,0:30,Crew,Left early to pickup a laser from the shop.
+Esparza,Vincent,1057,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Apprentice,,RT,3,06:00 AM,12:00 PM,0,1,0:30,Behavioral Crew,Left early-scheduled dentist appointment
+Esparza,Vincent,1057,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,2.5,06:00 AM,12:00 PM,0,1,0:30,Behavioral Crew,Left early-scheduled dentist appointment
+Galindo,Ray,712,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Ray,712,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Foreman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Galindo,Tom,559,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-37 - Supervision A/B,11-37,,Foreman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Hart,David,839,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,High pay 6 hrs
+Hendricks,Jon,689,Tuesday,07/29/25,Milvia,22-624,11-37 - Supervision A/B,11-37,,Leadman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
+Hendricks,Kevin,1010,Tuesday,07/29/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Apprentice,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Kevin Hendricks,
+Johnson,Paul,983,Tuesday,07/29/25,Milvia,22-624,11-21 - Install CW Metal (A / B),11-21,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Milvia,
+Medina,Gilbert,812,Tuesday,07/29/25,Congregation Emanu-El-Construction,23-646,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Gilbert Medina,
+Nakagawa,Elijah,1171,Tuesday,07/29/25,SFO ITB Phase 2,24-647,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Apprentice,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Noguera,Jovany,813,Tuesday,07/29/25,Congregation Emanu-El-Construction,23-646,11-26 - Caulking (A / B),11-26,,Journeyman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Jovany Noguera,
+Rodriguez,Luis,874,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Rodriguez,Luis,874,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-13 - Install Panels (A / B),11-13,,Journeyman,,RT,4,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,
+Sanchez,Jaime,710,Tuesday,07/29/25,SFO ITB Phase 2,24-647,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,sfo,
+Sousa,Mike,257,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-10 - Unload & Distribute (A / B),11-10,,Journeyman,,RT,0,06:00 AM,06:00 AM,0,0,0:00,Behavioral Crew,Off-scheduled appointment
+Velarde,David,1229,Tuesday,07/29/25,Santa Clara Medical Center - Behavioral,22-634,11-16 - Install supports / furring (A / B),11-16,,Journeyman,,RT,8,06:00 AM,02:30 PM,0,1,0:30,Behavioral Crew,High pay 6 hrs
+Vierra,Rye,735,Tuesday,07/29/25,South San Fransico Wellness Center,24-649,11-09 - Survey / Field Measure / Layout (A / B),11-09,,Leadman,,RT,8,06:30 AM,03:00 PM,0,1,0:30,Crew,
