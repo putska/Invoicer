@@ -67,12 +67,13 @@ export default function PurchaseOrderListPage() {
   // Store grid state in sessionStorage
   const saveGridState = useCallback(() => {
     if (gridApiRef.current) {
+      const columnState = gridApiRef.current.getColumnState();
+      if (!columnState) return; // Exit early if columnState is undefined
+
       const gridState = {
         page: gridApiRef.current.paginationGetCurrentPage(),
         filterModel: gridApiRef.current.getFilterModel(),
-        sortModel: gridApiRef.current
-          .getColumnState()
-          .filter((col) => col.sort !== null),
+        sortModel: columnState.filter((col) => col.sort != null),
       };
       sessionStorage.setItem("po-grid-state", JSON.stringify(gridState));
     }
@@ -163,9 +164,10 @@ export default function PurchaseOrderListPage() {
       if (gridApiRef.current) {
         const currentPage = gridApiRef.current.paginationGetCurrentPage();
         const filterModel = gridApiRef.current.getFilterModel();
-        const sortModel = gridApiRef.current
-          .getColumnState()
-          .filter((col) => col.sort !== null);
+        const columnState = gridApiRef.current.getColumnState();
+        const sortModel = columnState
+          ? columnState.filter((col) => col.sort != null)
+          : [];
 
         // Build the edit URL with grid state parameters
         const editUrl = new URL(
@@ -272,6 +274,26 @@ export default function PurchaseOrderListPage() {
         pinned: "left",
         flex: 1,
         minWidth: 50,
+        valueFormatter: ({ data }) => {
+          if (!data?.poNumber || !data?.projectManager)
+            return data?.poNumber || "";
+
+          // Extract first and last initials from project manager name
+          const nameParts = data.projectManager.trim().split(/\s+/);
+          let initials = "";
+
+          if (nameParts.length >= 2) {
+            // First initial + Last initial
+            initials =
+              nameParts[0].charAt(0).toUpperCase() +
+              nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+          } else if (nameParts.length === 1) {
+            // Just first initial if only one name
+            initials = nameParts[0].charAt(0).toUpperCase();
+          }
+
+          return `${data.poNumber}-${initials}`;
+        },
       },
       {
         headerName: "PO Date",
