@@ -173,7 +173,7 @@ export const generatePDF = async (po: {
     const pdfData = await pdfDoc.save();
 
     // Create a Blob URL and open it in a new tab
-    const blob = new Blob([pdfData], { type: "application/pdf" });
+    const blob = new Blob([pdfData as BlobPart], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
   } catch (error) {

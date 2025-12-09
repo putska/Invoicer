@@ -1295,7 +1295,7 @@ export default function ExportPdfBars({
       const pdfBytes = await pdfDoc.save();
 
       // Create download link
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const blob = new Blob([pdfBytes as BlobPart], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
